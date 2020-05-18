@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "Debug",
+      "generator": "Unix Makefiles",
+      "configurationType" : "Debug",
+      "buildRoot":  "${projectDir}/build/${name}",
+      "cmakeCommandArgs":  "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs":  ""
+    },
+    {
+      "name": "Release",
+      "generator": "Unix Makefiles",
+      "configurationType" : "Release",
+      "buildRoot": "${projectDir}/build/${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": ""
+    }
+  ]
+}
