@@ -31,3 +31,6 @@ build/
 *.exe
 *.out
 *.app
+
+# Debugger Config
+.atom-dbg.cson
