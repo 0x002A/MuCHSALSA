@@ -1,11 +1,17 @@
 #include <iostream>
 
-#include <lb/LazyBastard.h>
+#include "Application.h"
 
 auto
 main(int argc, char *argv[]) -> int
 {
-  LazyBastard lb;
-  std::cout << lb.getMagicValue() << std::endl;
+  Application app(argc, argv);
+
+  if (!app.checkIntegrity()) {
+    std::cerr << "Paths are pointing to invalid/unuseable locations" << std::endl;
+
+    return -1;
+  }
+
   return 0;
 }
