@@ -11,7 +11,7 @@ Application::Application(int argc, char* argv[])
   , m_outputPath(nullptr)
   , m_threadCount(std::thread::hardware_concurrency())
 {
-  if(argc >= 4) {
+  if (argc >= 4) {
     readParameters(argc, argv);
   } else {
     throw std::runtime_error("Invalid parameter count");

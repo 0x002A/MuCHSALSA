@@ -4,7 +4,7 @@
  * Class for parameters.
  *
  * This class holds the input parameters and provides application-specific functions.
- * Instances of this object are immutable by default and therefore thread-safe.
+ * Instances of this class are immutable by default and therefore thread-safe.
  */
 class Application {
 public:
@@ -16,22 +16,22 @@ public:
   /**
    * Copying is disallowed.
    */
-   Application(const Application& application) = delete;
+   Application(const Application& ) = delete;
 
    /**
     * Copy assignment is disallowed.
     */
-    Application& operator=(Application application) = delete;
+    Application& operator=(const Application& ) = delete;
 
   /**
    * Moving is disallowed.
    */
-   Application(Application&& application) = delete;
+   Application(Application&& ) = delete;
 
    /**
     * Move assignment is disallowed.
     */
-   Application &operator=(Application &&application) = delete;
+   Application& operator=(Application&& ) = delete;
 
    /**
     * Checks if files and directories exist and whether they are readable and writeable.
@@ -58,18 +58,22 @@ public:
     */
    const char* getOutputFilePath() const noexcept { return m_outputPath; };
 
+   /**
+    * Return the supplied level of parallelism.
+    */
+   const std::size_t getThreadCount() const noexcept { return m_threadCount; };
+
 private:
   //@{
   //** Filepath */
   char *m_contigsFilePath, *m_unitigsFilePath, *m_nanoporeFilePath, *m_outputPath;
   //@}
-  size_t m_threadCount; /*!< Number of threads to use */
+  std::size_t m_threadCount; /*!< Number of threads to use */
 
   /**
    * Parses the parameters from the command line.
    * @param argc number of parameters.
    * @param argv array of parameters.
    */
-  void
-  readParameters(int argc, char* argv[]);
+  void readParameters(int argc, char* argv[]);
 };
