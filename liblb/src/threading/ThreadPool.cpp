@@ -1,6 +1,8 @@
+#include "threading/ThreadPool.h"
+
+#include <cstddef>
 #include <utility>
 
-#include "threading/ThreadPool.h"
 #include "threading/Job.h"
 
 namespace lazybastard {
@@ -42,7 +44,7 @@ ThreadPool::addJob(Job&& job)
 {
   {
       std::unique_lock<std::mutex> lock(m_mutex);
-      m_jobs.push(std::forward<Job>(job));
+      m_jobs.push(std::move(job));
   }
   m_condition.notify_one();
 }

@@ -1,6 +1,6 @@
-#include <stdexcept>
-
 #include "threading/WaitGroup.h"
+
+#include <stdexcept>
 
 namespace lazybastard {
 namespace threading {

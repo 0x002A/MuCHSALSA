@@ -3,6 +3,7 @@
 #include <functional>
 #include <vector>
 #include <any>
+#include <cstddef>
 
 namespace lazybastard {
 namespace threading {
@@ -37,43 +38,43 @@ public:
   /**
    * Copying is disallowed.
    */
-   Job(const Job& ) = delete;
+  Job(const Job& ) = delete;
 
-   /**
-    * Copy assignment is disallowed.
-    */
-    Job& operator=(const Job& ) = delete;
+  /**
+  * Copy assignment is disallowed.
+  */
+  Job& operator=(const Job& ) = delete;
 
-    /**
-     * Move constructor.
-     */
-    Job(Job&& ) = default;
+  /**
+   * Move constructor.
+   */
+  Job(Job&& ) = default;
 
-    /**
-     * Move assignment operator.
-     */
-    Job& operator=(Job&& ) = default;
+  /**
+   * Move assignment operator.
+   */
+  Job& operator=(Job&& ) = default;
 
-    /**
-     * Boolean conversion operator.
-     */
-    operator bool() const { return m_fn.operator bool(); };
+  /**
+   * Boolean conversion operator.
+   */
+  operator bool() const { return m_fn.operator bool(); };
 
-    /**
-     * Function call operator.
-     */
-    void operator()() const { return m_fn(this); };
+  /**
+   * Function call operator.
+   */
+  void operator()() const { return m_fn(this); };
 
-    /**
-     * Getter function for job parameters.
-     * This function does not perform any range checking.
-     *
-     * @param idx The index of the parameter to be returned.
-     */
-    std::any getParam(std::size_t idx) const
-    {
-      return m_params[idx];
-    };
+  /**
+   * Getter function for job parameters.
+   * This function does not perform any range checking.
+   *
+   * @param idx The index of the parameter to be returned.
+   */
+  std::any getParam(std::size_t idx) const
+  {
+    return m_params[idx];
+  };
 private:
   std::function<void(const Job*)> m_fn; /*!< Function to be executed */
   std::vector<std::any> m_params; /*!< Function parameters */

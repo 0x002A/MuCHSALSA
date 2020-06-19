@@ -32,26 +32,26 @@ public:
   /**
    * Copying is disallowed.
    */
-   ThreadPool(const ThreadPool& ) = delete;
+  ThreadPool(const ThreadPool& ) = delete;
 
-   /**
-    * Copy assignment is disallowed.
-    */
-    ThreadPool& operator=(const ThreadPool& ) = delete;
+  /**
+  * Copy assignment is disallowed.
+  */
+  ThreadPool& operator=(const ThreadPool& ) = delete;
 
   /**
    * Moving is disallowed.
    */
-   ThreadPool(ThreadPool&& ) = delete;
+  ThreadPool(ThreadPool&& ) = delete;
 
-   /**
-    * Move assignment is disallowed.
-    */
-   ThreadPool& operator=(ThreadPool&& ) = delete;
+  /**
+   * Move assignment is disallowed.
+   */
+  ThreadPool& operator=(ThreadPool&& ) = delete;
 
-   /**
-    * Class destructor which cleans up.
-    */
+  /**
+   * Class destructor which cleans up.
+   */
   ~ThreadPool();
 
   /**

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <thread>
+#include <cstddef>
 #include <atomic>
+#include <mutex>
 #include <condition_variable>
 
 namespace lazybastard {
@@ -24,39 +25,39 @@ public:
   /**
    * Copying is disallowed.
    */
-   WaitGroup(const WaitGroup& ) = delete;
+  WaitGroup(const WaitGroup& ) = delete;
 
-   /**
-    * Copy assignment is disallowed.
-    */
-    WaitGroup& operator=(const WaitGroup& ) = delete;
+  /**
+   * Copy assignment is disallowed.
+   */
+  WaitGroup& operator=(const WaitGroup& ) = delete;
 
   /**
    * Moving is disallowed.
    */
-   WaitGroup(WaitGroup&& ) = delete;
+  WaitGroup(WaitGroup&& ) = delete;
 
-   /**
-    * Move assignment is disallowed.
-    */
-   WaitGroup& operator=(WaitGroup&& ) = delete;
+  /**
+   * Move assignment is disallowed.
+   */
+  WaitGroup& operator=(WaitGroup&& ) = delete;
 
-   /**
-    * Raises the job counter by the number supplied as argument.
-    *
-    * @param newJobs The number of jobs to raise the job counter by.
-    */
-   void add(std::size_t newJobs);
+  /**
+   * Raises the job counter by the number supplied as argument.
+   *
+   * @param newJobs The number of jobs to raise the job counter by.
+   */
+  void add(std::size_t newJobs);
 
-   /**
-    * Notifies the WaitGroup that a job has completed.
-    */
-   void done();
+  /**
+   * Notifies the WaitGroup that a job has completed.
+   */
+  void done();
 
-   /**
-    * Blocks the caller until all jobs assigned to the WaitGroup completed.
-    */
-   void wait();
+  /**
+   * Blocks the caller until all jobs assigned to the WaitGroup completed.
+   */
+  void wait();
 private:
   std::atomic<bool> m_waitLock{false}; /*!< Toggle marking the WaitGroup as waiting and locking the add function */
   std::atomic<std::size_t> m_jobCount{0}; /*!< Number of jobs assigned */
