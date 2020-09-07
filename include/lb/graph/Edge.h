@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "Util.h"
 #include "graph/Vertex.h"
@@ -10,56 +11,61 @@ namespace lazybastard {
 namespace graph {
 
 /**
- * Class representing a edge.
+ * Class representing an Edge.
  *
  * An Edge is assigned to two instances of Vertex.
  * Instances of this class are immutable by default and therefore thread-safe.
  */
-class Edge  {
+class Edge {
 public:
   /**
    * Class constructor which creates a new instance.
    *
-   * @param vertices pair of shared pointers to the Vertex instaces connected by the Edge
+   * @param vertices pair of shared pointers to the Vertex instaces connected by
+   * the Edge
    */
-  Edge(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>>&& vertices)
-    : m_vertices(std::move(lazybastard::util::sortPairOfSharedPointers(vertices))) {};
+  Edge(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &&vertices)
+      : m_vertices(std::move(lazybastard::util::sortPair(vertices))){};
 
   /**
    * Copying is disallowed.
    */
-  Edge(const Edge& ) = delete;
+  Edge(const Edge &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Edge& operator=(const Edge& ) = delete;
+  Edge &operator=(const Edge &) = delete;
 
   /**
    * Moving is disallowed.
    */
-  Edge(Edge&& ) = delete;
+  Edge(Edge &&) = delete;
 
   /**
    * Move assignment is disallowed.
    */
-  Edge& operator=(Edge&& ) = delete;
+  Edge &operator=(Edge &&) = delete;
 
   /**
-   * Returns the vertices assigned to the edge.
+   * Getter for the assigned vertices.
+   *
+   * @return The assigned vertices
    */
   std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> getVertices() const { return m_vertices; };
 
   /**
-   * Generates an edge identifier.
+   * Generates identifier based on two identifiers of a Vertex.
    *
-   * @param idV1 identifier of the first vertex
-   * @param idV2 identifier of the second vertex
+   * @param idV1 identifier of the first Vertex
+   * @param idV2 identifier of the second Vertex
+   * @return The identifier
    */
-   static std::string getEdgeID(std::string idV1, std::string idV2) { return idV1 + "," + idV1; };
+  static std::string getEdgeID(std::string idV1, std::string idV2) { return idV1 + "," + idV1; };
+
 private:
-  std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> m_vertices; /*!< Assigned vertices */
+  std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> m_vertices; /*!< Assigned Vertex instances */
 };
 
-}
-}
+} // namespace graph
+} // namespace lazybastard

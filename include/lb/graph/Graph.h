@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "graph/Edge.h"
 
@@ -27,32 +28,38 @@ public:
    *
    * @param spVertex the shared pointer to Vertex to be added to the Graph
    */
-  void addVertex(std::shared_ptr<Vertex>&& spVertex);
+  void addVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
    * Returns a shared pointer to the requested Vertex instance if it could be found.
    * If no result could be found the shared pointer will be initialized with nullptr.
    *
    * @param nanoporeID the id of the Vertex to be returned
+   * @return A shared pointer to the Vertex if found
    */
-  std::shared_ptr<Vertex> getVertex(const std::string& nanoporeID);
+  std::shared_ptr<Vertex> getVertex(const std::string &nanoporeID);
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    *
-   * @param upEdge the unique pointer to Edge to be added to the Graph
+   * @param vertexIDs the IDs of the vertices to be connected by an Edge
    */
-  void addEdge(const std::pair<std::string, std::string>& vertexIDs);
+  void addEdge(const std::pair<std::string, std::string> &vertexIDs);
 
   /**
-   * Returns the number of vertices attached to the graph.
+   * Getter for the number of Vertex instances attached to the Graph.
+   *
+   * @return The number of Vertex instances attached to the Graph
    */
   const std::size_t getOrder();
 
   /**
-   * Returns the number of edge attached to the graph.
+   * Getter for the number of Edge instances attached to the Graph.
+   *
+   * @return The number of Edge instances attached to the Graph
    */
   const std::size_t getSize();
+
 private:
   /**
    * Adds an Edge to this Graph.
@@ -60,31 +67,28 @@ private:
    *
    * @param upEdge the unique pointer to Edge to be added to the Graph
    */
-  void addEdgeInternal(std::unique_ptr<Edge>&& upEdge);
+  void addEdgeInternal(std::unique_ptr<Edge> &&upEdge);
 
-  std::unordered_map<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< Map containing all the vertices */
-  std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Edge>>> m_adjacencyList; /*!< Map containing all the edges */
-  std::size_t m_edgeCount; /*!< Number of edges attached to the graph */
-  std::mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the vertex map */
-  std::mutex m_mutexEdge; /*!< Mutex for securing the parallel use of the edge map */
+  std::unordered_map<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< Map containing all the Vertex instances */
+  std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Edge>>>
+      m_adjacencyList;      /*!< Map containing all the Edge instances */
+  std::size_t m_edgeCount;  /*!< Number of Edge instances attached to the Graph */
+  std::mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the Vertex map */
+  std::mutex m_mutexEdge;   /*!< Mutex for securing the parallel use of the Edge map */
 };
 
 // Inline definitions
-inline const std::size_t
-Graph::getOrder()
-{
+inline const std::size_t Graph::getOrder() {
   std::scoped_lock<std::mutex> lck(m_mutexVertex);
 
   return m_vertices.size();
 }
 
-inline const std::size_t
-Graph::getSize()
-{
+inline const std::size_t Graph::getSize() {
   std::scoped_lock<std::mutex> lck(m_mutexEdge);
 
   return m_edgeCount;
 }
 
-}
-}
+} // namespace graph
+} // namespace lazybastard

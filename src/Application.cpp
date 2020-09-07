@@ -1,16 +1,11 @@
-#include <thread>
-#include <stdexcept>
-#include <filesystem>
-
 #include "Application.h"
 
-Application::Application(int argc, char* argv[])
-  : m_contigsFilePath(nullptr)
-  , m_unitigsFilePath(nullptr)
-  , m_nanoporeFilePath(nullptr)
-  , m_outputPath(nullptr)
-  , m_threadCount(std::thread::hardware_concurrency())
-{
+#include <filesystem>
+#include <gsl/span>
+#include <stdexcept>
+#include <thread>
+
+Application::Application(int argc, char *argv[]) : m_threadCount(std::thread::hardware_concurrency()) {
   if (argc >= 4) {
     readParameters(argc, argv);
   } else {
@@ -18,32 +13,28 @@ Application::Application(int argc, char* argv[])
   }
 }
 
-bool
-Application::checkIntegrity() const
-{
+bool Application::checkIntegrity() const {
   std::filesystem::path p_contigs = m_contigsFilePath;
   std::filesystem::path p_unitigs = m_unitigsFilePath;
   std::filesystem::path p_nanopore = m_nanoporeFilePath;
   std::filesystem::path p_output = m_outputPath;
 
-  const auto exists = std::filesystem::exists(p_contigs)
-                      && std::filesystem::exists(p_unitigs)
-                      && std::filesystem::exists(p_nanopore)
-                      && std::filesystem::exists(p_output);
+  const auto exists = std::filesystem::exists(p_contigs) && std::filesystem::exists(p_unitigs) &&
+                      std::filesystem::exists(p_nanopore) && std::filesystem::exists(p_output);
 
   return exists;
 }
 
-void
-Application::readParameters(int argc, char* argv[])
-{
-  m_contigsFilePath = argv[1];
-  m_unitigsFilePath = argv[2];
-  m_nanoporeFilePath = argv[3];
-  m_outputPath = argv[4];
+void Application::readParameters(int argc, char *argv[]) {
+  gsl::span<char *> args = {argv, static_cast<std::size_t>(argc)};
+
+  m_contigsFilePath = args[1];
+  m_unitigsFilePath = args[2];
+  m_nanoporeFilePath = args[3];
+  m_outputPath = args[4];
 
   // Optional one
   if (argc == 6) {
-    m_threadCount = std::atoi(argv[5]);
+    m_threadCount = std::stoi(args[5]);
   }
 }

@@ -1,16 +1,14 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
-#include <lb/threading/ThreadPool.h>
+#include <lb/BlastFileReader.h>
 #include <lb/graph/Graph.h>
 #include <lb/matching/MatchMap.h>
-#include <lb/BlastFileReader.h>
+#include <lb/threading/ThreadPool.h>
 
 #include "Application.h"
 
-auto
-main(int argc, char *argv[]) -> int
-{
+auto main(int argc, char *argv[]) -> int {
   Application app(argc, argv);
 
   if (!app.checkIntegrity()) {
@@ -25,7 +23,7 @@ main(int argc, char *argv[]) -> int
 
   // Read BLAST file
   auto graph = lazybastard::graph::Graph();
-  auto matchMap = lazybastard::matching::MatchMap(&graph);
+  auto matchMap = lazybastard::matching::MatchMap(&threadPool, &graph);
   if (std::ifstream inputStream{app.getContigsFilePath(), std::ios::binary | std::ios::in}) {
     auto blastReader = lazybastard::BlastFileReader(&threadPool, inputStream, &graph, &matchMap);
     blastReader.read();
@@ -35,7 +33,7 @@ main(int argc, char *argv[]) -> int
     return -1;
   }
 
-  matchMap.calculateEgdes(&threadPool, &graph);
+  matchMap.calculateEgdes();
 
   std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
 

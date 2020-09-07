@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <thread>
-#include <queue>
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <vector>
 
 namespace lazybastard {
 namespace threading {
@@ -32,22 +33,22 @@ public:
   /**
    * Copying is disallowed.
    */
-  ThreadPool(const ThreadPool& ) = delete;
+  ThreadPool(const ThreadPool &) = delete;
 
   /**
-  * Copy assignment is disallowed.
-  */
-  ThreadPool& operator=(const ThreadPool& ) = delete;
+   * Copy assignment is disallowed.
+   */
+  ThreadPool &operator=(const ThreadPool &) = delete;
 
   /**
    * Moving is disallowed.
    */
-  ThreadPool(ThreadPool&& ) = delete;
+  ThreadPool(ThreadPool &&) = delete;
 
   /**
    * Move assignment is disallowed.
    */
-  ThreadPool& operator=(ThreadPool&& ) = delete;
+  ThreadPool &operator=(ThreadPool &&) = delete;
 
   /**
    * Class destructor which cleans up.
@@ -55,18 +56,19 @@ public:
   ~ThreadPool();
 
   /**
-   * Adds a job to the queue of the thread pool.
+   * Adds a Job to the queue of the thread pool.
    *
-   * @param job The job to be added.
+   * @param job The Job to be added.
    */
-  void addJob(Job&& job);
+  void addJob(Job &&job);
+
 private:
-  std::vector<std::thread> m_threads;  /*!< Vector of threads available */
-  std::queue<Job> m_jobs;  /*!< Queue of jobs to be executed */
-  std::mutex m_mutex;  /*!< Mutex for securing the parallel use of the queue */
-  std::atomic<bool> m_terminatePool{false};  /*!< Indicator whether the thread pool is going to be terminated */
-  std::condition_variable m_condition  /*!< Conditional varibale used to notify thread about new jobs */;
+  std::vector<std::thread> m_threads;       /*!< Vector of threads available */
+  std::queue<Job> m_jobs;                   /*!< Queue of Jobs to be executed */
+  std::mutex m_mutex;                       /*!< Mutex for securing the parallel use of the queue */
+  std::atomic<bool> m_terminatePool{false}; /*!< Indicator whether the ThreadPool is going to be terminated */
+  std::condition_variable m_condition;      /*!< Conditional varibale used to notify thread about new Jobs */
 };
 
-}
-}
+} // namespace threading
+} // namespace lazybastard
