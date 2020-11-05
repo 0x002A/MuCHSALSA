@@ -5,8 +5,7 @@
 #include <cstddef>
 #include <mutex>
 
-namespace lazybastard {
-namespace threading {
+namespace lazybastard::threading {
 
 /**
  * Class enabling a thread to block until a bunch of jobs have completed.
@@ -65,5 +64,4 @@ private:
   std::condition_variable m_cv;           /*!< Conditional variable used to notify threads */
 };
 
-} // namespace threading
-} // namespace lazybastard
+} // namespace lazybastard::threading

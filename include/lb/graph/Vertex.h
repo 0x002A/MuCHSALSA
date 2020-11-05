@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace lazybastard {
-namespace graph {
+namespace lazybastard::graph {
 
 /**
  * Class representing a vertex.
@@ -97,5 +96,4 @@ private:
   void addMetaDatum(){};
 };
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

@@ -5,13 +5,12 @@
 #include "Util.h"
 #include "graph/Vertex.h"
 
-namespace lazybastard {
-namespace graph {
+namespace lazybastard::graph {
 
 void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   lazybastard::util::check_pointers(spVertex.get());
   std::scoped_lock<std::mutex> lck(m_mutexVertex);
-  m_vertices.emplace(spVertex.get()->getID(), std::move(spVertex));
+  m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 
 std::shared_ptr<Vertex> Graph::getVertex(const std::string &nanoporeID) {
@@ -19,7 +18,7 @@ std::shared_ptr<Vertex> Graph::getVertex(const std::string &nanoporeID) {
 
   auto iter = m_vertices.find(nanoporeID);
 
-  return iter != m_vertices.end() ? iter->second.get()->getSharedPtr() : nullptr;
+  return iter != m_vertices.end() ? iter->second->getSharedPtr() : nullptr;
 }
 
 void Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
@@ -49,5 +48,4 @@ void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
   }
 }
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

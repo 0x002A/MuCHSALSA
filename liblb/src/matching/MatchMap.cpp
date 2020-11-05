@@ -12,8 +12,7 @@
 // Constants
 constexpr std::size_t TH_OVERLAP = 100;
 
-namespace lazybastard {
-namespace matching {
+namespace lazybastard::matching {
 
 void MatchMap::addVertexMatch(const std::string &nanoporeID, const std::string &illuminaID,
                               std::shared_ptr<VertexMatch> &&spMatch) {
@@ -69,9 +68,9 @@ void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
   const auto scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
 
   for (auto outerIter = scaffold.begin(); outerIter != scaffold.end(); ++outerIter) {
-    const auto outerMatch = outerIter->second.get();
+    auto *const outerMatch = outerIter->second.get();
     for (auto innerIter = std::next(outerIter, 1); innerIter != scaffold.end(); ++innerIter) {
-      const auto innerMatch = innerIter->second.get();
+      auto *const innerMatch = innerIter->second.get();
       const auto overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
 
@@ -98,5 +97,4 @@ void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
   std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
 }
 
-} // namespace matching
-} // namespace lazybastard
+} // namespace lazybastard::matching

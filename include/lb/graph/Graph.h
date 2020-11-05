@@ -8,8 +8,7 @@
 
 #include "graph/Edge.h"
 
-namespace lazybastard {
-namespace graph {
+namespace lazybastard::graph {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 class Vertex;
@@ -90,5 +89,4 @@ inline const std::size_t Graph::getSize() {
   return m_edgeCount;
 }
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

@@ -1,4 +1,5 @@
 #include <fstream>
+#include <gsl/span>
 #include <iostream>
 
 #include <lb/BlastFileReader.h>
@@ -9,7 +10,8 @@
 #include "Application.h"
 
 auto main(int argc, char *argv[]) -> int {
-  Application app(argc, argv);
+  gsl::span<char *> args = {argv, static_cast<std::size_t>(argc)};
+  Application app(args);
 
   if (!app.checkIntegrity()) {
     std::cerr << "Paths are pointing to invalid/unuseable locations" << std::endl;
