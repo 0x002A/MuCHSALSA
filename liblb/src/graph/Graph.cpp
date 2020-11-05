@@ -9,12 +9,13 @@ namespace lazybastard::graph {
 
 void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   lazybastard::util::check_pointers(spVertex.get());
-  std::scoped_lock<std::mutex> lck(m_mutexVertex);
+  std::unique_lock<std::shared_mutex> lk(m_mutexVertex);
+  
   m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 
-std::shared_ptr<Vertex> Graph::getVertex(const std::string &nanoporeID) {
-  std::scoped_lock<std::mutex> lck(m_mutexVertex);
+std::shared_ptr<Vertex> Graph::getVertex(const std::string &nanoporeID) const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   auto iter = m_vertices.find(nanoporeID);
 
@@ -22,7 +23,7 @@ std::shared_ptr<Vertex> Graph::getVertex(const std::string &nanoporeID) {
 }
 
 void Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
-  std::scoped_lock<std::mutex> lck(m_mutexEdge);
+  std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
   auto pV1 = getVertex(vertexIDs.first);
   auto pV2 = getVertex(vertexIDs.second);
 
