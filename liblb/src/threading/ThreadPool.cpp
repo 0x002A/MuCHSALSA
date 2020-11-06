@@ -4,8 +4,7 @@
 
 #include "threading/Job.h"
 
-namespace lazybastard {
-namespace threading {
+namespace lazybastard::threading {
 
 ThreadPool::ThreadPool(std::size_t threadCount) : m_threads(std::vector<std::thread>(threadCount)) {
   auto threadLoop = [this]() {
@@ -50,5 +49,4 @@ ThreadPool::~ThreadPool() {
   }
 }
 
-} // namespace threading
-} // namespace lazybastard
+} // namespace lazybastard::threading

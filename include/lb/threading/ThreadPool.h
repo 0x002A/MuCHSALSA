@@ -8,12 +8,9 @@
 #include <thread>
 #include <vector>
 
-namespace lazybastard {
-namespace threading {
+#include "threading/Job.h"
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-class Job;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+namespace lazybastard::threading {
 
 /**
  * Class for thread management.
@@ -70,5 +67,4 @@ private:
   std::condition_variable m_condition;      /*!< Conditional varibale used to notify thread about new Jobs */
 };
 
-} // namespace threading
-} // namespace lazybastard
+} // namespace lazybastard::threading

@@ -5,8 +5,7 @@
 #include <functional>
 #include <vector>
 
-namespace lazybastard {
-namespace threading {
+namespace lazybastard::threading {
 
 /**
  * Class representing a job.
@@ -96,5 +95,4 @@ private:
   void addParam(){};
 };
 
-} // namespace threading
-} // namespace lazybastard
+} // namespace lazybastard::threading

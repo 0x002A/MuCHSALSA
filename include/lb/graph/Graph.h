@@ -2,14 +2,13 @@
 
 #include <cstddef>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
 #include "graph/Edge.h"
 
-namespace lazybastard {
-namespace graph {
+namespace lazybastard::graph {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 class Vertex;
@@ -37,7 +36,7 @@ public:
    * @param nanoporeID the id of the Vertex to be returned
    * @return A shared pointer to the Vertex if found
    */
-  std::shared_ptr<Vertex> getVertex(const std::string &nanoporeID);
+  std::shared_ptr<Vertex> getVertex(const std::string &nanoporeID) const;
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
@@ -51,14 +50,14 @@ public:
    *
    * @return The number of Vertex instances attached to the Graph
    */
-  const std::size_t getOrder();
+  const std::size_t getOrder() const;
 
   /**
    * Getter for the number of Edge instances attached to the Graph.
    *
    * @return The number of Edge instances attached to the Graph
    */
-  const std::size_t getSize();
+  const std::size_t getSize() const;
 
 private:
   /**
@@ -73,22 +72,21 @@ private:
   std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Edge>>>
       m_adjacencyList;      /*!< Map containing all the Edge instances */
   std::size_t m_edgeCount;  /*!< Number of Edge instances attached to the Graph */
-  std::mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the Vertex map */
-  std::mutex m_mutexEdge;   /*!< Mutex for securing the parallel use of the Edge map */
+  mutable std::shared_mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the Vertex map */
+  mutable std::shared_mutex m_mutexEdge;   /*!< Mutex for securing the parallel use of the Edge map */
 };
 
 // Inline definitions
-inline const std::size_t Graph::getOrder() {
-  std::scoped_lock<std::mutex> lck(m_mutexVertex);
+inline const std::size_t Graph::getOrder() const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   return m_vertices.size();
 }
 
-inline const std::size_t Graph::getSize() {
-  std::scoped_lock<std::mutex> lck(m_mutexEdge);
+inline const std::size_t Graph::getSize() const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexEdge);
 
   return m_edgeCount;
 }
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

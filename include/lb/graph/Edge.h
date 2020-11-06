@@ -7,8 +7,7 @@
 #include "Util.h"
 #include "graph/Vertex.h"
 
-namespace lazybastard {
-namespace graph {
+namespace lazybastard::graph {
 
 /**
  * Class representing an Edge.
@@ -67,5 +66,4 @@ private:
   std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> m_vertices; /*!< Assigned Vertex instances */
 };
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

@@ -2,8 +2,7 @@
 
 #include <stdexcept>
 
-namespace lazybastard {
-namespace threading {
+namespace lazybastard::threading {
 
 void WaitGroup::add(std::size_t newJobs) {
   if (m_waitLock) {
@@ -27,5 +26,4 @@ void WaitGroup::wait() {
   m_cv.wait(lck, [this] { return m_jobCount.load() == 0; });
 }
 
-} // namespace threading
-} // namespace lazybastard
+} // namespace lazybastard::threading

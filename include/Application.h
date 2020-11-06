@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <gsl/span>
 #include <string>
 
 /**
@@ -14,7 +15,7 @@ public:
   /**
    * Class constructor which creates a new instance.
    */
-  Application(int argc, char *argv[]);
+  Application(const gsl::span<char *>& args);
 
   /**
    * Copying is disallowed.
@@ -89,5 +90,5 @@ private:
    * @param argc number of parameters.
    * @param argv array of parameters.
    */
-  void readParameters(int argc, char *argv[]);
+  void readParameters(const gsl::span<char *>& args);
 };
