@@ -20,7 +20,7 @@ Application::Application(const gsl::span<char *> &args) : m_threadCount(std::thr
   }
 }
 
-bool Application::checkIntegrity() const {
+auto Application::checkIntegrity() const -> bool {
   std::filesystem::path contigsPath = m_contigsFilePath;
   std::filesystem::path unitigsPath = m_unitigsFilePath;
   std::filesystem::path nanoporePath = m_nanoporeFilePath;

@@ -36,7 +36,7 @@ public:
    * @param nanoporeID the id of the Vertex to be returned
    * @return A shared pointer to the Vertex if found
    */
-  std::shared_ptr<Vertex> getVertex(const std::string &nanoporeID) const;
+  auto getVertex(const std::string &nanoporeID) const;
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.

@@ -34,9 +34,10 @@ set(TARGET "lb")
 file(GLOB_RECURSE SOURCES RELATIVE "${CMAKE_SOURCE_DIR}/lib${TARGET}" "src/*.cpp" "src/*.h")
 
 add_library(${TARGET} STATIC ${SOURCES})
+target_compile_options(${TARGET} PUBLIC -stdlib=libc++)
 target_include_directories(${TARGET} PUBLIC "${CMAKE_SOURCE_DIR}/include/${TARGET}")
 target_include_directories(${TARGET} PUBLIC "${gsl_SOURCE_DIR}/include")
-target_link_libraries(${TARGET} Threads::Threads)
+target_link_libraries(${TARGET} Threads::Threads c++ c++abi)
 
 add_custom_target(doc
     COMMAND doxygen ${doxyfile}
@@ -61,21 +62,25 @@ set_target_properties(
     PROPERTIES
          CXX_CLANG_TIDY ""
 )
+target_compile_options(gtest PUBLIC -stdlib=libc++)
 set_target_properties(
     "gtest_main"
     PROPERTIES
          CXX_CLANG_TIDY ""
 )
+target_compile_options(gtest_main PUBLIC -stdlib=libc++)
 set_target_properties(
     "gmock"
     PROPERTIES
          CXX_CLANG_TIDY ""
 )
+target_compile_options(gmock PUBLIC -stdlib=libc++)
 set_target_properties(
     "gmock_main"
     PROPERTIES
          CXX_CLANG_TIDY ""
 )
+target_compile_options(gmock_main PUBLIC -stdlib=libc++)
 
 project("${TARGET}_test" CXX)
 
@@ -88,6 +93,6 @@ set_target_properties(
          CXX_CLANG_TIDY ""
 )
 target_include_directories("${TARGET}_test" PUBLIC "${CMAKE_SOURCE_DIR}/include/${TARGET}")
-target_link_libraries("${TARGET}_test" ${TARGET} gtest)
+target_link_libraries("${TARGET}_test" ${TARGET} gtest c++ c++abi)
 
 add_test(NAME "${TARGET}_test" COMMAND "${TARGET}_test")

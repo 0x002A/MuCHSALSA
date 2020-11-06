@@ -41,7 +41,7 @@ public:
    * Checks if files and directories exist and whether they are readable and
    * writeable.
    */
-  bool checkIntegrity() const;
+  auto checkIntegrity() const -> bool;
 
   /**
    * Getter for the supplied path to the file containing the contigs.
