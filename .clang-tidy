@@ -1,18 +1,9 @@
 Checks:
 '*,
--cppcoreguidelines-pro-bounds-array-to-pointer-decay,
--cppcoreguidelines-pro-bounds-constant-array-index,
--cppcoreguidelines-pro-type-vararg,
--fuchsia-*,
--google-readability-todo,
--google-runtime-references,
--hicpp-braces-around-statements,
--hicpp-no-array-decay,
--hicpp-vararg,
+-fuchsia-default-arguments-calls,
+-fuchsia-trailing-return,
 -modernize-use-trailing-return-type,
--readability-avoid-const-params-in-decls,
--readability-simplify-boolean-expr,
--llvmlibc-*
+-llvmlibc-*,
 '
 
 InheritParentConfig: true
@@ -40,6 +31,9 @@ CheckOptions:
   - { key: readability-identifier-naming.EnumConstantPrefix,           value: 'c' }
   - { key: readability-identifier-naming.FunctionCase,                 value: camelBack }
   - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: 1 } # structs are allowed
+  - { key: cert-dcl37-c.AllowedIdentifiers,				  value: __coro_gro;__promise } # coroutines
+  - { key: cert-dcl51-cpp.AllowedIdentifiers,				  value: __coro_gro;__promise } # coroutines
+  - { key: bugprone-reserved-identifier.AllowedIdentifiers,		  value: __coro_gro;__promise } # coroutines
   
 FormatStyle: file
 

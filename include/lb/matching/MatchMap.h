@@ -32,7 +32,7 @@ struct VertexMatch {
   const float rRatio;                      /*!< Read ratio */
   const bool direction;                    /*!< Read direction */
   const std::size_t score;                 /*!< Score (number of matches) */
-  const bool thresholdsPassed;             /*!< Did the match pass the thresholds concering
+  const bool thresholdsPassed;             /*!< Did the match pass the thresholds concerning
                                               length and match count */
 };
 
