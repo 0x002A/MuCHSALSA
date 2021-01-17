@@ -1,16 +1,15 @@
 #pragma once
 
 #include <cstddef>
+#include <iosfwd>
 #include <memory>
 #include <shared_mutex>
-#include <string>
 #include <unordered_map>
-
-#include "graph/Edge.h"
 
 namespace lazybastard::graph {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
+class Edge;
 class Vertex;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -22,6 +21,36 @@ class Vertex;
  */
 class Graph {
 public:
+  /**
+   * Constructor.
+   */
+  Graph();
+
+  /**
+   * Destructor.
+   */
+  ~Graph();
+
+  /**
+   * Moving is disallowed.
+   */
+  Graph(const Graph &) = delete;
+
+  /**
+   * Copying is disallowed.
+   */
+  Graph(Graph &&) = delete;
+
+  /**
+   * Move assignment is disallowed.
+   */
+  Graph &operator=(Graph &&) = delete;
+
+  /**
+   * Copy assignment is disallowed.
+   */
+  Graph &operator=(const Graph &) = delete;
+
   /**
    * Adds a shared pointer pointing to a Vertex to this Graph.
    *
@@ -50,14 +79,14 @@ public:
    *
    * @return The number of Vertex instances attached to the Graph
    */
-  const std::size_t getOrder() const;
+  std::size_t getOrder() const;
 
   /**
    * Getter for the number of Edge instances attached to the Graph.
    *
    * @return The number of Edge instances attached to the Graph
    */
-  const std::size_t getSize() const;
+  std::size_t getSize() const;
 
 private:
   /**
@@ -70,20 +99,20 @@ private:
 
   std::unordered_map<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< Map containing all the Vertex instances */
   std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Edge>>>
-      m_adjacencyList;      /*!< Map containing all the Edge instances */
-  std::size_t m_edgeCount;  /*!< Number of Edge instances attached to the Graph */
+      m_adjacencyList;                     /*!< Map containing all the Edge instances */
+  std::size_t m_edgeCount{};               /*!< Number of Edge instances attached to the Graph */
   mutable std::shared_mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the Vertex map */
   mutable std::shared_mutex m_mutexEdge;   /*!< Mutex for securing the parallel use of the Edge map */
 };
 
 // Inline definitions
-inline const std::size_t Graph::getOrder() const {
+inline std::size_t Graph::getOrder() const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   return m_vertices.size();
 }
 
-inline const std::size_t Graph::getSize() const {
+inline std::size_t Graph::getSize() const {
   std::shared_lock<std::shared_mutex> lck(m_mutexEdge);
 
   return m_edgeCount;

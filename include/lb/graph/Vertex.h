@@ -3,6 +3,7 @@
 #include <any>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace lazybastard::graph {
@@ -23,7 +24,14 @@ public:
    * @param id The unique id of the vertex
    * @param metaData The meta data of the vertex
    */
-  template <typename... Types> Vertex(std::string id, Types... metaData) : m_id(id) { addMetaDatum(metaData...); };
+  template <typename... Types> explicit Vertex(std::string id, Types... metaData) : m_id(std::move(id)) {
+    addMetaDatum(metaData...);
+  };
+
+  /**
+   * Destructor.
+   */
+  ~Vertex() = default;
 
   /**
    * Copying is disallowed.

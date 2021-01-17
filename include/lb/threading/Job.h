@@ -1,8 +1,8 @@
 #pragma once
 
 #include <any>
-#include <cstddef>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace lazybastard::threading {
@@ -21,13 +21,19 @@ public:
   Job() = default;
 
   /**
+   * Destructor.
+   */
+  ~Job() = default;
+
+  /**
    * Class constructor which creates a new instance.
    *
    * @tparam Types the list of function parameter types
    * @param fn The function to be executed
    * @param params The function parameters
    */
-  template <typename... Types> Job(std::function<void(const Job *)> fn, Types... params) : m_fn(fn) {
+  template <typename... Types>
+  explicit Job(std::function<void(const Job *)> fn, Types... params) : m_fn(std::move(fn)) {
     addParam(params...);
   };
 
@@ -56,7 +62,7 @@ public:
    *
    * @return Whether the Job holds a function
    */
-  operator bool() const { return m_fn.operator bool(); };
+  explicit operator bool() const { return m_fn.operator bool(); };
 
   /**
    * Function call operator.
@@ -70,7 +76,7 @@ public:
    * @param idx The index of the parameter to be returned.
    * @return The parameter value
    */
-  std::any getParam(std::size_t idx) const { return m_params[idx]; };
+  [[nodiscard]] std::any getParam(std::size_t idx) const { return m_params[idx]; };
 
 private:
   std::function<void(const Job *)> m_fn; /*!< Function to be executed */

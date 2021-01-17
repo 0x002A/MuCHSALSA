@@ -1,5 +1,6 @@
 Checks:
 '*,
+-fuchsia-overloaded-operator,
 -fuchsia-default-arguments-calls,
 -fuchsia-trailing-return,
 -modernize-use-trailing-return-type,

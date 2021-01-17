@@ -4,6 +4,7 @@
 #include <iterator>
 
 #include "Util.h"
+#include "graph/Edge.h"
 #include "graph/Graph.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
@@ -50,7 +51,7 @@ void MatchMap::addEdgeMatch(const std::string &edgeID, const std::string &illumi
   illuminaIDs->second.insert(std::make_pair(illuminaID, std::move(spMatch)));
 }
 
-void MatchMap::calculateEgdes() {
+void MatchMap::calculateEdges() {
   threading::WaitGroup wg;
   const auto jobFn = [this](const threading::Job *pJob) { processScaffold(pJob); };
 
@@ -76,7 +77,7 @@ void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
 
       if (overlap.first <= overlap.second && overlap.second - overlap.first > TH_OVERLAP) {
         const auto direction = outerMatch->direction == innerMatch->direction;
-        const auto thresholdsPassed = outerMatch->thresholdsPassed == innerMatch->thresholdsPassed;
+        const auto isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
         const auto outerLength = outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1;
         const auto innerLength = innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1;
         const auto commonLength = overlap.second - overlap.first + 1;
@@ -84,12 +85,11 @@ void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
         const auto innerScore = innerMatch->score * commonLength / innerLength;
         const auto sumScore = outerScore + innerScore;
 
-        m_pGraph->addEdge(std::make_pair(innerIter->first, outerIter->first));
+        auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
+        m_pGraph->addEdge(vertexIDs);
 
-        addEdgeMatch(
-            lazybastard::graph::Edge::getEdgeID(innerIter->first, outerIter->first),
-            std::any_cast<std::string>(pJob->getParam(1)),
-            lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, thresholdsPassed));
+        addEdgeMatch(lazybastard::graph::Edge::getEdgeID(vertexIDs), std::any_cast<std::string>(pJob->getParam(1)),
+                     lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary));
       }
     }
   }

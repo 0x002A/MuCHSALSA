@@ -1,16 +1,21 @@
 #include "graph/Graph.h"
 
 #include <stdexcept>
+#include <string>
 
 #include "Util.h"
+#include "graph/Edge.h"
 #include "graph/Vertex.h"
 
 namespace lazybastard::graph {
 
+Graph::Graph() = default;
+Graph::~Graph() = default;
+
 void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   lazybastard::util::check_pointers(spVertex.get());
   std::unique_lock<std::shared_mutex> lk(m_mutexVertex);
-  
+
   m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 

@@ -7,22 +7,21 @@ namespace lazybastard::coroutine {
 
 // Based on code found in:
 // Rainer Grimm, Concurrency with Modern C++ (Leanpub, 2017 - 2019), 207-209.
-template <typename T>
-class Generator {
+template <typename T> class generator {
 public:
   struct promise_type;
   using handle_type = std::experimental::coroutine_handle<promise_type>;
 
-  explicit Generator(handle_type ht) : coroutine(ht) {}
-  Generator(const Generator &) = delete;
-  Generator(Generator &&other) noexcept : coroutine(other.coroutine) { other.coroutine = nullptr; }
-  Generator &operator=(const Generator &) = delete;
-  Generator &operator=(Generator &&other) noexcept {
+  explicit generator(handle_type ht) : coroutine(ht) {}
+  generator(const generator &) = delete;
+  generator(generator &&other) noexcept : coroutine(other.coroutine) { other.coroutine = nullptr; }
+  generator &operator=(const generator &) = delete;
+  generator &operator=(generator &&other) noexcept {
     coroutine = other.coroutine;
     other.coroutine = nullptr;
     return *this;
   }
-  ~Generator() {
+  ~generator() {
     if (coroutine) {
       coroutine.destroy();
     }
@@ -48,7 +47,7 @@ public:
 
     auto final_suspend() noexcept { return std::experimental::suspend_always{}; }
 
-    auto get_return_object() { return Generator{handle_type::from_promise(*this)}; }
+    auto get_return_object() { return generator{handle_type::from_promise(*this)}; }
 
     auto return_void() { return std::experimental::suspend_never{}; }
 
@@ -61,7 +60,7 @@ public:
 
   private:
     T current_value{};
-    friend class Generator;
+    friend class generator;
   };
 
 private:

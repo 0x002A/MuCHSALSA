@@ -80,11 +80,11 @@ void BlastFileReader::parseLine(gsl::not_null<const threading::Job *> pJob) {
     const auto rRatio = static_cast<float>(illuminaRange.second - illuminaRange.first + 1) /
                         static_cast<float>(nanoporeRange.second - nanoporeRange.first + 1);
 
-    auto thresholdsPassed = illuminaRange.second - illuminaRange.first + 1 >= TH_LENGTH;
-    thresholdsPassed &= matches >= TH_MATCHES;
+    auto isPrimary = illuminaRange.second - illuminaRange.first + 1 >= TH_LENGTH;
+    isPrimary &= matches >= TH_MATCHES;
 
     auto spVertexMatch = lazybastard::util::make_shared_aggregate<lazybastard::matching::VertexMatch>(
-        nanoporeRange, illuminaRange, rRatio, direction, matches, thresholdsPassed);
+        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary);
     m_pMatchMap->addVertexMatch(nanoporeID, illuminaID, std::move(spVertexMatch));
   }
 
