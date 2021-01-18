@@ -1,13 +1,11 @@
 #pragma once
 
-#include <cstddef>
 #include <gsl/pointers>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <utility>
 
 namespace lazybastard {
 
@@ -18,7 +16,7 @@ class Job;
 } // namespace threading
 namespace graph {
 class Graph;
-}
+} // namespace graph
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 namespace matching {
@@ -32,8 +30,8 @@ struct VertexMatch {
   const float rRatio;                      /*!< Read ratio */
   const bool direction;                    /*!< Read direction */
   const std::size_t score;                 /*!< Score (number of matches) */
-  const bool thresholdsPassed;             /*!< Did the match pass the thresholds concering
-                                              length and match count */
+  const bool isPrimary;                    /*!< Did the match pass the thresholds concerning
+                                                     length and match count */
 };
 
 /**
@@ -43,7 +41,7 @@ struct EdgeMatch {
   const std::pair<int, int> overlap; /*!< Overlap */
   const bool direction;              /*!< Edge direction */
   const std::size_t score;           /*!< Score */
-  const bool thresholdsPassed;       /*!< Did the match pass the thresholds */
+  const bool isPrimary;              /*!< Did the match pass the thresholds */
 };
 
 /**
@@ -83,7 +81,7 @@ public:
   /**
    * Creates or updates Edge instances according to the scaffolds.
    */
-  void calculateEgdes();
+  void calculateEdges();
 
   /**
    * Processes a scaffold.

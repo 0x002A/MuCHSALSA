@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <condition_variable>
-#include <cstddef>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -25,7 +24,7 @@ public:
    *
    * @param threadCount the number of threads to start
    */
-  ThreadPool(std::size_t threadCount);
+  explicit ThreadPool(std::size_t threadCount);
 
   /**
    * Copying is disallowed.
@@ -64,7 +63,7 @@ private:
   std::queue<Job> m_jobs;                   /*!< Queue of Jobs to be executed */
   std::mutex m_mutex;                       /*!< Mutex for securing the parallel use of the queue */
   std::atomic<bool> m_terminatePool{false}; /*!< Indicator whether the ThreadPool is going to be terminated */
-  std::condition_variable m_condition;      /*!< Conditional varibale used to notify thread about new Jobs */
+  std::condition_variable m_condition;      /*!< Conditional variable used to notify thread about new Jobs */
 };
 
 } // namespace lazybastard::threading

@@ -11,7 +11,7 @@ void WaitGroup::add(std::size_t newJobs) {
 
   m_jobCount += newJobs;
   m_cv.notify_one();
-};
+}
 
 void WaitGroup::done() {
   m_jobCount -= 1;

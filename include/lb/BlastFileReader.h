@@ -12,10 +12,10 @@ class Job;
 } // namespace threading
 namespace graph {
 class Graph;
-}
+} // namespace graph
 namespace matching {
 class MatchMap;
-}
+} // namespace matching
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /**
@@ -49,7 +49,7 @@ public:
    */
   void parseLine(gsl::not_null<const threading::Job *> pJob);
 
-protected:
+private:
   std::ifstream &m_inputStream;         /*!< Input stream of the file */
   threading::ThreadPool *m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
   graph::Graph *m_pGraph;               /*!< Pointer to the Graph receiving the vertices */

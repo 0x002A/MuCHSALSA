@@ -14,7 +14,7 @@ auto main(int argc, char *argv[]) -> int {
   Application app(args);
 
   if (!app.checkIntegrity()) {
-    std::cerr << "Paths are pointing to invalid/unuseable locations" << std::endl;
+    std::cerr << "Paths are pointing to invalid/unusable locations" << std::endl;
 
     return -1;
   }
@@ -35,7 +35,7 @@ auto main(int argc, char *argv[]) -> int {
     return -1;
   }
 
-  matchMap.calculateEgdes();
+  matchMap.calculateEdges();
 
   std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
 

@@ -21,6 +21,11 @@ public:
   WaitGroup() = default;
 
   /**
+   * Destructor.
+   */
+  ~WaitGroup() = default;
+
+  /**
    * Copying is disallowed.
    */
   WaitGroup(const WaitGroup &) = delete;

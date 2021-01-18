@@ -15,7 +15,12 @@ public:
   /**
    * Class constructor which creates a new instance.
    */
-  Application(const gsl::span<char *>& args);
+  explicit Application(const gsl::span<char *> &args);
+
+  /**
+   * Destructor.
+   */
+  ~Application() = default;
 
   /**
    * Copying is disallowed.
@@ -41,42 +46,42 @@ public:
    * Checks if files and directories exist and whether they are readable and
    * writeable.
    */
-  bool checkIntegrity() const;
+  [[nodiscard]] auto checkIntegrity() const -> bool;
 
   /**
    * Getter for the supplied path to the file containing the contigs.
    *
    * @return The supplied path to the file containing the contigs
    */
-  const std::string &getContigsFilePath() const noexcept { return m_contigsFilePath; };
+  [[nodiscard]] const std::string &getContigsFilePath() const noexcept { return m_contigsFilePath; };
 
   /**
    * Getter for the supplied path to the file containing the unitigs.
    *
    * @return The supplied path to the file containing the unitigs
    */
-  const std::string &getUnitigsFilePath() const noexcept { return m_unitigsFilePath; };
+  [[nodiscard]] const std::string &getUnitigsFilePath() const noexcept { return m_unitigsFilePath; };
 
   /**
    * Getter for the supplied path to the file containing the nanopore data.
    *
    * @return The supplied path to the file containing the nanopore data
    */
-  const std::string &getNanoporeFilePath() const noexcept { return m_nanoporeFilePath; };
+  [[nodiscard]] const std::string &getNanoporeFilePath() const noexcept { return m_nanoporeFilePath; };
 
   /**
    * Getter for the supplied path to the output directory.
    *
    * @return The supplied path to the output directory
    */
-  const std::string &getOutputFilePath() const noexcept { return m_outputPath; };
+  [[nodiscard]] const std::string &getOutputFilePath() const noexcept { return m_outputPath; };
 
   /**
    * Getter for the supplied level of parallelism.
    *
    * @return The supplied level of parallelism
    */
-  const std::size_t &getThreadCount() const noexcept { return m_threadCount; };
+  [[nodiscard]] const std::size_t &getThreadCount() const noexcept { return m_threadCount; };
 
 private:
   //@{

@@ -1,13 +1,11 @@
 #pragma once
 
-#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
 
-namespace lazybastard {
-namespace util {
+namespace lazybastard::util {
 
 template <typename T, typename Enable = void> struct is_valid_pointer : std::false_type {};
 
@@ -60,9 +58,8 @@ template <typename T> std::pair<T, T> &sortPair(std::pair<T, T> &p) {
   return p;
 }
 
-template <typename T, typename... Args> std::shared_ptr<T> make_shared_aggregate(Args &&... args) {
+template <typename T, typename... Args> std::shared_ptr<T> make_shared_aggregate(Args &&...args) {
   return std::make_shared<T>(T{std::forward<Args>(args)...});
 }
 
-} // namespace util
-} // namespace lazybastard
+} // namespace lazybastard::util
