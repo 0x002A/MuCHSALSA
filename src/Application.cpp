@@ -11,6 +11,7 @@ constexpr std::size_t POS_UFP = 2;
 constexpr std::size_t POS_NFP = 3;
 constexpr std::size_t POS_OFP = 4;
 constexpr std::size_t POS_NOT = 5;
+constexpr std::size_t POS_WGR = 6;
 
 Application::Application(const gsl::span<char *> &args) : m_threadCount(std::thread::hardware_concurrency()) {
   if (args.size() >= MIN_PAR + 1) {
@@ -40,7 +41,15 @@ void Application::readParameters(const gsl::span<char *> &args) {
   m_outputPath = args[POS_OFP];
 
   // Check for optional parameter
-  if (args.size() == MIN_PAR + 2) {
+  auto argIdx = args.size() > POS_WGR ? POS_WGR : args.size() - 1;
+  switch (argIdx) {
+  case POS_WGR:
+    m_wiggleRoom = std::stoi(args[POS_WGR]);
+    [[fallthrough]];
+  case POS_NOT:
     m_threadCount = std::stoi(args[POS_NOT]);
+    break;
+  default: // Do nothing
+    break;
   }
 }

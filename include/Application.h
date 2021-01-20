@@ -83,17 +83,25 @@ public:
    */
   [[nodiscard]] const std::size_t &getThreadCount() const noexcept { return m_threadCount; };
 
+  /**
+   * Getter for the supplied wiggle room.
+   *
+   * @return The supplied level of wiggle room
+   */
+  [[nodiscard]] const std::size_t &getWiggleRoom() const noexcept { return m_wiggleRoom; };
+
 private:
   //@{
   //** Filepath */
   std::string m_contigsFilePath, m_unitigsFilePath, m_nanoporeFilePath, m_outputPath;
   //@}
-  std::size_t m_threadCount; /*!< Number of threads to use */
+  std::size_t m_threadCount;     /*!< Number of threads to use */
+  std::size_t m_wiggleRoom{700}; /*!< Wiggle room */
 
   /**
    * Parses the parameters from the command line.
    * @param argc number of parameters.
    * @param argv array of parameters.
    */
-  void readParameters(const gsl::span<char *>& args);
+  void readParameters(const gsl::span<char *> &args);
 };
