@@ -72,7 +72,14 @@ public:
    *
    * @param vertexIDs the IDs of the vertices to be connected by an Edge
    */
-  void addEdge(const std::pair<std::string, std::string> &vertexIDs);
+  std::string addEdge(const std::pair<std::string, std::string> &vertexIDs);
+
+  /**
+   * Getter for the adjacency list.
+   *
+   * @return The adjacency list of the graph
+   */
+  const auto &getAdjacencyList() const { return m_adjacencyList; };
 
   /**
    * Getter for the number of Vertex instances attached to the Graph.

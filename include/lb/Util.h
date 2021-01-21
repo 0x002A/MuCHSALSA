@@ -33,7 +33,7 @@ void check_pointers(const T &, const Ts &...) {
 
 template <typename T, typename... Ts,
           typename std::enable_if_t<std::conjunction_v<is_valid_pointer<T>, is_valid_pointer<Ts>...>, int> = 0>
-void check_pointers(const T &p, const Ts &... ps) {
+void check_pointers(const T &p, const Ts &...ps) {
   check_pointers(p);
   check_pointers(ps...);
 }
@@ -47,6 +47,10 @@ template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0> bool less
 template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0> bool less_than(const T &_1, const T &_2) {
   return _1 < _2;
 }
+
+template <typename T> struct LTCmp {
+  bool operator()(const T &_1, const T &_2) const { return less_than(_1, _2); }
+};
 
 template <typename T> std::pair<T, T> &sortPair(std::pair<T, T> &p) {
   if (less_than(p.second, p.first)) {

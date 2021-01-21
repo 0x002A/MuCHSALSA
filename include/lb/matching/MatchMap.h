@@ -76,7 +76,14 @@ public:
    * @param illuminaID the illumina ID
    * @param spMatch shared pointer to the Edge match to be added to the map
    */
-  void addEdgeMatch(const std::string &edgeID, const std::string &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
+  void addEdgeMatch(std::string &&edgeID, const std::string &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
+
+  /**
+   * Getter for Edge matches.
+   *
+   * @return The map containing the Edge matches
+   */
+  const auto &getEdgeMatches() const { return m_edgeMatches; };
 
   /**
    * Creates or updates Edge instances according to the scaffolds.

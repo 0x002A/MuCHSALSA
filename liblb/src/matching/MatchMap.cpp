@@ -36,8 +36,7 @@ void MatchMap::addVertexMatch(const std::string &nanoporeID, const std::string &
   illuminaIDs->second.insert(std::make_pair(illuminaID, std::move(spMatch)));
 }
 
-void MatchMap::addEdgeMatch(const std::string &edgeID, const std::string &illuminaID,
-                            std::shared_ptr<EdgeMatch> &&spMatch) {
+void MatchMap::addEdgeMatch(std::string &&edgeID, const std::string &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch) {
   lazybastard::util::check_pointers(spMatch.get());
   std::scoped_lock<std::mutex> lck(m_edgeMutex);
 
@@ -47,7 +46,8 @@ void MatchMap::addEdgeMatch(const std::string &edgeID, const std::string &illumi
    */
 
   // Actual map containing the matches
-  auto illuminaIDs = m_edgeMatches.insert(std::make_pair(edgeID, um<std::string, std::shared_ptr<EdgeMatch>>())).first;
+  auto illuminaIDs =
+      m_edgeMatches.insert(std::make_pair(std::move(edgeID), um<std::string, std::shared_ptr<EdgeMatch>>())).first;
   illuminaIDs->second.insert(std::make_pair(illuminaID, std::move(spMatch)));
 }
 
@@ -86,9 +86,9 @@ void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
         const auto sumScore = outerScore + innerScore;
 
         auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
-        m_pGraph->addEdge(vertexIDs);
+        auto edgeID = m_pGraph->addEdge(vertexIDs);
 
-        addEdgeMatch(lazybastard::graph::Edge::getEdgeID(vertexIDs), std::any_cast<std::string>(pJob->getParam(1)),
+        addEdgeMatch(std::move(edgeID), std::any_cast<std::string>(pJob->getParam(1)),
                      lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary));
       }
     }

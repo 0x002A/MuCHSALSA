@@ -27,7 +27,7 @@ auto Graph::getVertex(const std::string &nanoporeID) const {
   return iter != m_vertices.end() ? iter->second->getSharedPtr() : nullptr;
 }
 
-void Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
+std::string Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
   std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
   auto pV1 = getVertex(vertexIDs.first);
   auto pV2 = getVertex(vertexIDs.second);
@@ -37,9 +37,12 @@ void Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
   }
 
   auto vertexPair = std::make_pair(std::move(pV1), std::move(pV2));
+  auto edgeID = Edge::getEdgeID(vertexPair);
 
   auto upEdge = std::make_unique<Edge>(std::move(lazybastard::util::sortPair(vertexPair)));
   addEdgeInternal(std::move(upEdge));
+
+  return edgeID;
 }
 
 void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {

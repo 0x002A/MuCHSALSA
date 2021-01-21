@@ -4,6 +4,7 @@
 #include <gsl/pointers>
 #include <iosfwd>
 #include <memory>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -28,6 +29,10 @@ namespace matching {
 class MatchMap;
 } // namespace matching
 
+namespace util {
+template <typename T> struct LTCmp;
+} // namespace util
+
 namespace detail {
 using Key = std::tuple<std::string, std::size_t>;
 
@@ -44,15 +49,14 @@ struct KeyEqual : public std::binary_function<Key, Key, bool> {
 using Id2OverlapMap =
     std::unordered_map<detail::Key, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual>;
 
-std::unique_ptr<graph::EdgeOrder> computeOverlap(const lazybastard::matching::MatchMap &matches,
-                                                 gsl::not_null<graph::Graph *> pGraph,
-                                                 const std::vector<std::string> &ids,
-                                                 gsl::not_null<graph::Edge *> pEdge, bool direction, std::size_t score,
-                                                 bool isPrimary);
+graph::EdgeOrder computeOverlap(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph,
+                                const std::vector<std::string> &ids, gsl::not_null<graph::Edge *> pEdge, bool direction,
+                                std::size_t score, bool isPrimary);
 
-std::vector<std::tuple<std::vector<std::string>, bool>>
-getMaxPairwisePaths(const lazybastard::matching::MatchMap &matches, gsl::not_null<graph::Graph *> pGraph,
-                    gsl::not_null<graph::Edge *> pEdge, const std::vector<std::string> &illuminaIDs, bool direction);
+std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>
+getMaxPairwisePaths(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph,
+                    gsl::not_null<graph::Edge *> pEdge,
+                    const std::set<const std::string *, util::LTCmp<const std::string *>> &illuminaIDs, bool direction);
 
 bool sanityCheck(gsl::not_null<graph::Graph *> pGraph, gsl::not_null<graph::Vertex *> pSubnode,
                  gsl::not_null<graph::Vertex *> pNode, gsl::not_null<graph::Vertex *> pTarget,
@@ -60,18 +64,17 @@ bool sanityCheck(gsl::not_null<graph::Graph *> pGraph, gsl::not_null<graph::Vert
 
 std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph *> pGraph);
 
-lazybastard::coroutine::generator<std::vector<std::string>>
-getConnectedComponents(gsl::not_null<graph::Graph *> pGraph);
+coroutine::generator<std::vector<std::string>> getConnectedComponents(gsl::not_null<graph::Graph *> pGraph);
 
-std::unique_ptr<graph::DiGraph> getDirectionGraph(const lazybastard::matching::MatchMap &matches,
+std::unique_ptr<graph::DiGraph> getDirectionGraph(const matching::MatchMap *matches,
                                                   gsl::not_null<graph::Graph *> pGraph,
                                                   const std::vector<std::string> &connectedComponent,
                                                   gsl::not_null<graph::Vertex *> pStartNode);
 
 std::vector<std::vector<std::string>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
-void assemblePath(const lazybastard::matching::MatchMap &matches, Id2OverlapMap &id2OverlapMap,
-                  gsl::not_null<graph::Graph *> pGraph, gsl::not_null<graph::DiGraph *> pDiGraph, std::size_t idx,
-                  std::ostream &osQuery, std::ostream &osPAF, std::ostream &osTarget);
+void assemblePath(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph, Id2OverlapMap &id2OverlapMap,
+                  gsl::not_null<graph::DiGraph *> pDiGraph, std::size_t idx, std::ostream &osQuery, std::ostream &osPAF,
+                  std::ostream &osTarget);
 
 } // namespace lazybastard

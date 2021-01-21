@@ -42,8 +42,7 @@ public:
    * @param vertices pair of shared pointers to the Vertex instances connected by
    * the Edge
    */
-  explicit Edge(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &&vertices)
-      : m_vertices(std::move(lazybastard::util::sortPair(vertices))){};
+  explicit Edge(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &&vertices);
 
   /**
    * Default destructor.
@@ -71,11 +70,32 @@ public:
   Edge &operator=(Edge &&) = delete;
 
   /**
+   * Getter for the unique id of the Edge.
+   *
+   * @return The unique id of the Edge
+   */
+  const auto &getID() const { return m_id; };
+
+  /**
    * Getter for the assigned vertices.
    *
    * @return The assigned vertices
    */
   [[nodiscard]] std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> getVertices() const { return m_vertices; };
+
+  /**
+   * Getter for the shadow Edge indicator.
+   *
+   * @return Shadow edge indicator
+   */
+  bool isShadow() const { return m_shadow; };
+
+  /**
+   * Setter for the shadow Edge indicator.
+   *
+   * @param shadow shadow edge indicator
+   */
+  void setShadow(bool shadow) { m_shadow = shadow; };
 
   /**
    * Getter for the specified EdgeOrder element with bounds checking.
@@ -91,7 +111,7 @@ public:
    *
    * @param edgeOrder instance of EdgeOrder to copy
    */
-  void appendOrder(const EdgeOrder &edgeOrder) { m_orders.push_back(edgeOrder); };
+  void appendOrder(const EdgeOrder &&edgeOrder) { m_orders.push_back(std::move(edgeOrder)); };
 
   /**
    * Appends an EdgeOrder instance to the privately held vector.
@@ -115,18 +135,16 @@ public:
   /**
    * Generates identifier based on two identifiers of a Vertex.
    *
-   * @param idV1 identifier of the first Vertex
-   * @param vertexIds identifier of the second Vertex
+   * @param vertices pair of shared_ptr to Vertex
    * @return The identifier
    */
-  static std::string getEdgeID(std::pair<std::string, std::string> &vertexIds) {
-    lazybastard::util::sortPair(vertexIds);
-    return vertexIds.first + "," + vertexIds.second;
-  }
+  static std::string getEdgeID(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &vertices);
 
 private:
+  std::string m_id;                                                       /*!< ID */
   std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> m_vertices; /*!< Assigned Vertex instances */
   std::vector<EdgeOrder> m_orders;                                        /*!< Assigned EdgeOrder instances */
+  bool m_shadow{false};                                                   /*!< Is shadow Edge */
 };
 
 } // namespace lazybastard::graph
