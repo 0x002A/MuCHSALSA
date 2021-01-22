@@ -52,12 +52,12 @@ public:
   /**
    * Copying is disallowed.
    */
-  Edge(const Edge &) = delete;
+  Edge(Edge const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Edge &operator=(const Edge &) = delete;
+  Edge &operator=(Edge const &) = delete;
 
   /**
    * Moving is disallowed.
@@ -74,7 +74,7 @@ public:
    *
    * @return The unique id of the Edge
    */
-  const auto &getID() const { return m_id; };
+  auto const &getID() const { return m_id; };
 
   /**
    * Getter for the assigned vertices.
@@ -111,7 +111,7 @@ public:
    *
    * @param edgeOrder instance of EdgeOrder to copy
    */
-  void appendOrder(const EdgeOrder &&edgeOrder) { m_orders.push_back(std::move(edgeOrder)); };
+  void appendOrder(EdgeOrder const &edgeOrder) { m_orders.push_back(edgeOrder); };
 
   /**
    * Appends an EdgeOrder instance to the privately held vector.

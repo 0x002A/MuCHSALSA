@@ -49,32 +49,34 @@ struct KeyEqual : public std::binary_function<Key, Key, bool> {
 using Id2OverlapMap =
     std::unordered_map<detail::Key, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual>;
 
-graph::EdgeOrder computeOverlap(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph,
-                                const std::vector<std::string> &ids, gsl::not_null<graph::Edge *> pEdge, bool direction,
-                                std::size_t score, bool isPrimary);
+graph::EdgeOrder computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
+                                gsl::not_null<graph::Graph const *> pGraph, std::vector<std::string> const &ids,
+                                gsl::not_null<graph::Edge const *> pEdge, bool direction, std::size_t score,
+                                bool isPrimary);
 
 std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>
-getMaxPairwisePaths(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph,
-                    gsl::not_null<graph::Edge *> pEdge,
-                    const std::set<const std::string *, util::LTCmp<const std::string *>> &illuminaIDs, bool direction);
+getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> matches, gsl::not_null<graph::Graph const *> pGraph,
+                    gsl::not_null<graph::Edge const *> pEdge,
+                    std::set<std::string const *const, util::LTCmp<std::string const *const>> const &illuminaIDs,
+                    bool direction);
 
-bool sanityCheck(gsl::not_null<graph::Graph *> pGraph, gsl::not_null<graph::Vertex *> pSubnode,
-                 gsl::not_null<graph::Vertex *> pNode, gsl::not_null<graph::Vertex *> pTarget,
-                 gsl::not_null<graph::EdgeOrder *> pOrder);
+bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph::Vertex const *> pSubnode,
+                 gsl::not_null<graph::Vertex const *> pNode, gsl::not_null<graph::Vertex const *> pTarget,
+                 gsl::not_null<graph::EdgeOrder const *> pOrder);
 
-std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph *> pGraph);
+std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
 
-coroutine::generator<std::vector<std::string>> getConnectedComponents(gsl::not_null<graph::Graph *> pGraph);
+coroutine::generator<std::vector<std::string>> getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
 
-std::unique_ptr<graph::DiGraph> getDirectionGraph(const matching::MatchMap *matches,
-                                                  gsl::not_null<graph::Graph *> pGraph,
-                                                  const std::vector<std::string> &connectedComponent,
-                                                  gsl::not_null<graph::Vertex *> pStartNode);
+std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<matching::MatchMap const *> matches,
+                                                  gsl::not_null<graph::Graph const *> pGraph,
+                                                  std::vector<std::string> const &connectedComponent,
+                                                  gsl::not_null<graph::Vertex const *> pStartNode);
 
-std::vector<std::vector<std::string>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
+std::vector<std::vector<std::string>> linearizeGraph(gsl::not_null<graph::DiGraph const *> pDiGraph);
 
-void assemblePath(const matching::MatchMap *matches, gsl::not_null<graph::Graph *> pGraph, Id2OverlapMap &id2OverlapMap,
-                  gsl::not_null<graph::DiGraph *> pDiGraph, std::size_t idx, std::ostream &osQuery, std::ostream &osPAF,
-                  std::ostream &osTarget);
+void assemblePath(gsl::not_null<matching::MatchMap const *> matches, gsl::not_null<graph::Graph const *> pGraph,
+                  Id2OverlapMap &id2OverlapMap, gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t idx,
+                  std::ostream &osQuery, std::ostream &osPAF, std::ostream &osTarget);
 
 } // namespace lazybastard

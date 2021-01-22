@@ -47,7 +47,7 @@ public:
    *
    * @param pJob pointer to the Job containing the parameters
    */
-  void parseLine(gsl::not_null<const threading::Job *> pJob);
+  void parseLine(gsl::not_null<threading::Job const *> const pJob);
 
 private:
   std::ifstream &m_inputStream;         /*!< Input stream of the file */

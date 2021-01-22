@@ -34,7 +34,7 @@ public:
   /**
    * Moving is disallowed.
    */
-  Graph(const Graph &) = delete;
+  Graph(Graph const &) = delete;
 
   /**
    * Copying is disallowed.
@@ -49,7 +49,7 @@ public:
   /**
    * Copy assignment is disallowed.
    */
-  Graph &operator=(const Graph &) = delete;
+  Graph &operator=(Graph const &) = delete;
 
   /**
    * Adds a shared pointer pointing to a Vertex to this Graph.
@@ -65,21 +65,21 @@ public:
    * @param nanoporeID the id of the Vertex to be returned
    * @return A shared pointer to the Vertex if found
    */
-  auto getVertex(const std::string &nanoporeID) const;
+  auto getVertex(std::string const &nanoporeID) const;
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    *
    * @param vertexIDs the IDs of the vertices to be connected by an Edge
    */
-  std::string addEdge(const std::pair<std::string, std::string> &vertexIDs);
+  std::string addEdge(std::pair<std::string, std::string> const &vertexIDs);
 
   /**
    * Getter for the adjacency list.
    *
    * @return The adjacency list of the graph
    */
-  const auto &getAdjacencyList() const { return m_adjacencyList; };
+  auto const &getAdjacencyList() const { return m_adjacencyList; };
 
   /**
    * Getter for the number of Vertex instances attached to the Graph.

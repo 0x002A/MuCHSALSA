@@ -19,7 +19,7 @@ void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 
-auto Graph::getVertex(const std::string &nanoporeID) const {
+auto Graph::getVertex(std::string const &nanoporeID) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   auto iter = m_vertices.find(nanoporeID);
@@ -27,7 +27,7 @@ auto Graph::getVertex(const std::string &nanoporeID) const {
   return iter != m_vertices.end() ? iter->second->getSharedPtr() : nullptr;
 }
 
-std::string Graph::addEdge(const std::pair<std::string, std::string> &vertexIDs) {
+std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs) {
   std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
   auto pV1 = getVertex(vertexIDs.first);
   auto pV2 = getVertex(vertexIDs.second);

@@ -29,12 +29,12 @@ public:
   /**
    * Copying is disallowed.
    */
-  ThreadPool(const ThreadPool &) = delete;
+  ThreadPool(ThreadPool const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  ThreadPool &operator=(const ThreadPool &) = delete;
+  ThreadPool &operator=(ThreadPool const &) = delete;
 
   /**
    * Moving is disallowed.

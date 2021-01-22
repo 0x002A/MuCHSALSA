@@ -28,12 +28,12 @@ public:
   /**
    * Copying is disallowed.
    */
-  WaitGroup(const WaitGroup &) = delete;
+  WaitGroup(WaitGroup const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  WaitGroup &operator=(const WaitGroup &) = delete;
+  WaitGroup &operator=(WaitGroup const &) = delete;
 
   /**
    * Moving is disallowed.

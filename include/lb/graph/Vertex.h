@@ -36,12 +36,12 @@ public:
   /**
    * Copying is disallowed.
    */
-  Vertex(const Vertex &) = delete;
+  Vertex(Vertex const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Vertex &operator=(const Vertex &) = delete;
+  Vertex &operator=(Vertex const &) = delete;
 
   /**
    * Moving is disallowed.
@@ -58,7 +58,7 @@ public:
    *
    * @return Whether the supplied Vertex instance is greater or not
    */
-  bool operator<(const Vertex &v) const { return m_id < v.m_id; };
+  bool operator<(Vertex const &v) const { return m_id < v.m_id; };
 
   /**
    * Getter for a shared pointer pointing to this instance of Vertex.
@@ -79,7 +79,7 @@ public:
    *
    * @return The unique ID of the Vertex
    */
-  const std::string &getID() const { return m_id; };
+  auto const &getID() const { return m_id; };
 
 private:
   std::string m_id;                 /*!< Unique vertex id */

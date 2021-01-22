@@ -16,10 +16,10 @@
 
 #include "Application.h"
 
-void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob);
+void chainingAndOverlaps(gsl::not_null<lazybastard::threading::Job const *> pJob);
 
-auto main(int argc, char *argv[]) -> int {
-  gsl::span<char *> args = {argv, static_cast<std::size_t>(argc)};
+auto main(int const argc, char const *argv[]) -> int {
+  gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
   Application app(args);
 
   if (!app.checkIntegrity()) {
@@ -50,34 +50,34 @@ auto main(int argc, char *argv[]) -> int {
 
   try {
     lazybastard::threading::WaitGroup wg;
-    auto jobFn = [](const lazybastard::threading::Job *pJob) { chainingAndOverlaps(pJob); };
-    for (const auto &[vertexID, edges] : graph.getAdjacencyList()) {
-      for (const auto &[targetID, edge] : edges) {
+    auto jobFn = [](lazybastard::threading::Job const *const pJob) { chainingAndOverlaps(pJob); };
+    for (auto const &[vertexID, edges] : graph.getAdjacencyList()) {
+      for (auto const &[targetID, edge] : edges) {
         wg.add(1);
 
         auto job = lazybastard::threading::Job(jobFn, &wg, &matchMap, &graph, edge.get());
         threadPool.addJob(std::move(job));
       }
     }
-  } catch (const std::exception &e) {
+  } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
   return 0;
 }
 
-void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob) {
-  std::set<const std::string *, lazybastard::util::LTCmp<const std::string *>> plusIDs;
-  std::set<const std::string *, lazybastard::util::LTCmp<const std::string *>> minusIDs;
+void chainingAndOverlaps(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  std::set<std::string const *const, lazybastard::util::LTCmp<std::string const *const>> plusIDs;
+  std::set<const std::string *const, lazybastard::util::LTCmp<std::string const *const>> minusIDs;
 
-  auto *const pMatchMap = std::any_cast<lazybastard::matching::MatchMap *>(pJob->getParam(1));
+  auto const *const pMatchMap = std::any_cast<lazybastard::matching::MatchMap *>(pJob->getParam(1));
   auto *const pEdge = std::any_cast<lazybastard::graph::Edge *>(pJob->getParam(3));
-  const auto &edgeMatches = pMatchMap->getEdgeMatches().find(pEdge->getID());
+  auto const &edgeMatches = pMatchMap->getEdgeMatches().find(pEdge->getID());
 
   if (edgeMatches == pMatchMap->getEdgeMatches().end()) {
     return;
   }
 
-  for (const auto &[illuminaID, edgeMatch] : edgeMatches->second) {
+  for (auto const &[illuminaID, edgeMatch] : edgeMatches->second) {
 
     if (edgeMatch->direction) {
       plusIDs.insert(&illuminaID);
@@ -86,12 +86,12 @@ void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob
     }
   }
 
-  auto *const pGraph = std::any_cast<lazybastard::graph::Graph *>(pJob->getParam(2));
+  auto const *const pGraph = std::any_cast<lazybastard::graph::Graph *>(pJob->getParam(2));
   auto plusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pGraph, pEdge, plusIDs, true);
   auto minusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pGraph, pEdge, minusIDs, false);
 
   bool hasPrimary = true;
-  for_each(plusPaths.begin(), plusPaths.end(), [&](const auto &plusPath) {
+  for_each(plusPaths.begin(), plusPaths.end(), [&](auto const &plusPath) {
     if (!std::get<2>(plusPath)) {
       hasPrimary = false;
     }
@@ -99,7 +99,7 @@ void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob
 
   if (!hasPrimary) {
     bool hasMinusPrimary = true;
-    for_each(minusPaths.begin(), minusPaths.end(), [&](const auto &minusPath) {
+    for_each(minusPaths.begin(), minusPaths.end(), [&](auto const &minusPath) {
       if (!std::get<2>(minusPath)) {
         hasMinusPrimary = false;
       }
@@ -110,15 +110,15 @@ void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob
 
   if (hasPrimary) {
     plusPaths.erase(
-        std::remove_if(plusPaths.begin(), plusPaths.end(), [](const auto &plusPath) { return !std::get<2>(plusPath); }),
+        std::remove_if(plusPaths.begin(), plusPaths.end(), [](auto const &plusPath) { return !std::get<2>(plusPath); }),
         plusPaths.end());
     minusPaths.erase(std::remove_if(minusPaths.begin(), minusPaths.end(),
-                                    [](const auto &minusPath) { return !std::get<2>(minusPath); }),
+                                    [](auto const &minusPath) { return !std::get<2>(minusPath); }),
                      minusPaths.end());
   }
 
   bool hasMulti = true;
-  for_each(plusPaths.begin(), plusPaths.end(), [&](const auto &plusPath) {
+  for_each(plusPaths.begin(), plusPaths.end(), [&](auto const &plusPath) {
     if (std::get<0>(plusPath).size() <= 1) {
       hasMulti = false;
     }
@@ -126,7 +126,7 @@ void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob
 
   if (!hasMulti) {
     bool hasMinusMulti = true;
-    for_each(minusPaths.begin(), minusPaths.end(), [&](const auto &minusPath) {
+    for_each(minusPaths.begin(), minusPaths.end(), [&](auto const &minusPath) {
       if (std::get<0>(minusPath).size() <= 1) {
         hasMinusMulti = false;
       }
@@ -137,18 +137,18 @@ void chainingAndOverlaps(gsl::not_null<const lazybastard::threading::Job *> pJob
 
   if (hasMulti) {
     plusPaths.erase(std::remove_if(plusPaths.begin(), plusPaths.end(),
-                                   [](const auto &plusPath) { return std::get<0>(plusPath).size() <= 1; }),
+                                   [](auto const &plusPath) { return std::get<0>(plusPath).size() <= 1; }),
                     plusPaths.end());
     minusPaths.erase(std::remove_if(minusPaths.begin(), minusPaths.end(),
-                                    [](const auto &minusPath) { return std::get<0>(minusPath).size() <= 1; }),
+                                    [](auto const &minusPath) { return std::get<0>(minusPath).size() <= 1; }),
                      minusPaths.end());
   }
 
-  const auto combinedSize = plusPaths.size() + minusPaths.size();
+  auto const combinedSize = plusPaths.size() + minusPaths.size();
   if (combinedSize > 1) {
     pEdge->setShadow(true);
   } else if (combinedSize == 1) {
-    const auto &path = !minusPaths.empty() ? minusPaths[0] : plusPaths[0];
+    auto const &path = !minusPaths.empty() ? minusPaths[0] : plusPaths[0];
     pEdge->setShadow(std::get<2>(path));
   }
 

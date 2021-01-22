@@ -53,9 +53,9 @@ void MatchMap::addEdgeMatch(std::string &&edgeID, const std::string &illuminaID,
 
 void MatchMap::calculateEdges() {
   threading::WaitGroup wg;
-  const auto jobFn = [this](const threading::Job *pJob) { processScaffold(pJob); };
+  auto const jobFn = [this](threading::Job const *const pJob) { processScaffold(pJob); };
 
-  for (const auto &[illuminaID, scaffold] : m_scaffolds) {
+  for (auto const &[illuminaID, scaffold] : m_scaffolds) {
     wg.add(1);
 
     auto job = threading::Job(jobFn, &wg, illuminaID, scaffold);
@@ -65,25 +65,25 @@ void MatchMap::calculateEdges() {
   wg.wait();
 }
 
-void MatchMap::processScaffold(gsl::not_null<const threading::Job *> pJob) {
-  const auto scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
+void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob) {
+  auto const scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
 
   for (auto outerIter = scaffold.begin(); outerIter != scaffold.end(); ++outerIter) {
-    auto *const outerMatch = outerIter->second.get();
+    auto const *const outerMatch = outerIter->second.get();
     for (auto innerIter = std::next(outerIter, 1); innerIter != scaffold.end(); ++innerIter) {
-      auto *const innerMatch = innerIter->second.get();
-      const auto overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
+      auto const *const innerMatch = innerIter->second.get();
+      auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
 
       if (overlap.first <= overlap.second && overlap.second - overlap.first > TH_OVERLAP) {
-        const auto direction = outerMatch->direction == innerMatch->direction;
-        const auto isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
-        const auto outerLength = outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1;
-        const auto innerLength = innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1;
-        const auto commonLength = overlap.second - overlap.first + 1;
-        const auto outerScore = outerMatch->score * commonLength / outerLength;
-        const auto innerScore = innerMatch->score * commonLength / innerLength;
-        const auto sumScore = outerScore + innerScore;
+        auto const direction = outerMatch->direction == innerMatch->direction;
+        auto const isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
+        auto const outerLength = outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1;
+        auto const innerLength = innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1;
+        auto const commonLength = overlap.second - overlap.first + 1;
+        auto const outerScore = outerMatch->score * commonLength / outerLength;
+        auto const innerScore = innerMatch->score * commonLength / innerLength;
+        auto const sumScore = outerScore + innerScore;
 
         auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
         auto edgeID = m_pGraph->addEdge(vertexIDs);

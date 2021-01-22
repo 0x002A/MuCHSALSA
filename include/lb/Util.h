@@ -15,11 +15,11 @@ struct is_valid_pointer<T, typename std::enable_if_t<std::is_pointer_v<T> && !st
 
 template <typename T> inline constexpr bool is_valid_pointer_v = is_valid_pointer<T>::value;
 
-template <typename T, typename std::enable_if_t<!is_valid_pointer_v<T>, int> E = 0> void check_pointers(const T &) {
+template <typename T, typename std::enable_if_t<!is_valid_pointer_v<T>, int> E = 0> void check_pointers(T const &) {
   static_assert(E != 0, "Unexpected nullptr or value of non-pointer type.");
 }
 
-template <typename T, typename std::enable_if_t<is_valid_pointer_v<T>, int> = 0> void check_pointers(const T &p) {
+template <typename T, typename std::enable_if_t<is_valid_pointer_v<T>, int> = 0> void check_pointers(T const &p) {
   if (p == nullptr) {
     throw std::invalid_argument("Unexpected nullptr.");
   }
@@ -27,24 +27,24 @@ template <typename T, typename std::enable_if_t<is_valid_pointer_v<T>, int> = 0>
 
 template <typename T, typename... Ts,
           typename std::enable_if_t<!std::conjunction_v<is_valid_pointer<T>, is_valid_pointer<Ts>...>, int> E = 0>
-void check_pointers(const T &, const Ts &...) {
+void check_pointers(T const &, Ts const &...) {
   static_assert(E != 0, "Unexpected nullptr or value of non-pointer type.");
 }
 
 template <typename T, typename... Ts,
           typename std::enable_if_t<std::conjunction_v<is_valid_pointer<T>, is_valid_pointer<Ts>...>, int> = 0>
-void check_pointers(const T &p, const Ts &...ps) {
+void check_pointers(T const &p, Ts const &...ps) {
   check_pointers(p);
   check_pointers(ps...);
 }
 
-template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0> bool less_than(const T &_1, const T &_2) {
+template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0> bool less_than(T const &_1, T const &_2) {
   check_pointers(_1, _2);
 
   return *_1 < *_2;
 }
 
-template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0> bool less_than(const T &_1, const T &_2) {
+template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0> bool less_than(T const &_1, T const &_2) {
   return _1 < _2;
 }
 

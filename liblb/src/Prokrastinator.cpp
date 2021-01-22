@@ -17,49 +17,54 @@ namespace graph {
 class DiGraph {};
 } // namespace graph
 
-graph::EdgeOrder computeOverlap(const matching::MatchMap * /*matches*/, const gsl::not_null<graph::Graph *> /*pGraph*/,
-                                const std::vector<std::string> & /*ids*/, const gsl::not_null<graph::Edge *> /*pEdge*/,
-                                const bool /*direction*/, const std::size_t /*score*/, const bool /*isPrimary*/) {
+graph::EdgeOrder computeOverlap(gsl::not_null<matching::MatchMap const *> const /*matches*/,
+                                gsl::not_null<graph::Graph const *> const /*pGraph*/,
+                                std::vector<std::string> const & /*ids*/,
+                                gsl::not_null<graph::Edge const *> const /*pEdge*/, bool /*direction*/,
+                                std::size_t /*score*/, bool /*isPrimary*/) {
   return graph::EdgeOrder();
 }
 
 std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>
-getMaxPairwisePaths(const matching::MatchMap * /*matches*/, const gsl::not_null<graph::Graph *> /*pGraph*/,
-                    const gsl::not_null<graph::Edge *> /*pEdge*/,
-                    const std::set<const std::string *, util::LTCmp<const std::string *>> & /*illuminaIDs*/,
-                    const bool /*direction*/) {
+getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> const /*matches*/,
+                    gsl::not_null<graph::Graph const *> const /*pGraph*/,
+                    gsl::not_null<graph::Edge const *> const /*pEdge*/,
+                    std::set<std::string const *const, util::LTCmp<std::string const *const>> const & /*illuminaIDs*/,
+                    bool /*direction*/) {
   return std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>();
 }
 
-bool sanityCheck(const gsl::not_null<graph::Graph *> /*pGraph*/, const gsl::not_null<graph::Vertex *> /*pSubnode*/,
-                 const gsl::not_null<graph::Vertex *> /*pNode*/, const gsl::not_null<graph::Vertex *> /*pTarget*/,
-                 const gsl::not_null<graph::EdgeOrder *> /*pOrder*/) {
+bool sanityCheck(gsl::not_null<graph::Graph const *> const /*pGraph*/,
+                 gsl::not_null<graph::Vertex const *> const /*pSubnode*/,
+                 gsl::not_null<graph::Vertex const *> const /*pNode*/,
+                 gsl::not_null<graph::Vertex const *> const /*pTarget*/,
+                 gsl::not_null<graph::EdgeOrder const *> const /*pOrder*/) {
   return true;
 }
 
-std::unique_ptr<graph::Graph> getMaxSpanTree(const gsl::not_null<graph::Graph *> /*pGraph*/) {
+std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *> const /*pGraph*/) {
   return std::make_unique<graph::Graph>();
 }
 
-generator<std::vector<std::string>> getConnectedComponents(const gsl::not_null<graph::Graph *> /*pGraph*/) {
+generator<std::vector<std::string>> getConnectedComponents(gsl::not_null<graph::Graph const *> const /*pGraph*/) {
   auto emptyVec = std::vector<std::string>();
   co_yield emptyVec;
 }
 
-std::unique_ptr<graph::DiGraph> getDirectionGraph(const matching::MatchMap * /*matches*/,
-                                                  const gsl::not_null<graph::Graph *> /*pGraph*/,
-                                                  const std::vector<std::string> & /*connectedComponent*/,
-                                                  const gsl::not_null<graph::Vertex *> /*pStartNode*/) {
+std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<matching::MatchMap const *> const /*matches*/,
+                                                  gsl::not_null<graph::Graph const *> const /*pGraph*/,
+                                                  std::vector<std::string> const & /*connectedComponent*/,
+                                                  gsl::not_null<graph::Vertex const *> const /*pStartNode*/) {
   return std::make_unique<graph::DiGraph>();
 }
 
-std::vector<std::vector<std::string>> linearizeGraph(const gsl::not_null<graph::DiGraph *> /*pDiGraph*/) {
+std::vector<std::vector<std::string>> linearizeGraph(gsl::not_null<graph::DiGraph const *> const /*pDiGraph*/) {
   return std::vector<std::vector<std::string>>();
 }
 
-void assemblePath(const matching::MatchMap * /*matches*/, const gsl::not_null<graph::Graph *> /*pGraph*/,
-                  Id2OverlapMap & /*id2OverlapMap*/, const gsl::not_null<graph::DiGraph *> /*pDiGraph*/,
-                  std::size_t /*idx*/, std::ostream & /*osQuery*/, std::ostream & /*osPAF*/,
-                  std::ostream & /*osTarget*/) {}
+void assemblePath(gsl::not_null<matching::MatchMap const *> const /*matches*/,
+                  gsl::not_null<graph::Graph const *> const /*pGraph*/, Id2OverlapMap & /*id2OverlapMap*/,
+                  gsl::not_null<graph::DiGraph const *> const /*pDiGraph*/, std::size_t /*idx*/,
+                  std::ostream & /*osQuery*/, std::ostream & /*osPAF*/, std::ostream & /*osTarget*/) {}
 
 } // namespace lazybastard

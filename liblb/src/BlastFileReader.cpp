@@ -34,7 +34,7 @@ namespace lazybastard {
 
 void BlastFileReader::read() {
   threading::WaitGroup wg;
-  auto jobFn = [this](const threading::Job *pJob) { parseLine(pJob); };
+  auto jobFn = [this](threading::Job const *const pJob) { parseLine(pJob); };
 
   std::string line;
   while (std::getline(m_inputStream, line)) {
@@ -47,7 +47,7 @@ void BlastFileReader::read() {
   wg.wait();
 }
 
-void BlastFileReader::parseLine(gsl::not_null<const threading::Job *> pJob) {
+void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob) {
   std::vector<std::string> tokens;
 
   std::istringstream iss(std::any_cast<std::string>(pJob->getParam(1)), std::ios_base::in);
@@ -60,10 +60,10 @@ void BlastFileReader::parseLine(gsl::not_null<const threading::Job *> pJob) {
     throw std::runtime_error("Invalid BLAST file.");
   }
 
-  const auto illuminaRange = std::make_pair(std::stoi(tokens[POS_IRS]), std::stoi(tokens[POS_IRE]) - 1);
-  const auto matches = static_cast<std::size_t>(std::stoi(tokens[POS_NOM]));
+  auto const illuminaRange = std::make_pair(std::stoi(tokens[POS_IRS]), std::stoi(tokens[POS_IRE]) - 1);
+  auto const matches = static_cast<std::size_t>(std::stoi(tokens[POS_NOM]));
 
-  const auto nanoporeLength = std::stoi(tokens[POS_NLE]);
+  auto const nanoporeLength = std::stoi(tokens[POS_NLE]);
 
   auto addNode = matches >= MINIMUM_MATCHES;
   addNode &= illuminaRange.second - illuminaRange.first + 1 >= MINIMUM_MATCHES;
@@ -72,12 +72,12 @@ void BlastFileReader::parseLine(gsl::not_null<const threading::Job *> pJob) {
     auto spVertex = std::make_shared<graph::Vertex>(tokens[POS_NID], nanoporeLength);
     m_pGraph->addVertex(std::move(spVertex));
 
-    const auto &nanoporeID = tokens[POS_NID];
-    const auto &illuminaID = tokens[POS_IID];
+    auto const &nanoporeID = tokens[POS_NID];
+    auto const &illuminaID = tokens[POS_IID];
 
-    const auto nanoporeRange = std::make_pair(std::stoi(tokens[POS_NRS]), std::stoi(tokens[POS_NRE]) - 1);
-    const auto direction = tokens[POS_DIR] == "+";
-    const auto rRatio = static_cast<float>(illuminaRange.second - illuminaRange.first + 1) /
+    auto const nanoporeRange = std::make_pair(std::stoi(tokens[POS_NRS]), std::stoi(tokens[POS_NRE]) - 1);
+    auto const direction = tokens[POS_DIR] == "+";
+    auto const rRatio = static_cast<float>(illuminaRange.second - illuminaRange.first + 1) /
                         static_cast<float>(nanoporeRange.second - nanoporeRange.first + 1);
 
     auto isPrimary = illuminaRange.second - illuminaRange.first + 1 >= TH_LENGTH;

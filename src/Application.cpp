@@ -13,7 +13,7 @@ constexpr std::size_t POS_OFP = 4;
 constexpr std::size_t POS_NOT = 5;
 constexpr std::size_t POS_WGR = 6;
 
-Application::Application(const gsl::span<char *> &args) : m_threadCount(std::thread::hardware_concurrency()) {
+Application::Application(gsl::span<char const *> const &args) : m_threadCount(std::thread::hardware_concurrency()) {
   if (args.size() >= MIN_PAR + 1) {
     readParameters(args);
   } else {
@@ -27,13 +27,13 @@ auto Application::checkIntegrity() const -> bool {
   std::filesystem::path nanoporePath = m_nanoporeFilePath;
   std::filesystem::path outputPath = m_outputPath;
 
-  const auto exists = std::filesystem::exists(contigsPath) && std::filesystem::exists(unitigsPath) &&
+  auto const exists = std::filesystem::exists(contigsPath) && std::filesystem::exists(unitigsPath) &&
                       std::filesystem::exists(nanoporePath) && std::filesystem::exists(outputPath);
 
   return exists;
 }
 
-void Application::readParameters(const gsl::span<char *> &args) {
+void Application::readParameters(gsl::span<char const *> const &args) {
 
   m_contigsFilePath = args[POS_CFP];
   m_unitigsFilePath = args[POS_UFP];

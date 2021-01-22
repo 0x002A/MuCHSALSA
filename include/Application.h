@@ -15,7 +15,7 @@ public:
   /**
    * Class constructor which creates a new instance.
    */
-  explicit Application(const gsl::span<char *> &args);
+  explicit Application(gsl::span<char const *> const &args);
 
   /**
    * Destructor.
@@ -25,12 +25,12 @@ public:
   /**
    * Copying is disallowed.
    */
-  Application(const Application &) = delete;
+  Application(Application const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Application &operator=(const Application &) = delete;
+  Application &operator=(Application const &) = delete;
 
   /**
    * Moving is disallowed.
@@ -53,42 +53,42 @@ public:
    *
    * @return The supplied path to the file containing the contigs
    */
-  [[nodiscard]] const std::string &getContigsFilePath() const noexcept { return m_contigsFilePath; };
+  [[nodiscard]] std::string const &getContigsFilePath() const noexcept { return m_contigsFilePath; };
 
   /**
    * Getter for the supplied path to the file containing the unitigs.
    *
    * @return The supplied path to the file containing the unitigs
    */
-  [[nodiscard]] const std::string &getUnitigsFilePath() const noexcept { return m_unitigsFilePath; };
+  [[nodiscard]] std::string const &getUnitigsFilePath() const noexcept { return m_unitigsFilePath; };
 
   /**
    * Getter for the supplied path to the file containing the nanopore data.
    *
    * @return The supplied path to the file containing the nanopore data
    */
-  [[nodiscard]] const std::string &getNanoporeFilePath() const noexcept { return m_nanoporeFilePath; };
+  [[nodiscard]] std::string const &getNanoporeFilePath() const noexcept { return m_nanoporeFilePath; };
 
   /**
    * Getter for the supplied path to the output directory.
    *
    * @return The supplied path to the output directory
    */
-  [[nodiscard]] const std::string &getOutputFilePath() const noexcept { return m_outputPath; };
+  [[nodiscard]] std::string const &getOutputFilePath() const noexcept { return m_outputPath; };
 
   /**
    * Getter for the supplied level of parallelism.
    *
    * @return The supplied level of parallelism
    */
-  [[nodiscard]] const std::size_t &getThreadCount() const noexcept { return m_threadCount; };
+  [[nodiscard]] std::size_t const &getThreadCount() const noexcept { return m_threadCount; };
 
   /**
    * Getter for the supplied wiggle room.
    *
    * @return The supplied level of wiggle room
    */
-  [[nodiscard]] const std::size_t &getWiggleRoom() const noexcept { return m_wiggleRoom; };
+  [[nodiscard]] std::size_t const &getWiggleRoom() const noexcept { return m_wiggleRoom; };
 
 private:
   //@{
@@ -103,5 +103,5 @@ private:
    * @param argc number of parameters.
    * @param argv array of parameters.
    */
-  void readParameters(const gsl::span<char *> &args);
+  void readParameters(gsl::span<char const *> const &args);
 };

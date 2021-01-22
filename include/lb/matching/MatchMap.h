@@ -25,12 +25,12 @@ namespace matching {
  * Struct representing a match attached to a Vertex.
  */
 struct VertexMatch {
-  const std::pair<int, int> nanoporeRange; /*!< Nanopore range */
-  const std::pair<int, int> illuminaRange; /*!< Illumina range */
-  const float rRatio;                      /*!< Read ratio */
-  const bool direction;                    /*!< Read direction */
-  const std::size_t score;                 /*!< Score (number of matches) */
-  const bool isPrimary;                    /*!< Did the match pass the thresholds concerning
+  std::pair<int, int> const nanoporeRange; /*!< Nanopore range */
+  std::pair<int, int> const illuminaRange; /*!< Illumina range */
+  float const rRatio;                      /*!< Read ratio */
+  bool const direction;                    /*!< Read direction */
+  std::size_t const score;                 /*!< Score (number of matches) */
+  bool const isPrimary;                    /*!< Did the match pass the thresholds concerning
                                                      length and match count */
 };
 
@@ -38,10 +38,10 @@ struct VertexMatch {
  * Struct representing a match attached to an Edge.
  */
 struct EdgeMatch {
-  const std::pair<int, int> overlap; /*!< Overlap */
-  const bool direction;              /*!< Edge direction */
-  const std::size_t score;           /*!< Score */
-  const bool isPrimary;              /*!< Did the match pass the thresholds */
+  std::pair<int, int> const overlap; /*!< Overlap */
+  bool const direction;              /*!< Edge direction */
+  std::size_t const score;           /*!< Score */
+  bool const isPrimary;              /*!< Did the match pass the thresholds */
 };
 
 /**
@@ -66,7 +66,7 @@ public:
    * @param illuminaID the illumina ID
    * @param spMatch shared pointer to the Vertex match to be added to the map
    */
-  void addVertexMatch(const std::string &nanoporeID, const std::string &illuminaID,
+  void addVertexMatch(std::string const &nanoporeID, std::string const &illuminaID,
                       std::shared_ptr<VertexMatch> &&spMatch);
 
   /**
@@ -76,14 +76,14 @@ public:
    * @param illuminaID the illumina ID
    * @param spMatch shared pointer to the Edge match to be added to the map
    */
-  void addEdgeMatch(std::string &&edgeID, const std::string &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
+  void addEdgeMatch(std::string &&edgeID, std::string const &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
 
   /**
    * Getter for Edge matches.
    *
    * @return The map containing the Edge matches
    */
-  const auto &getEdgeMatches() const { return m_edgeMatches; };
+  auto const &getEdgeMatches() const { return m_edgeMatches; };
 
   /**
    * Creates or updates Edge instances according to the scaffolds.
@@ -95,7 +95,7 @@ public:
    *
    * @param pJob pointer to the job containing the parameters
    */
-  void processScaffold(gsl::not_null<const threading::Job *> pJob);
+  void processScaffold(gsl::not_null<threading::Job const *> const pJob);
 
 private:
   template <typename T1, typename T2> using um = std::unordered_map<T1, T2>;

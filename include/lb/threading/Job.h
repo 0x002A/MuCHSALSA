@@ -33,19 +33,19 @@ public:
    * @param params The function parameters
    */
   template <typename... Types>
-  explicit Job(std::function<void(const Job *)> fn, Types... params) : m_fn(std::move(fn)) {
+  explicit Job(std::function<void(Job const *const)> fn, Types... params) : m_fn(std::move(fn)) {
     addParam(params...);
   };
 
   /**
    * Copying is disallowed.
    */
-  Job(const Job &) = delete;
+  Job(Job const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Job &operator=(const Job &) = delete;
+  Job &operator=(Job const &) = delete;
 
   /**
    * Move constructor.
@@ -79,7 +79,7 @@ public:
   [[nodiscard]] std::any getParam(std::size_t idx) const { return m_params[idx]; };
 
 private:
-  std::function<void(const Job *)> m_fn; /*!< Function to be executed */
+  std::function<void(Job const *)> m_fn; /*!< Function to be executed */
   std::vector<std::any> m_params;        /*!< Function parameters */
 
   /**
