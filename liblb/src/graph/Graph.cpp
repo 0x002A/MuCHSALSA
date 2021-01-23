@@ -45,6 +45,30 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
   return edgeID;
 }
 
+std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(std::string const &vertexID) const {
+  std::unordered_map<std::string const *, Edge const *> edgeMap;
+
+  auto const it = m_adjacencyList.find(vertexID);
+  if (it != m_adjacencyList.end()) {
+    for (auto const &[targetID, edge] : it->second) {
+      edgeMap.insert({&targetID, edge.get()});
+    }
+  }
+
+  for (auto const &[targetID, edges] : m_adjacencyList) {
+    if (targetID == vertexID) {
+      continue;
+    }
+
+    auto const &it = edges.find(vertexID);
+    if (it != edges.end()) {
+      edgeMap.insert({&targetID, it->second.get()});
+    }
+  }
+
+  return edgeMap;
+}
+
 void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
   auto assignedVertices = upEdge->getVertices();
   auto iter =
@@ -55,6 +79,17 @@ void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
   if (inserted) {
     m_edgeCount += 1;
   }
+}
+
+bool Graph::hasEdge(std::pair<std::string, std::string> &vertexIDs) const {
+  lazybastard::util::sortPair(vertexIDs);
+  auto const &iter = m_adjacencyList.find(vertexIDs.first);
+
+  if (iter != m_adjacencyList.end()) {
+    return iter->second.find(vertexIDs.second) != iter->second.end();
+  }
+
+  return false;
 }
 
 } // namespace lazybastard::graph

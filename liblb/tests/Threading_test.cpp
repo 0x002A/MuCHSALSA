@@ -29,7 +29,7 @@ TEST(ThreadingTest, ReturnsCorrectResult) {
     // simulate a long running job to test wait group behaviour
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
   };
 
   for (std::size_t num : nums) {
@@ -60,7 +60,7 @@ TEST(ThreadingTest, ThrowsException) {
     // simulate a long running job to test wait group behaviour
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
   };
 
   for (std::size_t i = 0; i <= 8; ++i) {

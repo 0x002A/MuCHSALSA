@@ -17,7 +17,7 @@ class Vertex;
  * Class representing a graph.
  *
  * A Graph holds a list of vertices and edges.
- * Instances of this class are designed to be thread-safe.
+ * Instances of this class are designed to be **partially** thread-safe.
  */
 class Graph {
 public:
@@ -53,6 +53,7 @@ public:
 
   /**
    * Adds a shared pointer pointing to a Vertex to this Graph.
+   * This function is **thread-safe**.
    *
    * @param spVertex the shared pointer to Vertex to be added to the Graph
    */
@@ -61,6 +62,7 @@ public:
   /**
    * Returns a shared pointer to the requested Vertex instance if it could be found.
    * If no result could be found the shared pointer will be initialized with nullptr.
+   * This function is **thread-safe**.
    *
    * @param nanoporeID the id of the Vertex to be returned
    * @return A shared pointer to the Vertex if found
@@ -69,10 +71,27 @@ public:
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
+   * This function is **thread-safe**.
    *
    * @param vertexIDs the IDs of the vertices to be connected by an Edge
    */
   std::string addEdge(std::pair<std::string, std::string> const &vertexIDs);
+
+  /**
+   * Checks the existence of an edge between the supplied Vertex IDs.
+   *
+   * @param vertexIDs vertexIDs the IDs of the vertices to be checked
+   * @return A bool indication whether an Edge exists or not
+   */
+  bool hasEdge(std::pair<std::string, std::string> &vertexIDs) const;
+
+  /**
+   * Getter for Edge instances connected to a particular Vertex.
+   *
+   * @param vertexID the ID of the vertex
+   * @return The unordered_map containing the connected Edge instances
+   */
+  std::unordered_map<std::string const *, Edge const *> getEdgesOfVertex(std::string const &vertexID) const;
 
   /**
    * Getter for the adjacency list.
@@ -83,6 +102,7 @@ public:
 
   /**
    * Getter for the number of Vertex instances attached to the Graph.
+   * This function is **thread-safe**.
    *
    * @return The number of Vertex instances attached to the Graph
    */
@@ -90,6 +110,7 @@ public:
 
   /**
    * Getter for the number of Edge instances attached to the Graph.
+   * This function is **thread-safe**.
    *
    * @return The number of Edge instances attached to the Graph
    */

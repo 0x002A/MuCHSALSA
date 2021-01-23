@@ -98,6 +98,13 @@ public:
   void setShadow(bool shadow) { m_shadow = shadow; };
 
   /**
+   * Getter for all EdgeOrder elements.
+   *
+   * @return Reference to the vector holding the EdgeOrder elements
+   */
+  auto const &getEdgeOrders() const { return m_orders; };
+
+  /**
    * Getter for the specified EdgeOrder element with bounds checking.
    *
    * @param idx index of the EdgeOrder element

@@ -94,7 +94,7 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
     }
   }
 
-  std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }
 
 } // namespace lazybastard::matching

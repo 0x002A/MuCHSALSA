@@ -88,7 +88,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
     m_pMatchMap->addVertexMatch(nanoporeID, illuminaID, std::move(spVertexMatch));
   }
 
-  std::any_cast<threading::WaitGroup *>(pJob->getParam(0))->done();
+  std::any_cast<threading::WaitGroup *const>(pJob->getParam(0))->done();
 }
 
 } // namespace lazybastard

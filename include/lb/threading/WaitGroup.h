@@ -59,6 +59,7 @@ public:
 
   /**
    * Blocks the caller until all jobs assigned to the WaitGroup completed.
+   * On completion the WaitGroup is resetted so it can be reused.
    */
   void wait();
 
