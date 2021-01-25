@@ -17,21 +17,24 @@ namespace graph {
 class DiGraph {};
 } // namespace graph
 
-graph::EdgeOrder computeOverlap(gsl::not_null<matching::MatchMap const *> const /*matches*/,
-                                gsl::not_null<graph::Graph const *> const /*pGraph*/,
-                                std::vector<std::string> const & /*ids*/,
-                                gsl::not_null<graph::Edge const *> const /*pEdge*/, bool /*direction*/,
-                                std::size_t /*score*/, bool /*isPrimary*/) {
-  return graph::EdgeOrder();
+graph::EdgeOrder computeOverlap(
+    gsl::not_null<matching::MatchMap const *> const /*matches*/, gsl::not_null<graph::Graph const *> const /*pGraph*/,
+    std::set<std::string const *const, util::LTCmp<std::string const *const>> const & /*ids*/,
+    gsl::not_null<graph::Edge const *> const /*pEdge*/, bool /*direction*/, std::size_t /*score*/, bool /*isPrimary*/) {
+  return graph::EdgeOrder{
+      nullptr, nullptr, {0.0, 0.0}, {0.0, 0.0},
+      false,   nullptr, 0,          std::set<std::string const *const, util::LTCmp<std::string const *const>>(),
+      false,   false};
 }
 
-std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>
+std::vector<std::tuple<std::set<std::string const *const, util::LTCmp<std::string const *const>>, std::size_t, bool>>
 getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> const /*matches*/,
                     gsl::not_null<graph::Graph const *> const /*pGraph*/,
                     gsl::not_null<graph::Edge const *> const /*pEdge*/,
                     std::set<std::string const *const, util::LTCmp<std::string const *const>> const & /*illuminaIDs*/,
                     bool /*direction*/) {
-  return std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>();
+  return std::vector<
+      std::tuple<std::set<std::string const *const, util::LTCmp<std::string const *const>>, std::size_t, bool>>();
 }
 
 bool sanityCheck(gsl::not_null<graph::Graph const *> const /*pGraph*/,

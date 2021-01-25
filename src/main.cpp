@@ -2,10 +2,10 @@
 #include <any>
 #include <cstddef>
 #include <fstream>
-#include <functional>
 #include <gsl/pointers>
 #include <gsl/span>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -25,8 +25,20 @@
 
 #include "Application.h"
 
+struct ContainElement { // NOLINT
+  std::unordered_map<std::string const *, lazybastard::matching::VertexMatch const *> const matches;
+  lazybastard::graph::Vertex const *const nano;
+  std::size_t const nanoporeLength;
+  std::size_t const score;
+  bool const direction;
+  bool const isPrimary;
+};
+
 void chainingAndOverlaps(gsl::not_null<lazybastard::threading::Job const *> pJob);
 void findContractionEdges(gsl::not_null<lazybastard::threading::Job const *> pJob);
+void findContractionTargets(gsl::not_null<lazybastard::threading::Job const *> pJob);
+void findDeletionTargets(gsl::not_null<lazybastard::threading::Job const *> pJob);
+void contract(gsl::not_null<lazybastard::threading::Job const *> pJob);
 
 auto main(int const argc, char const *argv[]) -> int {
   gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
@@ -74,17 +86,17 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::mutex mutexContractionEdges;
-    std::unordered_map<std::string const *, lazybastard::graph::EdgeOrder const *> contractionEdges;
-    auto contractionJob = [](lazybastard::threading::Job const *const pJob) { findContractionEdges(pJob); };
+    std::mutex mutex;
+    std::unordered_map<lazybastard::graph::Edge const *, lazybastard::graph::EdgeOrder const *> contractionEdges;
+    auto contractionEdgesJob = [](lazybastard::threading::Job const *const pJob) { findContractionEdges(pJob); };
     for (auto const &[vertexID, edges] : graph.getAdjacencyList()) {
       for (auto const &[targetID, edge] : edges) {
         for (auto const &order : edge->getEdgeOrders()) {
           wg.add(1);
 
-          auto job = lazybastard::threading::Job(
-              contractionJob, &wg, static_cast<lazybastard::graph::Graph const *const>(&graph), order,
-              &contractionEdges, std::reference_wrapper<std::mutex>(mutexContractionEdges));
+          auto job = lazybastard::threading::Job(contractionEdgesJob, &wg,
+                                                 static_cast<lazybastard::graph::Graph const *const>(&graph), order,
+                                                 &contractionEdges, std::reference_wrapper<std::mutex>(mutex));
           threadPool.addJob(std::move(job));
         }
       }
@@ -92,6 +104,47 @@ auto main(int const argc, char const *argv[]) -> int {
     wg.wait();
 
     std::cout << "Number of contraction edges: " << contractionEdges.size() << std::endl;
+
+    std::unordered_map<lazybastard::graph::Vertex const *, lazybastard::graph::Vertex const *> contractionTargets;
+    auto contractionTargetsJob = [](lazybastard::threading::Job const *const pJob) { findContractionTargets(pJob); };
+    for (auto const &[_, pOrder] : contractionEdges) {
+      wg.add(1);
+
+      auto job = lazybastard::threading::Job(contractionTargetsJob, &wg, pOrder, &contractionTargets,
+                                             std::reference_wrapper<std::mutex>(mutex));
+      threadPool.addJob(std::move(job));
+    }
+    wg.wait();
+
+    std::set<std::string const *const> deletionTargets;
+    std::set<lazybastard::graph::Vertex const *const> contractionRoots;
+    auto deletionTargetsJob = [](lazybastard::threading::Job const *const pJob) { findDeletionTargets(pJob); };
+    for (auto const &[_, pOrder] : contractionEdges) {
+      wg.add(1);
+
+      auto job = lazybastard::threading::Job(deletionTargetsJob, &wg, pOrder, &deletionTargets, &contractionRoots,
+                                             &contractionTargets, std::reference_wrapper<std::mutex>(mutex));
+      threadPool.addJob(std::move(job));
+    }
+    wg.wait();
+
+    std::unordered_map<lazybastard::graph::Vertex const *, std::unique_ptr<ContainElement const> const> containElements;
+    auto contractionJob = [](lazybastard::threading::Job const *const pJob) { contract(pJob); };
+    for (auto const &[_, pOrder] : contractionEdges) {
+      wg.add(1);
+
+      auto job = lazybastard::threading::Job(contractionJob, &wg, pOrder, &containElements, &contractionRoots,
+                                             &matchMap, std::reference_wrapper<std::mutex>(mutex));
+      threadPool.addJob(std::move(job));
+    }
+    wg.wait();
+
+    std::cout << "Vertices to become deleted: " << deletionTargets.size() << std::endl;
+
+    for (auto const *const target : deletionTargets) {
+      graph.deleteVertex(target);
+    }
+    deletionTargets.clear();
   } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
@@ -107,6 +160,7 @@ void chainingAndOverlaps(gsl::not_null<lazybastard::threading::Job const *> cons
   auto const &edgeMatches = pMatchMap->getEdgeMatches().find(pEdge->getID());
 
   if (edgeMatches == pMatchMap->getEdgeMatches().end()) {
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
     return;
   }
 
@@ -190,9 +244,8 @@ void findContractionEdges(gsl::not_null<lazybastard::threading::Job const *> con
         break;
       }
 
-      auto const *const pTargetVertex = edge->getVertices().first.get() != pOrder->startVertex
-                                            ? edge->getVertices().first.get()
-                                            : edge->getVertices().second.get();
+      auto const *const pTargetVertex =
+          edge->getVertices().first != pOrder->startVertex ? edge->getVertices().first : edge->getVertices().second;
 
       isSane &= lazybastard::sanityCheck(pGraph, pOrder->startVertex, pOrder->endVertex, pTargetVertex, pOrder);
 
@@ -200,12 +253,92 @@ void findContractionEdges(gsl::not_null<lazybastard::threading::Job const *> con
         break;
       }
 
-      auto *const contractionEdges =
-          std::any_cast<std::unordered_map<std::string const *, lazybastard::graph::EdgeOrder const *> *const>(
-              pJob->getParam(3));
+      auto *const contractionEdges = std::any_cast<
+          std::unordered_map<lazybastard::graph::Edge const *, lazybastard::graph::EdgeOrder const *> *const>(
+          pJob->getParam(3));
       std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get());
-      contractionEdges->insert({&edge->getID(), pOrder});
+      contractionEdges->insert({edge, pOrder});
     }
   }
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+}
+
+void findContractionTargets(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  auto const *const pOrder = std::any_cast<lazybastard::graph::EdgeOrder const *const>(pJob->getParam(1));
+  auto *const pContractionTargets =
+      std::any_cast<std::unordered_map<lazybastard::graph::Vertex const *, lazybastard::graph::Vertex const *> *const>(
+          pJob->getParam(2));
+  {
+    std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get());
+
+    auto const &iter = pContractionTargets->find(pOrder->endVertex);
+    auto const *const contractTo = iter == pContractionTargets->end() ? pOrder->endVertex : iter->second;
+
+    if (pContractionTargets->find(pOrder->startVertex) == pContractionTargets->end()) {
+      pContractionTargets->insert({pOrder->startVertex, contractTo});
+    }
+  }
+
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+}
+
+void findDeletionTargets(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  auto const *const pOrder = std::any_cast<lazybastard::graph::EdgeOrder const *const>(pJob->getParam(1));
+  auto *const pDeletionTargets = std::any_cast<std::set<std::string const *const> *const>(pJob->getParam(2));
+  {
+    std::lock_guard<std::mutex> guard(
+        std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+    pDeletionTargets->insert(&pOrder->startVertex->getID());
+  }
+
+  auto *const pContractionTargets =
+      std::any_cast<std::unordered_map<lazybastard::graph::Vertex const *, lazybastard::graph::Vertex const *> *const>(
+          pJob->getParam(4));
+  auto *const pContractionRoots =
+      std::any_cast<std::set<lazybastard::graph::Vertex const *const> *const>(pJob->getParam(3));
+  {
+    std::lock_guard<std::mutex> guard(
+        std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+
+    auto const &iter = pContractionTargets->find(pOrder->startVertex);
+    auto const *const contractTo = iter == pContractionTargets->end() ? pOrder->startVertex : iter->second;
+
+    pContractionRoots->insert(contractTo);
+    pContractionRoots->erase(pOrder->startVertex);
+  }
+
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+}
+
+void contract(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  auto const *const pOrder = std::any_cast<lazybastard::graph::EdgeOrder const *const>(pJob->getParam(1));
+  auto *const pContractionRoots =
+      std::any_cast<std::set<lazybastard::graph::Vertex const *const> *const>(pJob->getParam(3));
+  auto const &iter = pContractionRoots->find(pOrder->endVertex);
+
+  if (iter == pContractionRoots->end()) {
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+    return;
+  }
+
+  auto const *const pMatchMap = std::any_cast<lazybastard::matching::MatchMap const *const>(pJob->getParam(4));
+  std::unordered_map<std::string const *, lazybastard::matching::VertexMatch const *> matches;
+  for (auto const *id : pOrder->ids) {
+    auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getID(), *id);
+    if (pVertexMatches != nullptr) {
+      matches.insert({id, pVertexMatches});
+    }
+  }
+
+  std::lock_guard<std::mutex> guard(
+      std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+  auto *const pContainElements = std::any_cast<
+      std::unordered_map<lazybastard::graph::Vertex const *, std::unique_ptr<ContainElement const> const> *const>(
+      pJob->getParam(3));
+  pContainElements->insert(std::move(std::make_pair(
+      pOrder->endVertex, std::make_unique<ContainElement>(ContainElement{
+                             std::move(matches), pOrder->startVertex, pOrder->startVertex->getNanoporeLength(),
+                             pOrder->score, pOrder->direction, pOrder->isPrimary}))));
+
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }

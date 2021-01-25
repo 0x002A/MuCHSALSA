@@ -2,8 +2,8 @@
 
 #include <cstddef>
 #include <memory>
+#include <set>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -16,16 +16,16 @@ class Vertex;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 struct EdgeOrder {
-  Vertex *startVertex;
-  Vertex *endVertex;
-  std::pair<float, float> leftOffset;
-  std::pair<float, float> rightOffset;
-  bool contained;
-  Vertex *baseVertex;
-  std::size_t score;
-  std::tuple<std::string, std::string> ids;
-  bool direction;
-  bool isPrimary;
+  Vertex const *const startVertex;
+  Vertex const *const endVertex;
+  std::pair<float const, float const> const leftOffset;
+  std::pair<float const, float const> const rightOffset;
+  bool const contained;
+  Vertex const *const baseVertex;
+  std::size_t const score;
+  std::set<std::string const *const, util::LTCmp<std::string const *const>> const ids;
+  bool const direction;
+  bool const isPrimary;
 };
 
 /**
@@ -74,21 +74,23 @@ public:
    *
    * @return The unique id of the Edge
    */
-  auto const &getID() const { return m_id; };
+  [[nodiscard]] auto const &getID() const { return m_id; };
 
   /**
    * Getter for the assigned vertices.
    *
    * @return The assigned vertices
    */
-  [[nodiscard]] std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> getVertices() const { return m_vertices; };
+  [[nodiscard]] std::pair<Vertex const *const, Vertex const *const> getVertices() const {
+    return std::make_pair(m_vertices.first.get(), m_vertices.second.get());
+  };
 
   /**
    * Getter for the shadow Edge indicator.
    *
    * @return Shadow edge indicator
    */
-  bool isShadow() const { return m_shadow; };
+  [[nodiscard]] bool isShadow() const { return m_shadow; };
 
   /**
    * Setter for the shadow Edge indicator.
@@ -102,7 +104,7 @@ public:
    *
    * @return Reference to the vector holding the EdgeOrder elements
    */
-  auto const &getEdgeOrders() const { return m_orders; };
+  [[nodiscard]] auto const &getEdgeOrders() const { return m_orders; };
 
   /**
    * Getter for the specified EdgeOrder element with bounds checking.
@@ -145,13 +147,14 @@ public:
    * @param vertices pair of shared_ptr to Vertex
    * @return The identifier
    */
-  static std::string getEdgeID(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &vertices);
+  static std::string getEdgeID(std::pair<Vertex *, Vertex *> &&vertices);
 
 private:
-  std::string m_id;                                                       /*!< ID */
-  std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> m_vertices; /*!< Assigned Vertex instances */
-  std::vector<EdgeOrder> m_orders;                                        /*!< Assigned EdgeOrder instances */
-  bool m_shadow{false};                                                   /*!< Is shadow Edge */
+  std::string const m_id; /*!< ID */
+  std::pair<std::shared_ptr<Vertex const> const, std::shared_ptr<Vertex const> const> const
+      m_vertices;                  /*!< Assigned Vertex instances */
+  std::vector<EdgeOrder> m_orders; /*!< Assigned EdgeOrder instances */
+  bool m_shadow{false};            /*!< Is shadow Edge */
 };
 
 } // namespace lazybastard::graph

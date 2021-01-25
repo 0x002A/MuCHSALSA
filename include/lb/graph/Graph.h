@@ -70,6 +70,15 @@ public:
   auto getVertex(std::string const &nanoporeID) const;
 
   /**
+   * Deletes a Vertex from the Graph.
+   * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
+   * will become invalid.
+   *
+   * @param pVertexID pointer to the ID of the Vertex
+   */
+  void deleteVertex(std::string const *const pVertexID);
+
+  /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    * This function is **thread-safe**.
    *

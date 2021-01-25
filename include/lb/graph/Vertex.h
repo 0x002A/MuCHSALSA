@@ -22,9 +22,12 @@ public:
    *
    * @tparam Types the list of meta datum types
    * @param id The unique id of the vertex
+   * @param nanoporeLength The nanopore length
    * @param metaData The meta data of the vertex
    */
-  template <typename... Types> explicit Vertex(std::string id, Types... metaData) : m_id(std::move(id)) {
+  template <typename... Types>
+  explicit Vertex(std::string id, std::size_t nanoporeLength, Types... metaData)
+      : m_id(std::move(id)), m_nanoporeLength(nanoporeLength) {
     addMetaDatum(metaData...);
   };
 
@@ -81,9 +84,17 @@ public:
    */
   auto const &getID() const { return m_id; };
 
+  /**
+   * Getter for the nanopore length.
+   *
+   * @return The nanopore length
+   */
+  std::size_t getNanoporeLength() const { return m_nanoporeLength; }
+
 private:
-  std::string m_id;                 /*!< Unique vertex id */
-  std::vector<std::any> m_metaData; /*!< Vertex's meta data */
+  std::string const m_id;             /*!< Unique vertex id */
+  std::size_t const m_nanoporeLength; /*!< Nanopore length*/
+  std::vector<std::any> m_metaData;   /*!< Vertex's meta data */
 
   /**
    * Adds a meta datum to the Vertex.

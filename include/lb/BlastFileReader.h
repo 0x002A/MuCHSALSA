@@ -33,9 +33,34 @@ public:
    * @param pGraph pointer to the Graph receiving the Vertex instances
    * @param pMatchMap pointer to the MatchMap
    */
-  BlastFileReader(gsl::not_null<threading::ThreadPool *> pThreadPool, std::ifstream &inputStream,
-                  gsl::not_null<graph::Graph *> pGraph, gsl::not_null<matching::MatchMap *> pMatchMap)
+  BlastFileReader(gsl::not_null<threading::ThreadPool *> const pThreadPool, std::ifstream &inputStream,
+                  gsl::not_null<graph::Graph *> const pGraph, gsl::not_null<matching::MatchMap *> const pMatchMap)
       : m_pThreadPool(pThreadPool), m_inputStream(inputStream), m_pGraph(pGraph), m_pMatchMap(pMatchMap){};
+
+  /**
+   * Destructor.
+   */
+  ~BlastFileReader() = default;
+
+  /**
+   * Copying is disallowed.
+   */
+  BlastFileReader(BlastFileReader const &) = delete;
+
+  /**
+   * Copy assignment is disallowed.
+   */
+  BlastFileReader &operator=(BlastFileReader const &) = delete;
+
+  /**
+   * Moving is disallowed.
+   */
+  BlastFileReader(BlastFileReader &&) = delete;
+
+  /**
+   * Move assignment is disallowed.
+   */
+  BlastFileReader &operator=(BlastFileReader &&) = delete;
 
   /**
    * Reads the file.
@@ -47,13 +72,13 @@ public:
    *
    * @param pJob pointer to the Job containing the parameters
    */
-  void parseLine(gsl::not_null<threading::Job const *> const pJob);
+  void parseLine(gsl::not_null<threading::Job const *> pJob);
 
 private:
-  std::ifstream &m_inputStream;         /*!< Input stream of the file */
-  threading::ThreadPool *m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
-  graph::Graph *m_pGraph;               /*!< Pointer to the Graph receiving the vertices */
-  matching::MatchMap *m_pMatchMap;      /*!< Pointer to the MatchMap */
+  std::ifstream &m_inputStream;               /*!< Input stream of the file */
+  threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
+  graph::Graph *const m_pGraph;               /*!< Pointer to the Graph receiving the vertices */
+  matching::MatchMap *const m_pMatchMap;      /*!< Pointer to the MatchMap */
 };
 
 } // namespace lazybastard

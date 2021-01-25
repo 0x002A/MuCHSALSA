@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -57,7 +58,7 @@ public:
    * @param pThreadPool pointer to the ThreadPool to be used for parallelization
    * @param pGraph pointer to the Graph receiving the Vertex instances
    */
-  MatchMap(gsl::not_null<threading::ThreadPool *> pThreadPool, gsl::not_null<graph::Graph *> pGraph)
+  MatchMap(gsl::not_null<threading::ThreadPool *> const pThreadPool, gsl::not_null<graph::Graph *> const pGraph)
       : m_pThreadPool(pThreadPool), m_pGraph(pGraph){};
   /**
    * Adds a Vertex match to the map.
@@ -68,6 +69,25 @@ public:
    */
   void addVertexMatch(std::string const &nanoporeID, std::string const &illuminaID,
                       std::shared_ptr<VertexMatch> &&spMatch);
+
+  /**
+   * Getter for a specific match of the Vertex having the supplied ID.
+   *
+   * @param vertexID the identifier of the Vertex
+   * @param illuminaID the illumina ID to return the match for
+   * @return A pointer to the VertexMatch if found nullptr otherwise
+   */
+  [[nodiscard]] VertexMatch const *getVertexMatch(std::string const &vertexID, std::string const &illuminaID) const {
+    auto const &vertexIter = m_vertexMatches.find(vertexID);
+    if (vertexIter != m_vertexMatches.end()) {
+      auto const &illuminaIter = vertexIter->second.find(illuminaID);
+      if (illuminaIter != vertexIter->second.end()) {
+        return illuminaIter->second.get();
+      }
+    }
+
+    return nullptr;
+  };
 
   /**
    * Adds an Edge match to the map.
@@ -83,7 +103,7 @@ public:
    *
    * @return The map containing the Edge matches
    */
-  auto const &getEdgeMatches() const { return m_edgeMatches; };
+  [[nodiscard]] auto const &getEdgeMatches() const { return m_edgeMatches; };
 
   /**
    * Creates or updates Edge instances according to the scaffolds.
@@ -95,7 +115,7 @@ public:
    *
    * @param pJob pointer to the job containing the parameters
    */
-  void processScaffold(gsl::not_null<threading::Job const *> const pJob);
+  void processScaffold(gsl::not_null<threading::Job const *> pJob);
 
 private:
   template <typename T1, typename T2> using um = std::unordered_map<T1, T2>;
@@ -104,10 +124,10 @@ private:
       m_vertexMatches;                                                        /*!< Map containing the Vertex matches */
   um<std::string, um<std::string, std::shared_ptr<EdgeMatch>>> m_edgeMatches; /*!< Map containing the Edge matches */
   um<std::string, std::map<std::string, std::shared_ptr<VertexMatch>>> m_scaffolds; /*!< Map containing the scaffolds */
-  std::mutex m_vertexMutex;             /*!< Mutex for securing the parallel use of the Edge MatchMap */
-  std::mutex m_edgeMutex;               /*!< Mutex for securing the parallel use of the Edge MatchMap */
-  threading::ThreadPool *m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
-  graph::Graph *m_pGraph;               /*!< Pointer to the Graph receiving the vertices */
+  std::mutex m_vertexMutex;                   /*!< Mutex for securing the parallel use of the Edge MatchMap */
+  std::mutex m_edgeMutex;                     /*!< Mutex for securing the parallel use of the Edge MatchMap */
+  threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
+  graph::Graph *const m_pGraph;               /*!< Pointer to the Graph receiving the vertices */
 };
 
 } // namespace matching

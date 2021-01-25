@@ -7,10 +7,18 @@
 
 namespace lazybastard::util {
 
+template <typename T> struct is_smart_pointer : std::false_type {};
+template <typename T> struct is_smart_pointer<std::unique_ptr<T>> : std::true_type {};
+template <typename T> struct is_smart_pointer<std::shared_ptr<T>> : std::true_type {};
+template <typename T> struct is_smart_pointer<std::weak_ptr<T>> : std::true_type {};
+
+template <typename T> inline constexpr bool is_smart_pointer_v = is_smart_pointer<T>::value;
+
 template <typename T, typename Enable = void> struct is_valid_pointer : std::false_type {};
 
 template <typename T>
-struct is_valid_pointer<T, typename std::enable_if_t<std::is_pointer_v<T> && !std::is_null_pointer_v<T>>>
+struct is_valid_pointer<
+    T, typename std::enable_if_t<(std::is_pointer_v<T> || is_smart_pointer_v<T>)&&!std::is_null_pointer_v<T>>>
     : std::true_type {};
 
 template <typename T> inline constexpr bool is_valid_pointer_v = is_valid_pointer<T>::value;
@@ -38,13 +46,15 @@ void check_pointers(T const &p, Ts const &...ps) {
   check_pointers(ps...);
 }
 
-template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0> bool less_than(T const &_1, T const &_2) {
+template <typename T, std::enable_if_t<std::is_pointer_v<T> || is_smart_pointer_v<T>, int> = 0>
+bool less_than(T const &_1, T const &_2) {
   check_pointers(_1, _2);
 
   return *_1 < *_2;
 }
 
-template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0> bool less_than(T const &_1, T const &_2) {
+template <typename T, std::enable_if_t<!std::is_pointer_v<T> && !is_smart_pointer_v<T>, int> = 0>
+bool less_than(T const &_1, T const &_2) {
   return _1 < _2;
 }
 

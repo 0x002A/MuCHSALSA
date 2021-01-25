@@ -27,6 +27,29 @@ auto Graph::getVertex(std::string const &nanoporeID) const {
   return iter != m_vertices.end() ? iter->second->getSharedPtr() : nullptr;
 }
 
+void Graph::deleteVertex(const std::string *const pVertexID) {
+  for (auto adjacencyIter = m_adjacencyList.begin(); adjacencyIter != m_adjacencyList.end();) {
+    if (adjacencyIter->first == *pVertexID) {
+      adjacencyIter = m_adjacencyList.erase(adjacencyIter);
+    } else {
+      auto targetVerticesIter = adjacencyIter->second.find(*pVertexID);
+      if (targetVerticesIter != adjacencyIter->second.end()) {
+        adjacencyIter->second.erase(targetVerticesIter);
+      }
+      ++adjacencyIter;
+    }
+  }
+
+  /*
+   * This MUST be done AFTERWARDS as it deletes the map entry of the Vertex and therefore
+   * releases the shared_ptr. This probably invalidates all pointers to the ID of the Vertex.
+   */
+  auto const &vertexIter = m_vertices.find(*pVertexID);
+  if (vertexIter != m_vertices.end()) {
+    m_vertices.erase(vertexIter);
+  }
+}
+
 std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs) {
   std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
   auto pV1 = getVertex(vertexIDs.first);
@@ -36,10 +59,10 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
     throw std::invalid_argument("Vertices supplied for edge creation aren't allowed to be null.");
   }
 
+  auto edgeID = Edge::getEdgeID(std::make_pair(pV1.get(), pV2.get()));
   auto vertexPair = std::make_pair(std::move(pV1), std::move(pV2));
-  auto edgeID = Edge::getEdgeID(vertexPair);
 
-  auto upEdge = std::make_unique<Edge>(std::move(lazybastard::util::sortPair(vertexPair)));
+  auto upEdge = std::make_unique<Edge>(std::move(vertexPair));
   addEdgeInternal(std::move(upEdge));
 
   return edgeID;
@@ -48,9 +71,9 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
 std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(std::string const &vertexID) const {
   std::unordered_map<std::string const *, Edge const *> edgeMap;
 
-  auto const it = m_adjacencyList.find(vertexID);
-  if (it != m_adjacencyList.end()) {
-    for (auto const &[targetID, edge] : it->second) {
+  auto const outerIter = m_adjacencyList.find(vertexID);
+  if (outerIter != m_adjacencyList.end()) {
+    for (auto const &[targetID, edge] : outerIter->second) {
       edgeMap.insert({&targetID, edge.get()});
     }
   }
@@ -60,9 +83,9 @@ std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(st
       continue;
     }
 
-    auto const &it = edges.find(vertexID);
-    if (it != edges.end()) {
-      edgeMap.insert({&targetID, it->second.get()});
+    auto const &interIter = edges.find(vertexID);
+    if (interIter != edges.end()) {
+      edgeMap.insert({&targetID, interIter->second.get()});
     }
   }
 
@@ -83,6 +106,7 @@ void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
 
 bool Graph::hasEdge(std::pair<std::string, std::string> &vertexIDs) const {
   lazybastard::util::sortPair(vertexIDs);
+
   auto const &iter = m_adjacencyList.find(vertexIDs.first);
 
   if (iter != m_adjacencyList.end()) {

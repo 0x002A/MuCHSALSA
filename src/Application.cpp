@@ -4,14 +4,14 @@
 #include <stdexcept>
 #include <thread>
 
-constexpr std::size_t MIN_PAR = 4;
+constexpr static std::size_t MIN_PAR = 4;
 
-constexpr std::size_t POS_CFP = 1;
-constexpr std::size_t POS_UFP = 2;
-constexpr std::size_t POS_NFP = 3;
-constexpr std::size_t POS_OFP = 4;
-constexpr std::size_t POS_NOT = 5;
-constexpr std::size_t POS_WGR = 6;
+constexpr static std::size_t POS_CFP = 1;
+constexpr static std::size_t POS_UFP = 2;
+constexpr static std::size_t POS_NFP = 3;
+constexpr static std::size_t POS_OFP = 4;
+constexpr static std::size_t POS_NOT = 5;
+constexpr static std::size_t POS_WGR = 6;
 
 Application::Application(gsl::span<char const *> const &args) : m_threadCount(std::thread::hardware_concurrency()) {
   if (args.size() >= MIN_PAR + 1) {

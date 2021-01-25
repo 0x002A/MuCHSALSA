@@ -79,8 +79,8 @@ public:
   [[nodiscard]] std::any getParam(std::size_t idx) const { return m_params[idx]; };
 
 private:
-  std::function<void(Job const *)> m_fn; /*!< Function to be executed */
-  std::vector<std::any> m_params;        /*!< Function parameters */
+  std::function<void(Job const *const)> m_fn; /*!< Function to be executed */
+  std::vector<std::any> m_params;             /*!< Function parameters */
 
   /**
    * Adds a parameter to the internal parameter vector.

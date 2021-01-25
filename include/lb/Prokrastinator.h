@@ -50,11 +50,12 @@ using Id2OverlapMap =
     std::unordered_map<detail::Key, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual>;
 
 graph::EdgeOrder computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
-                                gsl::not_null<graph::Graph const *> pGraph, std::vector<std::string> const &ids,
+                                gsl::not_null<graph::Graph const *> pGraph,
+                                std::set<std::string const *const, util::LTCmp<std::string const *const>> const &ids,
                                 gsl::not_null<graph::Edge const *> pEdge, bool direction, std::size_t score,
                                 bool isPrimary);
 
-std::vector<std::tuple<std::vector<std::string>, std::size_t, bool>>
+std::vector<std::tuple<std::set<std::string const *const, util::LTCmp<std::string const *const>>, std::size_t, bool>>
 getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> matches, gsl::not_null<graph::Graph const *> pGraph,
                     gsl::not_null<graph::Edge const *> pEdge,
                     std::set<std::string const *const, util::LTCmp<std::string const *const>> const &illuminaIDs,

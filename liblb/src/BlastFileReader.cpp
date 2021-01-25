@@ -16,19 +16,19 @@
 #include "threading/WaitGroup.h"
 
 // Constants
-constexpr std::size_t MINIMUM_MATCHES = 400;
-constexpr std::size_t TH_LENGTH = 500;
-constexpr std::size_t TH_MATCHES = 500;
+constexpr static std::size_t MINIMUM_MATCHES = 400;
+constexpr static std::size_t TH_LENGTH = 500;
+constexpr static std::size_t TH_MATCHES = 500;
 
-constexpr std::size_t POS_IID = 0;
-constexpr std::size_t POS_NID = 5;
-constexpr std::size_t POS_IRS = 2;
-constexpr std::size_t POS_IRE = 3;
-constexpr std::size_t POS_NOM = 9;
-constexpr std::size_t POS_NLE = 6;
-constexpr std::size_t POS_NRS = 7;
-constexpr std::size_t POS_NRE = 8;
-constexpr std::size_t POS_DIR = 4;
+constexpr static std::size_t POS_IID = 0;
+constexpr static std::size_t POS_NID = 5;
+constexpr static std::size_t POS_IRS = 2;
+constexpr static std::size_t POS_IRE = 3;
+constexpr static std::size_t POS_NOM = 9;
+constexpr static std::size_t POS_NLE = 6;
+constexpr static std::size_t POS_NRS = 7;
+constexpr static std::size_t POS_NRE = 8;
+constexpr static std::size_t POS_DIR = 4;
 
 namespace lazybastard {
 
