@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#define LB_UNUSED(x) (void)(x)
+
 namespace lazybastard::util {
 
 template <typename T> struct is_smart_pointer : std::false_type {};

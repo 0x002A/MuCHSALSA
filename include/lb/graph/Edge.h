@@ -20,7 +20,7 @@ struct EdgeOrder {
   Vertex const *const endVertex;
   std::pair<float const, float const> const leftOffset;
   std::pair<float const, float const> const rightOffset;
-  bool const contained;
+  bool const isContained;
   Vertex const *const baseVertex;
   std::size_t const score;
   std::set<std::string const *const, util::LTCmp<std::string const *const>> const ids;

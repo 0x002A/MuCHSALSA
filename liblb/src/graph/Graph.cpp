@@ -44,7 +44,7 @@ void Graph::deleteVertex(const std::string *const pVertexID) {
    * This MUST be done AFTERWARDS as it deletes the map entry of the Vertex and therefore
    * releases the shared_ptr. This probably invalidates all pointers to the ID of the Vertex.
    */
-  auto const &vertexIter = m_vertices.find(*pVertexID);
+  auto const vertexIter = m_vertices.find(*pVertexID);
   if (vertexIter != m_vertices.end()) {
     m_vertices.erase(vertexIter);
   }
@@ -68,6 +68,30 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
   return edgeID;
 }
 
+void Graph::deleteEdge(const Edge *const pEdge) {
+  auto const vertices = pEdge->getVertices();
+  auto const outerIter = m_adjacencyList.find(vertices.first->getID());
+
+  if (outerIter != m_adjacencyList.end()) {
+    auto const innerIter = outerIter->second.find(vertices.second->getID());
+    if (innerIter != outerIter->second.end()) {
+      outerIter->second.erase(innerIter);
+    }
+  }
+}
+
+bool Graph::hasEdge(std::pair<std::string, std::string> &vertexIDs) const {
+  lazybastard::util::sortPair(vertexIDs);
+
+  auto const iter = m_adjacencyList.find(vertexIDs.first);
+
+  if (iter != m_adjacencyList.end()) {
+    return iter->second.find(vertexIDs.second) != iter->second.end();
+  }
+
+  return false;
+}
+
 std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(std::string const &vertexID) const {
   std::unordered_map<std::string const *, Edge const *> edgeMap;
 
@@ -83,7 +107,7 @@ std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(st
       continue;
     }
 
-    auto const &interIter = edges.find(vertexID);
+    auto const interIter = edges.find(vertexID);
     if (interIter != edges.end()) {
       edgeMap.insert({&targetID, interIter->second.get()});
     }
@@ -102,18 +126,6 @@ void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
   if (inserted) {
     m_edgeCount += 1;
   }
-}
-
-bool Graph::hasEdge(std::pair<std::string, std::string> &vertexIDs) const {
-  lazybastard::util::sortPair(vertexIDs);
-
-  auto const &iter = m_adjacencyList.find(vertexIDs.first);
-
-  if (iter != m_adjacencyList.end()) {
-    return iter->second.find(vertexIDs.second) != iter->second.end();
-  }
-
-  return false;
 }
 
 } // namespace lazybastard::graph

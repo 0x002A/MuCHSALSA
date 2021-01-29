@@ -87,6 +87,14 @@ public:
   std::string addEdge(std::pair<std::string, std::string> const &vertexIDs);
 
   /**
+   * Deletes an Edge from the Graph.
+   * The memory will be cleaned up and all references will become invalid.
+   *
+   * @param pEdge pointer to the Edge
+   */
+  void deleteEdge(Edge const *const pEdge);
+
+  /**
    * Checks the existence of an edge between the supplied Vertex IDs.
    *
    * @param vertexIDs vertexIDs the IDs of the vertices to be checked

@@ -78,9 +78,9 @@ public:
    * @return A pointer to the VertexMatch if found nullptr otherwise
    */
   [[nodiscard]] VertexMatch const *getVertexMatch(std::string const &vertexID, std::string const &illuminaID) const {
-    auto const &vertexIter = m_vertexMatches.find(vertexID);
+    auto const vertexIter = m_vertexMatches.find(vertexID);
     if (vertexIter != m_vertexMatches.end()) {
-      auto const &illuminaIter = vertexIter->second.find(illuminaID);
+      auto const illuminaIter = vertexIter->second.find(illuminaID);
       if (illuminaIter != vertexIter->second.end()) {
         return illuminaIter->second.get();
       }
