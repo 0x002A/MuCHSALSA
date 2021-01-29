@@ -40,6 +40,7 @@ void findContractionTargets(gsl::not_null<lazybastard::threading::Job const *> p
 void findDeletableVertices(gsl::not_null<lazybastard::threading::Job const *> pJob);
 void contract(gsl::not_null<lazybastard::threading::Job const *> pJob);
 void findDeletableEdges(gsl::not_null<lazybastard::threading::Job const *> pJob);
+void computeBitweight(gsl::not_null<lazybastard::threading::Job const *> pJob);
 
 auto main(int const argc, char const *argv[]) -> int {
   gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
@@ -176,6 +177,22 @@ auto main(int const argc, char const *argv[]) -> int {
       graph.deleteEdge(target);
     }
     deletableEdges.clear();
+
+    std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
+
+    auto computeBitweightJob = [](lazybastard::threading::Job const *const pJob) { computeBitweight(pJob); };
+    for (auto const &[edgeID, edges] : graph.getAdjacencyList()) {
+      LB_UNUSED(edgeID);
+
+      for (auto const &[targetEdgeID, pEdge] : edges) {
+        LB_UNUSED(targetEdgeID);
+
+        wg.add(1);
+        auto job = lazybastard::threading::Job(computeBitweightJob, &wg, pEdge.get());
+        threadPool.addJob(std::move(job));
+      }
+    }
+    wg.wait();
   } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
@@ -382,13 +399,36 @@ void findDeletableEdges(gsl::not_null<lazybastard::threading::Job const *> const
 
   if (filteredOrders.empty()) {
     auto *const pDeletableEdges =
-        std::any_cast<std::set<lazybastard::graph::Edge const *const> *const>(pJob->getParam(1));
+        std::any_cast<std::set<lazybastard::graph::Edge const *const> *const>(pJob->getParam(2));
     std::lock_guard<std::mutex> guard(
-        std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+        std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get()); // NOLINT
     pDeletableEdges->insert(pEdge);
   }
 
   pEdge->replaceOrders(std::move(filteredOrders));
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+}
+
+void computeBitweight(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  auto *const pEdge = std::any_cast<lazybastard::graph::Edge *const>(pJob->getParam(1));
+  auto const &orders = pEdge->getEdgeOrders();
+
+  if (orders.empty()) {
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+    return;
+  }
+
+  if (pEdge->isShadow()) {
+    auto const &initial = orders[0].direction;
+    auto const findOther = std::find_if(orders.begin(), orders.end(),
+                                        [&](auto const &order) { return order.direction != initial; }) != orders.end();
+    if (!findOther) {
+      pEdge->setConsensusDirection(orders[0].direction);
+    }
+  } else {
+    pEdge->setWeight(orders[0].score);
+    pEdge->setConsensusDirection(orders[0].direction);
+  }
 
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }

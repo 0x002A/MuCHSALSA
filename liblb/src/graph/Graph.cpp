@@ -76,6 +76,7 @@ void Graph::deleteEdge(const Edge *const pEdge) {
     auto const innerIter = outerIter->second.find(vertices.second->getID());
     if (innerIter != outerIter->second.end()) {
       outerIter->second.erase(innerIter);
+      --m_edgeCount;
     }
   }
 }
@@ -124,7 +125,7 @@ void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
   auto inserted = iter->second.emplace(assignedVertices.second->getID(), std::move(upEdge)).second;
 
   if (inserted) {
-    m_edgeCount += 1;
+    ++m_edgeCount;
   }
 }
 

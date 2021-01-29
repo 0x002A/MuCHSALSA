@@ -88,16 +88,44 @@ public:
   /**
    * Getter for the shadow Edge indicator.
    *
-   * @return Shadow edge indicator
+   * @return Shadow Edge indicator
    */
   [[nodiscard]] bool isShadow() const { return m_shadow; };
 
   /**
    * Setter for the shadow Edge indicator.
    *
-   * @param shadow shadow edge indicator
+   * @param shadow shadow Edge indicator
    */
   void setShadow(bool shadow) { m_shadow = shadow; };
+
+  /**
+   * Getter for the Edge weight.
+   *
+   * @return Edge weight
+   */
+  [[nodiscard]] std::size_t getWeight() const { return m_weight; };
+
+  /**
+   * Setter for the Edge weight.
+   *
+   * @param weight Edge weight
+   */
+  void setWeight(std::size_t weight) { m_weight = weight; };
+
+  /**
+   * Getter for the consensus direction.
+   *
+   * @return Consensus direction
+   */
+  [[nodiscard]] bool getConsensusDirection() const { return m_consensusDirection; };
+
+  /**
+   * Setter for the consensus direction.
+   *
+   * @param direction consensus direction
+   */
+  void setConsensusDirection(bool consensusDirection) { m_consensusDirection = consensusDirection; };
 
   /**
    * Getter for all EdgeOrder elements.
@@ -155,6 +183,8 @@ private:
       m_vertices;                  /*!< Assigned Vertex instances */
   std::vector<EdgeOrder> m_orders; /*!< Assigned EdgeOrder instances */
   bool m_shadow{false};            /*!< Is shadow Edge */
+  std::size_t m_weight;            /*!< Edge weight */
+  bool m_consensusDirection;       /*!< Consensus direction */
 };
 
 } // namespace lazybastard::graph
