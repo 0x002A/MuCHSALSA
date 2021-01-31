@@ -78,4 +78,11 @@ template <typename T, typename... Args> std::shared_ptr<T> make_shared_aggregate
   return std::make_shared<T>(T{std::forward<Args>(args)...});
 }
 
+template <typename FROM, typename TO> TO safe_numeric_cast(FROM const &from) {
+  if (from > std::numeric_limits<TO>::max()) {
+    throw std::invalid_argument("Narrowing cast.");
+  }
+  return static_cast<TO>(from);
+}
+
 } // namespace lazybastard::util

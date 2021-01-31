@@ -20,7 +20,9 @@ TEST(GraphTest, BasicTest) {
   auto edgeID = graph.addEdge(vertexIDs);
   ASSERT_EQ(edgeID, "1,2");
 
-  auto expected = std::make_pair(std::string("1"), std::string("2"));
+  auto const v1 = std::string("1");
+  auto const v2 = std::string("2");
+  auto expected = std::make_pair(&v1, &v2);
   ASSERT_TRUE(graph.hasEdge(expected));
 }
 
@@ -49,6 +51,8 @@ TEST(GraphTest, InverseOrderTest) {
   auto const edgeID = graph.addEdge(vertexIDs);
   ASSERT_EQ(edgeID, "1,2");
 
-  auto expected = std::make_pair(std::string("2"), std::string("1"));
+  auto const v1 = std::string("1");
+  auto const v2 = std::string("2");
+  auto expected = std::make_pair(&v1, &v2);
   ASSERT_TRUE(graph.hasEdge(expected));
 }

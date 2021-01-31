@@ -5,6 +5,7 @@ Checks:
 -fuchsia-trailing-return,
 -modernize-use-trailing-return-type,
 -llvmlibc-*,
+-readability-function-cognitive-complexity,
 '
 
 InheritParentConfig: true

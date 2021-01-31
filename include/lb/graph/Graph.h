@@ -3,15 +3,32 @@
 #include <cstddef>
 #include <iosfwd>
 #include <memory>
+#include <set>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
 
-namespace lazybastard::graph {
+namespace lazybastard {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+namespace util {
+template <typename T> struct LTCmp;
+} // namespace util
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+namespace graph {
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 class Edge;
+class Graph;
 class Vertex;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
+//// FUNCTIONS ////
+
+std::set<std::string const *const, util::LTCmp<std::string const *const>>
+getShortestPath(Graph const *pGraph, std::pair<Vertex const *const, Vertex const *const> vertexIDs);
+
+//// TYPES ////
 
 /**
  * Class representing a graph.
@@ -83,8 +100,17 @@ public:
    * This function is **thread-safe**.
    *
    * @param vertexIDs the IDs of the vertices to be connected by an Edge
+   * @return The ID of the Edge
    */
   std::string addEdge(std::pair<std::string, std::string> const &vertexIDs);
+
+  /**
+   * Getter for an Edge.
+   *
+   * @param vertexIDs the IDs of the vertices connected by the Edge
+   * @return A pointer to the requested Edge if found nullptr otherwise
+   */
+  Edge const *getEdge(std::pair<std::string const *, std::string const *> &vertexIDs) const;
 
   /**
    * Deletes an Edge from the Graph.
@@ -100,7 +126,7 @@ public:
    * @param vertexIDs vertexIDs the IDs of the vertices to be checked
    * @return A bool indication whether an Edge exists or not
    */
-  bool hasEdge(std::pair<std::string, std::string> &vertexIDs) const;
+  bool hasEdge(std::pair<const std::string *, const std::string *> &vertexIDs) const;
 
   /**
    * Getter for Edge instances connected to a particular Vertex.
@@ -163,4 +189,5 @@ inline std::size_t Graph::getSize() const {
   return m_edgeCount;
 }
 
-} // namespace lazybastard::graph
+} // namespace graph
+} // namespace lazybastard

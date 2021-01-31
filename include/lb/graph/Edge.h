@@ -28,6 +28,10 @@ struct EdgeOrder {
   bool const isPrimary;
 };
 
+struct ConsensusDirection {
+  enum Enum { e_POS = true, e_NEG = false, e_NONE };
+};
+
 /**
  * Class representing an Edge.
  *
@@ -118,14 +122,16 @@ public:
    *
    * @return Consensus direction
    */
-  [[nodiscard]] bool getConsensusDirection() const { return m_consensusDirection; };
+  [[nodiscard]] ConsensusDirection::Enum getConsensusDirection() const { return m_consensusDirection; };
 
   /**
    * Setter for the consensus direction.
    *
-   * @param direction consensus direction
+   * @param consensusDirection consensus direction
    */
-  void setConsensusDirection(bool consensusDirection) { m_consensusDirection = consensusDirection; };
+  void setConsensusDirection(bool consensusDirection) {
+    m_consensusDirection = consensusDirection ? ConsensusDirection::Enum::e_POS : ConsensusDirection::Enum::e_NEG;
+  };
 
   /**
    * Getter for all EdgeOrder elements.
@@ -175,16 +181,16 @@ public:
    * @param vertices pair of shared_ptr to Vertex
    * @return The identifier
    */
-  static std::string getEdgeID(std::pair<Vertex *, Vertex *> &&vertices);
+  static std::string getEdgeID(std::pair<const Vertex *, const Vertex *> &&vertices);
 
 private:
   std::string const m_id; /*!< ID */
   std::pair<std::shared_ptr<Vertex const> const, std::shared_ptr<Vertex const> const> const
-      m_vertices;                  /*!< Assigned Vertex instances */
-  std::vector<EdgeOrder> m_orders; /*!< Assigned EdgeOrder instances */
-  bool m_shadow{false};            /*!< Is shadow Edge */
-  std::size_t m_weight;            /*!< Edge weight */
-  bool m_consensusDirection;       /*!< Consensus direction */
+      m_vertices;                                /*!< Assigned Vertex instances */
+  std::vector<EdgeOrder> m_orders;               /*!< Assigned EdgeOrder instances */
+  bool m_shadow;                                 /*!< Is shadow Edge */
+  std::size_t m_weight;                          /*!< Edge weight */
+  ConsensusDirection::Enum m_consensusDirection; /*!< Consensus direction */
 };
 
 } // namespace lazybastard::graph

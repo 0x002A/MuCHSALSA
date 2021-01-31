@@ -9,6 +9,12 @@
 
 namespace lazybastard::graph {
 
+std::set<std::string const *const, util::LTCmp<std::string const *const>>
+getShortestPath(Graph const *const /*pGraph*/,
+                std::pair<Vertex const *const, Vertex const *const> const /*vertexIDs*/) {
+  return std::set<std::string const *const, util::LTCmp<std::string const *const>>();
+}
+
 Graph::Graph() = default;
 Graph::~Graph() = default;
 
@@ -68,6 +74,20 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
   return edgeID;
 }
 
+Edge const *Graph::getEdge(std::pair<std::string const *, std::string const *> &vertexIDs) const {
+  lazybastard::util::sortPair(vertexIDs);
+
+  auto const outerIter = m_adjacencyList.find(*vertexIDs.first);
+  if (outerIter != m_adjacencyList.end()) {
+    auto const innerIter = outerIter->second.find(*vertexIDs.second);
+    if (innerIter != outerIter->second.end()) {
+      return innerIter->second.get();
+    }
+  }
+
+  return nullptr;
+}
+
 void Graph::deleteEdge(const Edge *const pEdge) {
   auto const vertices = pEdge->getVertices();
   auto const outerIter = m_adjacencyList.find(vertices.first->getID());
@@ -81,13 +101,13 @@ void Graph::deleteEdge(const Edge *const pEdge) {
   }
 }
 
-bool Graph::hasEdge(std::pair<std::string, std::string> &vertexIDs) const {
+bool Graph::hasEdge(std::pair<const std::string *, const std::string *> &vertexIDs) const {
   lazybastard::util::sortPair(vertexIDs);
 
-  auto const iter = m_adjacencyList.find(vertexIDs.first);
+  auto const iter = m_adjacencyList.find(*vertexIDs.first);
 
   if (iter != m_adjacencyList.end()) {
-    return iter->second.find(vertexIDs.second) != iter->second.end();
+    return iter->second.find(*vertexIDs.second) != iter->second.end();
   }
 
   return false;

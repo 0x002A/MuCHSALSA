@@ -5,12 +5,14 @@
 #include <gsl/pointers>
 #include <gsl/span>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <lb/BlastFileReader.h>
 #include <lb/Prokrastinator.h>
@@ -24,6 +26,9 @@
 #include <lb/threading/WaitGroup.h>
 
 #include "Application.h"
+
+constexpr static auto BASEWEIGHT_MULTIPLIKATOR = 1.1;
+constexpr static auto MAXWEIGHT_MULTIPLIKATOR = 0.8;
 
 struct ContainElement { // NOLINT
   std::unordered_map<std::string const *, lazybastard::matching::VertexMatch const *> const matches;
@@ -41,6 +46,7 @@ void findDeletableVertices(gsl::not_null<lazybastard::threading::Job const *> pJ
 void contract(gsl::not_null<lazybastard::threading::Job const *> pJob);
 void findDeletableEdges(gsl::not_null<lazybastard::threading::Job const *> pJob);
 void computeBitweight(gsl::not_null<lazybastard::threading::Job const *> pJob);
+void decycle(gsl::not_null<lazybastard::threading::Job const *> pJob);
 
 auto main(int const argc, char const *argv[]) -> int {
   gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
@@ -193,6 +199,32 @@ auto main(int const argc, char const *argv[]) -> int {
       }
     }
     wg.wait();
+
+    auto const maxSpanTree = lazybastard::getMaxSpanTree(&graph);
+
+    auto decycleJob = [](lazybastard::threading::Job const *const pJob) { decycle(pJob); };
+    for (auto const &[edgeID, edges] : graph.getAdjacencyList()) {
+      LB_UNUSED(edgeID);
+
+      for (auto const &[targetEdgeID, pEdge] : edges) {
+        LB_UNUSED(targetEdgeID);
+
+        wg.add(1);
+        auto job = lazybastard::threading::Job(decycleJob, &wg, &graph, pEdge.get(), maxSpanTree.get(), &deletableEdges,
+                                               std::reference_wrapper<std::mutex>(mutex));
+        threadPool.addJob(std::move(job));
+      }
+    }
+    wg.wait();
+
+    std::cout << "Edges to become deleted: " << deletableEdges.size() << std::endl;
+
+    for (auto const *const target : deletableEdges) {
+      graph.deleteEdge(target);
+    }
+    deletableEdges.clear();
+
+    std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
   } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
@@ -286,7 +318,7 @@ void findContractionEdges(gsl::not_null<lazybastard::threading::Job const *> con
         continue;
       }
 
-      auto vertices = std::make_pair(pOrder->endVertex->getID(), *targetID);
+      auto vertices = std::make_pair(&pOrder->endVertex->getID(), targetID);
       isSane &= pGraph->hasEdge(vertices);
       if (!isSane) {
         break;
@@ -428,6 +460,49 @@ void computeBitweight(gsl::not_null<lazybastard::threading::Job const *> const p
   } else {
     pEdge->setWeight(orders[0].score);
     pEdge->setConsensusDirection(orders[0].direction);
+  }
+
+  std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
+}
+
+void decycle(gsl::not_null<lazybastard::threading::Job const *> const pJob) {
+  auto const *const pEdge = std::any_cast<lazybastard::graph::Edge const *const>(pJob->getParam(2));
+  auto const *const pMaxSpanTree = std::any_cast<lazybastard::graph::Graph const *const>(pJob->getParam(3));
+  auto vertexIDs = std::make_pair(&pEdge->getVertices().first->getID(), &pEdge->getVertices().second->getID());
+  if (pEdge->getConsensusDirection() != lazybastard::graph::ConsensusDirection::Enum::e_NONE &&
+      !pMaxSpanTree->hasEdge(vertexIDs)) {
+    auto const *const pGraph = std::any_cast<lazybastard::graph::Graph const *const>(pJob->getParam(1));
+    auto const shortestPath = lazybastard::graph::getShortestPath(pGraph, pEdge->getVertices());
+    auto direction = static_cast<bool>(pEdge->getConsensusDirection());
+    auto const baseWeight = lazybastard::util::safe_numeric_cast<std::size_t, double>(pEdge->getWeight());
+    std::vector<double> weights;
+
+    for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
+      auto p = std::make_pair(*it, *std::next(it));
+      auto const *const pPathEdge = pGraph->getEdge(p);
+      if (pPathEdge != nullptr) {
+        direction = direction && static_cast<bool>(pPathEdge->getConsensusDirection());
+        weights.push_back(lazybastard::util::safe_numeric_cast<std::size_t, double>(pEdge->getWeight()));
+      }
+    }
+
+    if (!direction && !weights.empty()) {
+      auto const iterMinWeight = std::min_element(weights.begin(), weights.end());
+      auto const iterMaxWeight = std::max_element(weights.begin(), weights.end());
+
+      if (*iterMaxWeight < baseWeight || (baseWeight * BASEWEIGHT_MULTIPLIKATOR >= *iterMinWeight &&
+                                          *iterMinWeight < *iterMaxWeight * MAXWEIGHT_MULTIPLIKATOR)) {
+        auto const minWeightIdx = std::distance(weights.begin(), iterMinWeight);
+        auto p = std::make_pair(*std::next(shortestPath.begin(), minWeightIdx),
+                                *std::next(shortestPath.begin(), minWeightIdx + 1));
+        auto const *const pDeletableEdge = pGraph->getEdge(p);
+        auto *const pDeletableEdges =
+            std::any_cast<std::set<lazybastard::graph::Edge const *const> *const>(pJob->getParam(4));
+        std::lock_guard<std::mutex> guard(
+            std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+        pDeletableEdges->insert(pDeletableEdge);
+      }
+    }
   }
 
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
