@@ -7,6 +7,7 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace lazybastard {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -29,6 +30,8 @@ std::set<std::string const *const, util::LTCmp<std::string const *const>>
 getShortestPath(Graph const *pGraph, std::pair<Vertex const *const, Vertex const *const> vertexIDs);
 
 //// TYPES ////
+
+class DiGraph {};
 
 /**
  * Class representing a graph.
@@ -95,6 +98,16 @@ public:
    */
   void deleteVertex(std::string const *const pVertexID);
 
+  std::vector<Vertex const *> getVertices() const {
+    std::vector<Vertex const *> vertices;
+
+    std::transform(m_vertices.begin(), m_vertices.end(), std::back_inserter(vertices),
+                   [](const std::unordered_map<std::string, std::shared_ptr<Vertex>>::value_type &pair) {
+                     return pair.second.get();
+                   });
+    return vertices;
+  }
+
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    * This function is **thread-safe**.
@@ -142,6 +155,10 @@ public:
    * @return The adjacency list of the graph
    */
   auto const &getAdjacencyList() const { return m_adjacencyList; };
+
+  std::unique_ptr<Graph> getSubgraph(std::vector<std::string const *> const &vertices) {
+    return std::make_unique<Graph>();
+  }
 
   /**
    * Getter for the number of Vertex instances attached to the Graph.
