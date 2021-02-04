@@ -68,9 +68,9 @@ void MatchMap::calculateEdges() {
 void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob) {
   auto const scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
 
-  for (auto outerIter = scaffold.begin(); outerIter != scaffold.end(); ++outerIter) {
+  for (auto outerIter = std::begin(scaffold); outerIter != std::end(scaffold); ++outerIter) {
     auto const *const outerMatch = outerIter->second.get();
-    for (auto innerIter = std::next(outerIter, 1); innerIter != scaffold.end(); ++innerIter) {
+    for (auto innerIter = std::next(outerIter, 1); innerIter != std::end(scaffold); ++innerIter) {
       auto const *const innerMatch = innerIter->second.get();
       auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));

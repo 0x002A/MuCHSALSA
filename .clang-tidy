@@ -5,7 +5,10 @@ Checks:
 -fuchsia-trailing-return,
 -modernize-use-trailing-return-type,
 -llvmlibc-*,
--readability-function-cognitive-complexity,
+-readability-magic-numbers,
+-cppcoreguidelines-avoid-magic-numbers,
+-readability-implicit-bool-conversion,
+-hicpp-multiway-paths-covered,
 '
 
 InheritParentConfig: true
@@ -19,8 +22,8 @@ CheckOptions:
   - { key: readability-identifier-naming.TypedefCase,                  value: CamelCase  }
   - { key: readability-identifier-naming.TypeAliasCase,                value: CamelCase  }
   - { key: readability-identifier-naming.EnumCase,                     value: CamelCase  }
-  - { key: readability-identifier-naming.VariableCase,                 value: camelBack  }
-  - { key: readability-identifier-naming.ParameterCase,                value: camelBack  }
+  - { key: readability-identifier-naming.VariableCase,                 value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,                value: camelBack }
   - { key: readability-identifier-naming.PrivateMemberPrefix,          value: 'm_' }
   - { key: readability-identifier-naming.ProtectedMemberPrefix,        value: 'm_' }
   - { key: readability-identifier-naming.GlobalVariablePrefix,         value: 'g_' }
@@ -29,13 +32,13 @@ CheckOptions:
   - { key: readability-identifier-naming.StaticConstantCase,           value: CamelCase }
   - { key: readability-identifier-naming.StaticConstantPrefix,         value: 'c' }
   - { key: readability-identifier-naming.GlobalConstantCase,           value: UPPER_CASE }
-  - { key: readability-identifier-naming.EnumConstantCase,             value: CamelCase }
-  - { key: readability-identifier-naming.EnumConstantPrefix,           value: 'c' }
+  - { key: readability-identifier-naming.EnumConstantCase,             value: UPPER_CASE }
+  - { key: readability-identifier-naming.EnumConstantPrefix,           value: 'e_' }
   - { key: readability-identifier-naming.FunctionCase,                 value: camelBack }
   - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: 1 } # structs are allowed
-  - { key: cert-dcl37-c.AllowedIdentifiers,				  value: __coro_gro;__promise } # coroutines
-  - { key: cert-dcl51-cpp.AllowedIdentifiers,				  value: __coro_gro;__promise } # coroutines
-  - { key: bugprone-reserved-identifier.AllowedIdentifiers,		  value: __coro_gro;__promise } # coroutines
-  
+  - { key: cert-dcl37-c.AllowedIdentifiers,                  value: __coro_gro;__promise } # coroutines
+  - { key: cert-dcl51-cpp.AllowedIdentifiers,                  value: __coro_gro;__promise } # coroutines
+  - { key: bugprone-reserved-identifier.AllowedIdentifiers,          value: __coro_gro;__promise } # coroutines
+
 FormatStyle: file
 

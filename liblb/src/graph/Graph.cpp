@@ -9,10 +9,10 @@
 
 namespace lazybastard::graph {
 
-std::set<std::string const *const, util::LTCmp<std::string const *const>>
-getShortestPath(Graph const *const /*pGraph*/,
-                std::pair<Vertex const *const, Vertex const *const> const /*vertexIDs*/) {
-  return std::set<std::string const *const, util::LTCmp<std::string const *const>>();
+std::deque<gsl::not_null<std::string const *> const> getShortestPath(
+    gsl::not_null<Graph const *> const /*pGraph*/,
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const /*vertexIDs*/) {
+  return std::deque<gsl::not_null<std::string const *> const>();
 }
 
 Graph::Graph() = default;
@@ -30,16 +30,16 @@ auto Graph::getVertex(std::string const &nanoporeID) const {
 
   auto iter = m_vertices.find(nanoporeID);
 
-  return iter != m_vertices.end() ? iter->second->getSharedPtr() : nullptr;
+  return iter != std::end(m_vertices) ? iter->second->getSharedPtr() : nullptr;
 }
 
-void Graph::deleteVertex(const std::string *const pVertexID) {
-  for (auto adjacencyIter = m_adjacencyList.begin(); adjacencyIter != m_adjacencyList.end();) {
+void Graph::deleteVertex(gsl::not_null<std::string const *> const pVertexID) {
+  for (auto adjacencyIter = std::begin(m_adjacencyList); adjacencyIter != std::end(m_adjacencyList);) {
     if (adjacencyIter->first == *pVertexID) {
       adjacencyIter = m_adjacencyList.erase(adjacencyIter);
     } else {
       auto targetVerticesIter = adjacencyIter->second.find(*pVertexID);
-      if (targetVerticesIter != adjacencyIter->second.end()) {
+      if (targetVerticesIter != std::end(adjacencyIter->second)) {
         adjacencyIter->second.erase(targetVerticesIter);
       }
       ++adjacencyIter;
@@ -51,7 +51,7 @@ void Graph::deleteVertex(const std::string *const pVertexID) {
    * releases the shared_ptr. This probably invalidates all pointers to the ID of the Vertex.
    */
   auto const vertexIter = m_vertices.find(*pVertexID);
-  if (vertexIter != m_vertices.end()) {
+  if (vertexIter != std::end(m_vertices)) {
     m_vertices.erase(vertexIter);
   }
 }
@@ -74,13 +74,14 @@ std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs)
   return edgeID;
 }
 
-Edge const *Graph::getEdge(std::pair<std::string const *, std::string const *> &vertexIDs) const {
+Edge const *
+Graph::getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
   lazybastard::util::sortPair(vertexIDs);
 
   auto const outerIter = m_adjacencyList.find(*vertexIDs.first);
-  if (outerIter != m_adjacencyList.end()) {
+  if (outerIter != std::end(m_adjacencyList)) {
     auto const innerIter = outerIter->second.find(*vertexIDs.second);
-    if (innerIter != outerIter->second.end()) {
+    if (innerIter != std::end(outerIter->second)) {
       return innerIter->second.get();
     }
   }
@@ -92,22 +93,23 @@ void Graph::deleteEdge(const Edge *const pEdge) {
   auto const vertices = pEdge->getVertices();
   auto const outerIter = m_adjacencyList.find(vertices.first->getID());
 
-  if (outerIter != m_adjacencyList.end()) {
+  if (outerIter != std::end(m_adjacencyList)) {
     auto const innerIter = outerIter->second.find(vertices.second->getID());
-    if (innerIter != outerIter->second.end()) {
+    if (innerIter != std::end(outerIter->second)) {
       outerIter->second.erase(innerIter);
       --m_edgeCount;
     }
   }
 }
 
-bool Graph::hasEdge(std::pair<const std::string *, const std::string *> &vertexIDs) const {
+bool Graph::hasEdge(
+    std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
   lazybastard::util::sortPair(vertexIDs);
 
   auto const iter = m_adjacencyList.find(*vertexIDs.first);
 
-  if (iter != m_adjacencyList.end()) {
-    return iter->second.find(*vertexIDs.second) != iter->second.end();
+  if (iter != std::end(m_adjacencyList)) {
+    return iter->second.find(*vertexIDs.second) != std::end(iter->second);
   }
 
   return false;
@@ -117,7 +119,7 @@ std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(st
   std::unordered_map<std::string const *, Edge const *> edgeMap;
 
   auto const outerIter = m_adjacencyList.find(vertexID);
-  if (outerIter != m_adjacencyList.end()) {
+  if (outerIter != std::end(m_adjacencyList)) {
     for (auto const &[targetID, edge] : outerIter->second) {
       edgeMap.insert({&targetID, edge.get()});
     }
@@ -129,12 +131,25 @@ std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(st
     }
 
     auto const interIter = edges.find(vertexID);
-    if (interIter != edges.end()) {
+    if (interIter != std::end(edges)) {
       edgeMap.insert({&targetID, interIter->second.get()});
     }
   }
 
   return edgeMap;
+}
+
+std::vector<Edge *> Graph::getEdges() const {
+  std::vector<Edge *> edges;
+
+  for (const auto &[vertexID, connectedEdges] : m_adjacencyList) {
+    LB_UNUSED(vertexID);
+
+    std::transform(std::begin(connectedEdges), std::end(connectedEdges), std::back_inserter(edges),
+                   [](const auto &pair) { return pair.second.get(); });
+  }
+
+  return edges;
 }
 
 void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {

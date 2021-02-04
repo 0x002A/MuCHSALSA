@@ -54,7 +54,9 @@ public:
   ID2OverlapMap &operator=(ID2OverlapMap const &) = delete;
 
 private:
-  std::unordered_map<detail::Key, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual> m_map;
-  mutable std::shared_mutex mutex;
+  std::unordered_map<detail::Key, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual>
+      m_map; /*!< Map storing the mapping */
+  mutable std::shared_mutex
+      m_mutex; /*!< std::shared_mutex for securing the parallel use of the map storing the mapping */
 };
 } // namespace lazybastard::matching

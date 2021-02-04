@@ -1,3 +1,4 @@
+#include <gsl/pointers>
 #include <memory>
 
 #include <gtest/gtest.h>
@@ -22,7 +23,7 @@ TEST(GraphTest, BasicTest) {
 
   auto const v1 = std::string("1");
   auto const v2 = std::string("2");
-  auto expected = std::make_pair(&v1, &v2);
+  auto expected = std::make_pair(gsl::make_not_null(&v1), gsl::make_not_null(&v2));
   ASSERT_TRUE(graph.hasEdge(expected));
 }
 
@@ -53,6 +54,6 @@ TEST(GraphTest, InverseOrderTest) {
 
   auto const v1 = std::string("1");
   auto const v2 = std::string("2");
-  auto expected = std::make_pair(&v1, &v2);
+  auto expected = std::make_pair(gsl::make_not_null(&v1), gsl::make_not_null(&v2));
   ASSERT_TRUE(graph.hasEdge(expected));
 }

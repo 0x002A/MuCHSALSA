@@ -1,50 +1,54 @@
 #pragma once
 
 #include <cstddef>
+#include <deque>
+#include <gsl/pointers>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "Lb.fwd.h"
 #include "Util.h"
 
 namespace lazybastard::graph {
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-class Vertex;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+/**
+ * Struct representing an order attached to an Edge.
+ */
 struct EdgeOrder {
-  Vertex const *const startVertex;
-  Vertex const *const endVertex;
-  std::pair<float const, float const> const leftOffset;
-  std::pair<float const, float const> const rightOffset;
-  bool const isContained;
-  Vertex const *const baseVertex;
-  std::size_t const score;
-  std::set<std::string const *const, util::LTCmp<std::string const *const>> const ids;
-  bool const direction;
-  bool const isPrimary;
+  Vertex const *const startVertex;                                /*!< Start Vertex */
+  Vertex const *const endVertex;                                  /*!< End Vertex */
+  std::pair<float const, float const> const leftOffset;           /*!< Left offset */
+  std::pair<float const, float const> const rightOffset;          /*!< Right offset */
+  bool const isContained;                                         /*!< Bool indicating containment */
+  Vertex const *const baseVertex;                                 /*!< Base Vertex */
+  std::size_t const score;                                        /*!< Score */
+  std::deque<gsl::not_null<std::string const *> const> const ids; /*!< IDs */
+  bool const direction;                                           /*!< Bool indicating direction */
+  bool const isPrimary;                                           /*!< Bool indicating a primary */
 };
 
+/**
+ * Scoped enum representing the consensus direction.
+ */
 struct ConsensusDirection {
-  enum Enum { e_POS = true, e_NEG = false, e_NONE };
+  enum Enum : bool { e_POS = true, e_NEG = false, e_NONE };
 };
 
 /**
  * Class representing an Edge.
  *
  * An Edge is assigned to two instances of Vertex.
- * Instances of this class are immutable by default and therefore thread-safe.
+ * Instances of this class are **not** thread-safe.
  */
 class Edge {
 public:
   /**
-   * Class constructor which creates a new instance.
+   * Class constructor creating a new instance.
    *
-   * @param vertices pair of shared pointers to the Vertex instances connected by
-   * the Edge
+   * @param vertices an rvalue reference to the std::pair of shared pointers to the Vertex instances connected by
+   *                 the Edge
    */
   explicit Edge(std::pair<std::shared_ptr<Vertex>, std::shared_ptr<Vertex>> &&vertices);
 
@@ -74,14 +78,14 @@ public:
   Edge &operator=(Edge &&) = delete;
 
   /**
-   * Getter for the unique id of the Edge.
+   * Getter returning the unique Edge id.
    *
-   * @return The unique id of the Edge
+   * @return The unique Edge id
    */
   [[nodiscard]] auto const &getID() const { return m_id; };
 
   /**
-   * Getter for the assigned vertices.
+   * Getter returning the vertices assigned to this Edge.
    *
    * @return The assigned vertices
    */
@@ -90,98 +94,99 @@ public:
   };
 
   /**
-   * Getter for the shadow Edge indicator.
+   * Getter returning the shadow Edge indicator.
    *
-   * @return Shadow Edge indicator
+   * @return The shadow Edge indicator
    */
   [[nodiscard]] bool isShadow() const { return m_shadow; };
 
   /**
-   * Setter for the shadow Edge indicator.
+   * Setter setting the shadow Edge indicator.
    *
-   * @param shadow shadow Edge indicator
+   * @param shadow the shadow Edge indicator
    */
   void setShadow(bool shadow) { m_shadow = shadow; };
 
   /**
-   * Getter for the Edge weight.
+   * Getter returning the Edge weight.
    *
-   * @return Edge weight
+   * @return The Edge weight
    */
   [[nodiscard]] std::size_t getWeight() const { return m_weight; };
 
   /**
-   * Setter for the Edge weight.
+   * Setter setting the Edge weight.
    *
-   * @param weight Edge weight
+   * @param weight the Edge weight
    */
   void setWeight(std::size_t weight) { m_weight = weight; };
 
   /**
-   * Getter for the consensus direction.
+   * Getter returning the ConsensusDirection.
    *
-   * @return Consensus direction
+   * @return The ConsensusDirection
    */
   [[nodiscard]] ConsensusDirection::Enum getConsensusDirection() const { return m_consensusDirection; };
 
   /**
-   * Setter for the consensus direction.
+   * Setter setting the ConsensusDirection.
    *
-   * @param consensusDirection consensus direction
+   * @param consensusDirection the ConsensusDirection
    */
   void setConsensusDirection(bool consensusDirection) {
     m_consensusDirection = consensusDirection ? ConsensusDirection::Enum::e_POS : ConsensusDirection::Enum::e_NEG;
   };
 
   /**
-   * Getter for all EdgeOrder elements.
+   * Getter returning all EdgeOrder elements.
    *
-   * @return Reference to the vector holding the EdgeOrder elements
+   * @return A constant reference to the std::vector holding the EdgeOrder elements assigned to this Edge
    */
   [[nodiscard]] auto const &getEdgeOrders() const { return m_orders; };
 
   /**
-   * Getter for the specified EdgeOrder element with bounds checking.
+   * Getter returning the requested EdgeOrder element if it exists.
    *
-   * @param idx index of the EdgeOrder element
-   * @return Reference to the requested EdgeOrder element
+   * @param idx the index of the EdgeOrder element
+   * @return A reference to the requested EdgeOrder element
    * @throws std::out_of_range
    */
   EdgeOrder &orderAt(std::size_t idx) { return m_orders.at(idx); }
 
   /**
-   * Appends an EdgeOrder instance to the privately held vector.
+   * Appends an EdgeOrder instance (by copy) to the internal EdgeOrder store.
    *
-   * @param edgeOrder instance of EdgeOrder to copy
+   * @param edgeOrder a constant reference to an instance of EdgeOrder
    */
   void appendOrder(EdgeOrder const &edgeOrder) { m_orders.push_back(edgeOrder); };
 
   /**
-   * Appends an EdgeOrder instance to the privately held vector.
+   * Appends an EdgeOrder instance (by moving) to the internal EdgeOrder store.
    *
-   * @param edgeOrder instance of EdgeOrder to move
+   * @param edgeOrder an rvalue reference to an instance of EdgeOrder
    */
   void appendOrder(EdgeOrder &&edgeOrder) { m_orders.push_back(std::move(edgeOrder)); };
 
   /**
-   * Replaces the privately held vector with the supplied one.
+   * Replaces the internal EdgeOrder store with the supplied one.
    *
-   * @param vEdgeOrders the vector of EdgeOrder instances to replace (by moving) the internal vector with
+   * @param edgeOrders an rvalue reference to a std::vector of EdgeOrder instances to replace the internal store with
+   *                   (by moving)
    */
-  void replaceOrders(std::vector<EdgeOrder> &&vEdgeOrders) { m_orders = std::move(vEdgeOrders); };
+  void replaceOrders(std::vector<EdgeOrder> &&edgeOrders) { m_orders = std::move(edgeOrders); };
 
   /**
-   * Clears the privately held vector of EdgeOrder instances.
+   * Clears the internal store of EdgeOrder instances.
    */
   void clearOrders() { m_orders.clear(); };
 
   /**
-   * Generates identifier based on two identifiers of a Vertex.
+   * Generates an Edge identifier based on two Vertex identifiers.
    *
-   * @param vertices pair of shared_ptr to Vertex
-   * @return The identifier
+   * @param vertices an rvalue reference to a std::pair of pointers to Vertex instances
+   * @return The Edge identifier
    */
-  static std::string getEdgeID(std::pair<const Vertex *, const Vertex *> &&vertices);
+  static std::string getEdgeID(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices);
 
 private:
   std::string const m_id; /*!< ID */

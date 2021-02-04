@@ -20,7 +20,7 @@ namespace lazybastard::threading {
 class ThreadPool {
 public:
   /**
-   * Class constructor which creates a new instance.
+   * Class constructor creating a new instance.
    *
    * @param threadCount the number of threads to start
    */
@@ -54,16 +54,16 @@ public:
   /**
    * Adds a Job to the queue of the thread pool.
    *
-   * @param job The Job to be added.
+   * @param job an rvalue reference to the Job to be added.
    */
   void addJob(Job &&job);
 
 private:
-  std::vector<std::thread> m_threads;       /*!< Vector of threads available */
-  std::queue<Job> m_jobs;                   /*!< Queue of Jobs to be executed */
-  std::mutex m_mutex;                       /*!< Mutex for securing the parallel use of the queue */
-  std::atomic<bool> m_terminatePool{false}; /*!< Indicator whether the ThreadPool is going to be terminated */
-  std::condition_variable m_condition;      /*!< Conditional variable used to notify thread about new Jobs */
+  std::vector<std::thread> m_threads;       /*!< Store containing the available threads */
+  std::queue<Job> m_jobs;                   /*!< std::queue of Jobs to be executed */
+  std::mutex m_mutex;                       /*!< std::mutex for securing the parallel use of the std::queue */
+  std::atomic<bool> m_terminatePool{false}; /*!< Bool indicating whether the ThreadPool is going to be terminated */
+  std::condition_variable m_condition;      /*!< std::conditional_variable used to notify threads about new Jobs */
 };
 
 } // namespace lazybastard::threading

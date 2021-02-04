@@ -49,7 +49,5 @@ void Application::readParameters(gsl::span<char const *> const &args) {
   case POS_NOT:
     m_threadCount = std::stoi(args[POS_NOT]);
     break;
-  default: // Do nothing
-    break;
   }
 }

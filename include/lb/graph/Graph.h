@@ -1,42 +1,46 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
+#include <deque>
+#include <gsl/pointers>
 #include <iosfwd>
 #include <memory>
-#include <set>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace lazybastard {
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-namespace util {
-template <typename T> struct LTCmp;
-} // namespace util
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+#include "Lb.fwd.h"
 
-namespace graph {
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-class Edge;
-class Graph;
-class Vertex;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+namespace lazybastard::graph {
 
 //// FUNCTIONS ////
 
-std::set<std::string const *const, util::LTCmp<std::string const *const>>
-getShortestPath(Graph const *pGraph, std::pair<Vertex const *const, Vertex const *const> vertexIDs);
+/**
+ * Calculates the shortest path between two Vertex instances within a given Graph.
+ *
+ * @param pGraph a pointer to a Graph
+ * @param vertexIDs a std::pair containing pointers to the start and end Vertex
+ * @return A std::deque representing the shortest path between the supplied Vertex instances
+ */
+std::deque<gsl::not_null<std::string const *> const>
+getShortestPath(gsl::not_null<Graph const *> pGraph,
+                std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> vertexIDs);
 
 //// TYPES ////
 
+/**
+ * Class representing a directed Graph.
+ *
+ * In contrast to an undirected Graph the insertion order of Edges is preserved.
+ */
 class DiGraph {};
 
 /**
- * Class representing a graph.
+ * Class representing a Graph.
  *
- * A Graph holds a list of vertices and edges.
+ * A Graph holds a list of Vertex and Edge instances.
  * Instances of this class are designed to be **partially** thread-safe.
  */
 class Graph {
@@ -72,20 +76,20 @@ public:
   Graph &operator=(Graph const &) = delete;
 
   /**
-   * Adds a shared pointer pointing to a Vertex to this Graph.
+   * Adds a std::shared_ptr to Vertex to this Graph.
    * This function is **thread-safe**.
    *
-   * @param spVertex the shared pointer to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
    */
   void addVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
-   * Returns a shared pointer to the requested Vertex instance if it could be found.
-   * If no result could be found the shared pointer will be initialized with nullptr.
+   * Returns a std::shared_ptr to the requested Vertex instance if found.
+   * If no result is found, the std::shared_ptr will be initialized with nullptr.
    * This function is **thread-safe**.
    *
-   * @param nanoporeID the id of the Vertex to be returned
-   * @return A shared pointer to the Vertex if found
+   * @param nanoporeID a constant reference to the ID of the Vertex to be returned
+   * @return A std::shared_ptr to the Vertex if found
    */
   auto getVertex(std::string const &nanoporeID) const;
 
@@ -94,10 +98,15 @@ public:
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
    *
-   * @param pVertexID pointer to the ID of the Vertex
+   * @param pVertexID a pointer to a constant std::string representing the ID of the Vertex to be deleted
    */
-  void deleteVertex(std::string const *const pVertexID);
+  void deleteVertex(gsl::not_null<std::string const *> pVertexID);
 
+  /**
+   * Returns a std::vector containing pointers to all Vertex instances assigned to this Graph.
+   *
+   * @return A std::vector containing pointers to all Vertex instances
+   */
   std::vector<Vertex const *> getVertices() const {
     std::vector<Vertex const *> vertices;
 
@@ -112,56 +121,94 @@ public:
    * Adds an Edge to this Graph. Already existing edges are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIDs the IDs of the vertices to be connected by an Edge
+   * @param vertexIDs a constant reference to a std::pair containing the IDs of the vertices to be connected by the Edge
    * @return The ID of the Edge
    */
   std::string addEdge(std::pair<std::string, std::string> const &vertexIDs);
 
   /**
-   * Getter for an Edge.
+   * Getter returning a specific Edge.
+   * This function returns nullptr if the requested Edge wasn't found.
    *
-   * @param vertexIDs the IDs of the vertices connected by the Edge
-   * @return A pointer to the requested Edge if found nullptr otherwise
+   * @param vertexIDs a reference to a std::pair containing pointers to the IDs of the Vertex instances connected by the
+   *                  Edge
+   * @return A pointer to the requested Edge (constant) if found nullptr otherwise
    */
-  Edge const *getEdge(std::pair<std::string const *, std::string const *> &vertexIDs) const;
+  Edge const *
+  getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
+
+  /**
+   * Getter returning a specific Edge.
+   * This function returns nullptr if the requested Edge wasn't found.
+   *
+   * @param vertexIDs an rvalue reference to a std::pair containing pointers to the IDs of the Vertex instances
+   *                  connected by the Edge
+   * @return A pointer to the requested Edge (constant) if found nullptr otherwise
+   */
+  Edge const *
+  getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
+    auto temp = std::move(vertexIDs);
+    return getEdge(temp);
+  };
 
   /**
    * Deletes an Edge from the Graph.
    * The memory will be cleaned up and all references will become invalid.
    *
-   * @param pEdge pointer to the Edge
+   * @param pEdge a pointer to the Edge to become deleted
    */
-  void deleteEdge(Edge const *const pEdge);
+  void deleteEdge(Edge const *pEdge);
 
   /**
-   * Checks the existence of an edge between the supplied Vertex IDs.
+   * Checks whether an Edge between Vertex instances exists or not.
    *
-   * @param vertexIDs vertexIDs the IDs of the vertices to be checked
-   * @return A bool indication whether an Edge exists or not
+   * @param vertexIDs a reference to a std::pair containing pointers to the IDs of the Vertex instances to be
+   *                  checked for an Edge
+   * @return A bool indicating whether an Edge exists or not
    */
-  bool hasEdge(std::pair<const std::string *, const std::string *> &vertexIDs) const;
+  bool hasEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
 
   /**
-   * Getter for Edge instances connected to a particular Vertex.
+   * Checks whether an Edge between Vertex instances exists or not.
    *
-   * @param vertexID the ID of the vertex
-   * @return The unordered_map containing the connected Edge instances
+   * @param vertexIDs an rvalue reference to a std::pair containing pointers to the IDs of the Vertex instances to be
+   *                  checked for an Edge
+   * @return A bool indicating whether an Edge exists or not
+   */
+  bool hasEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
+    auto temp = std::move(vertexIDs);
+    return hasEdge(temp);
+  };
+
+  /**
+   * Getter returning the Edge instances connected to a particular Vertex instance.
+   *
+   * @param vertexID a constant reference to the ID of the Vertex
+   * @return A std::unordered_map containing the connected Vertex instances with a pointer to their IDs and a pointer to
+   *         the corresponding Edge instance
    */
   std::unordered_map<std::string const *, Edge const *> getEdgesOfVertex(std::string const &vertexID) const;
 
   /**
-   * Getter for the adjacency list.
+   * Getter returning all Edge instances attached to this Graph.
    *
-   * @return The adjacency list of the graph
+   * @return A std::vector containing pointers to all Edge instances attached to this Graph
    */
-  auto const &getAdjacencyList() const { return m_adjacencyList; };
+  std::vector<Edge *> getEdges() const;
 
-  std::unique_ptr<Graph> getSubgraph(std::vector<std::string const *> const &vertices) {
+  /**
+   * Returns a Graph representing the subgraph induced by the supplied Vertex instances.
+   *
+   * @param vertices a constant reference to a std::vector containing pointers to the Vertex instances inducing the
+   *                 requested subgraph
+   * @return A std::unique_ptr to the Graph representing the induced subgraph
+   */
+  std::unique_ptr<Graph> getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
     return std::make_unique<Graph>();
   }
 
   /**
-   * Getter for the number of Vertex instances attached to the Graph.
+   * Getter returning the number of Vertex instances attached to the Graph.
    * This function is **thread-safe**.
    *
    * @return The number of Vertex instances attached to the Graph
@@ -169,7 +216,7 @@ public:
   std::size_t getOrder() const;
 
   /**
-   * Getter for the number of Edge instances attached to the Graph.
+   * Getter returning the number of Edge instances attached to the Graph.
    * This function is **thread-safe**.
    *
    * @return The number of Edge instances attached to the Graph
@@ -179,9 +226,9 @@ public:
 private:
   /**
    * Adds an Edge to this Graph.
-   * This is the class-internal, unsynchronised version.
+   * This is the class-internal, **not-threadsafe** version.
    *
-   * @param upEdge the unique pointer to Edge to be added to the Graph
+   * @param upEdge an rvalue reference to the unique pointer to the Edge instance to be added to the Graph (by moving)
    */
   void addEdgeInternal(std::unique_ptr<Edge> &&upEdge);
 
@@ -189,8 +236,8 @@ private:
   std::unordered_map<std::string, std::unordered_map<std::string, std::unique_ptr<Edge>>>
       m_adjacencyList;                     /*!< Map containing all the Edge instances */
   std::size_t m_edgeCount{};               /*!< Number of Edge instances attached to the Graph */
-  mutable std::shared_mutex m_mutexVertex; /*!< Mutex for securing the parallel use of the Vertex map */
-  mutable std::shared_mutex m_mutexEdge;   /*!< Mutex for securing the parallel use of the Edge map */
+  mutable std::shared_mutex m_mutexVertex; /*!< std::shared_mutex for securing the parallel use of the Vertex map */
+  mutable std::shared_mutex m_mutexEdge;   /*!< std::shared_mutex for securing the parallel use of the Edge map */
 };
 
 // Inline definitions
@@ -206,5 +253,4 @@ inline std::size_t Graph::getSize() const {
   return m_edgeCount;
 }
 
-} // namespace graph
-} // namespace lazybastard
+} // namespace lazybastard::graph

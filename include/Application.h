@@ -13,7 +13,9 @@
 class Application {
 public:
   /**
-   * Class constructor which creates a new instance.
+   * Class constructor creating a new instance.
+   *
+   * @param args the application arguments
    */
   explicit Application(gsl::span<char const *> const &args);
 
@@ -100,8 +102,9 @@ private:
 
   /**
    * Parses the parameters from the command line.
-   * @param argc number of parameters.
-   * @param argv array of parameters.
+   *
+   * @param argc the number of parameters.
+   * @param argv the array of parameters.
    */
   void readParameters(gsl::span<char const *> const &args);
 };
