@@ -1,14 +1,16 @@
 #pragma once
 
 #include <any>
+#include <cstddef>
 #include <functional>
+#include <gsl/pointers>
 #include <utility>
 #include <vector>
 
 namespace lazybastard::threading {
 
 /**
- * Class representing a job.
+ * Class representing a Job.
  *
  * A Job holds a function to be executed by a thread.
  * Instances of this class are immutable by default and therefore thread-safe.
@@ -16,7 +18,7 @@ namespace lazybastard::threading {
 class Job {
 public:
   /**
-   * Class constructor which creates a new instance.
+   * Class constructor creating a new instance.
    */
   Job() = default;
 
@@ -26,26 +28,26 @@ public:
   ~Job() = default;
 
   /**
-   * Class constructor which creates a new instance.
+   * Class constructor creating a new instance.
    *
    * @tparam Types the list of function parameter types
-   * @param fn The function to be executed
-   * @param params The function parameters
+   * @param fn the std::function to be executed
+   * @param params the parameters
    */
   template <typename... Types>
-  explicit Job(std::function<void(const Job *)> fn, Types... params) : m_fn(std::move(fn)) {
+  explicit Job(std::function<void(gsl::not_null<Job const *> const)> fn, Types... params) : m_fn(std::move(fn)) {
     addParam(params...);
   };
 
   /**
    * Copying is disallowed.
    */
-  Job(const Job &) = delete;
+  Job(Job const &) = delete;
 
   /**
    * Copy assignment is disallowed.
    */
-  Job &operator=(const Job &) = delete;
+  Job &operator=(Job const &) = delete;
 
   /**
    * Move constructor.
@@ -60,7 +62,7 @@ public:
   /**
    * Boolean conversion operator.
    *
-   * @return Whether the Job holds a function
+   * @return A bool indicating whether the Job holds a function
    */
   explicit operator bool() const { return m_fn.operator bool(); };
 
@@ -70,26 +72,26 @@ public:
   void operator()() const { return m_fn(this); };
 
   /**
-   * Getter for job parameters.
+   * Getter for Job parameters.
    * This function does not perform any range checking.
    *
-   * @param idx The index of the parameter to be returned.
+   * @param idx the index of the parameter to be returned.
    * @return The parameter value
    */
   [[nodiscard]] std::any getParam(std::size_t idx) const { return m_params[idx]; };
 
 private:
-  std::function<void(const Job *)> m_fn; /*!< Function to be executed */
-  std::vector<std::any> m_params;        /*!< Function parameters */
+  std::function<void(gsl::not_null<Job const *> const)> m_fn; /*!< std::function to be executed */
+  std::vector<std::any> m_params;                             /*!< Parameters */
 
   /**
-   * Adds a parameter to the internal parameter vector.
+   * Adds a parameter to the internal parameter store.
    * This function recursively works through the parameter pack.
    *
-   * @tparam T the type of the parameter to be added to the vector
+   * @tparam T the type of the parameter to be added to the store
    * @tparam Ts the list of the other parameter types
-   * @param val The parameter to be added to the vector
-   * @param vals The other parameters to be supplied to the next function call
+   * @param val the parameter to be added to the store
+   * @param vals the other parameters to be supplied to the next function call
    */
   template <typename T, typename... Ts> void addParam(T val, Ts... vals) {
     m_params.push_back(val);

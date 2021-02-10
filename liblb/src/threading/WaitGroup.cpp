@@ -14,7 +14,9 @@ void WaitGroup::add(std::size_t newJobs) {
 }
 
 void WaitGroup::done() {
-  m_jobCount -= 1;
+  if (m_jobCount.load() > 0) {
+    m_jobCount -= 1;
+  }
   m_cv.notify_one();
 }
 
@@ -24,6 +26,7 @@ void WaitGroup::wait() {
 
   std::unique_lock<std::mutex> lck(m_mutex);
   m_cv.wait(lck, [this] { return m_jobCount.load() == 0; });
+  m_waitLock = false;
 }
 
 } // namespace lazybastard::threading

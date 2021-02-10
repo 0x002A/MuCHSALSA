@@ -1,5 +1,4 @@
 #include <chrono>
-#include <stdexcept>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -17,7 +16,7 @@ TEST(ThreadingTest, ReturnsCorrectResult) {
   auto threadPool = lazybastard::threading::ThreadPool(2);
 
   lazybastard::threading::WaitGroup wg;
-  auto jobFn = [&res](const lazybastard::threading::Job *pJob) {
+  auto jobFn = [&res](lazybastard::threading::Job const *const pJob) {
     const auto number = std::any_cast<size_t>(pJob->getParam(1));
 
     // push value
@@ -29,7 +28,7 @@ TEST(ThreadingTest, ReturnsCorrectResult) {
     // simulate a long running job to test wait group behaviour
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
   };
 
   for (std::size_t num : nums) {
@@ -52,15 +51,15 @@ TEST(ThreadingTest, ReturnsCorrectResult) {
   ASSERT_TRUE(std::count(res.begin(), res.end(), 800) == 1);
 }
 
-TEST(ThreadingTest, ThrowsException) {
+TEST(ThreadingTest, ThrowsNoException) {
   auto threadPool = lazybastard::threading::ThreadPool(2);
 
   lazybastard::threading::WaitGroup wg;
-  auto jobFn = [](const lazybastard::threading::Job *pJob) {
+  auto jobFn = [](lazybastard::threading::Job const *const pJob) {
     // simulate a long running job to test wait group behaviour
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    std::any_cast<lazybastard::threading::WaitGroup *>(pJob->getParam(0))->done();
+    std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
   };
 
   for (std::size_t i = 0; i <= 8; ++i) {
@@ -71,6 +70,5 @@ TEST(ThreadingTest, ThrowsException) {
   }
 
   wg.wait();
-
-  ASSERT_THROW(wg.add(1), std::logic_error);
+  ASSERT_NO_THROW(wg.add(1));
 }

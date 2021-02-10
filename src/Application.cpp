@@ -4,15 +4,16 @@
 #include <stdexcept>
 #include <thread>
 
-constexpr std::size_t MIN_PAR = 4;
+constexpr static std::size_t MIN_PAR = 4;
 
-constexpr std::size_t POS_CFP = 1;
-constexpr std::size_t POS_UFP = 2;
-constexpr std::size_t POS_NFP = 3;
-constexpr std::size_t POS_OFP = 4;
-constexpr std::size_t POS_NOT = 5;
+constexpr static std::size_t POS_CFP = 1;
+constexpr static std::size_t POS_UFP = 2;
+constexpr static std::size_t POS_NFP = 3;
+constexpr static std::size_t POS_OFP = 4;
+constexpr static std::size_t POS_NOT = 5;
+constexpr static std::size_t POS_WGR = 6;
 
-Application::Application(const gsl::span<char *> &args) : m_threadCount(std::thread::hardware_concurrency()) {
+Application::Application(gsl::span<char const *> const &args) : m_threadCount(std::thread::hardware_concurrency()) {
   if (args.size() >= MIN_PAR + 1) {
     readParameters(args);
   } else {
@@ -26,13 +27,13 @@ auto Application::checkIntegrity() const -> bool {
   std::filesystem::path nanoporePath = m_nanoporeFilePath;
   std::filesystem::path outputPath = m_outputPath;
 
-  const auto exists = std::filesystem::exists(contigsPath) && std::filesystem::exists(unitigsPath) &&
+  auto const exists = std::filesystem::exists(contigsPath) && std::filesystem::exists(unitigsPath) &&
                       std::filesystem::exists(nanoporePath) && std::filesystem::exists(outputPath);
 
   return exists;
 }
 
-void Application::readParameters(const gsl::span<char *> &args) {
+void Application::readParameters(gsl::span<char const *> const &args) {
 
   m_contigsFilePath = args[POS_CFP];
   m_unitigsFilePath = args[POS_UFP];
@@ -40,7 +41,13 @@ void Application::readParameters(const gsl::span<char *> &args) {
   m_outputPath = args[POS_OFP];
 
   // Check for optional parameter
-  if (args.size() == MIN_PAR + 2) {
-    m_threadCount = std::stoi(args[POS_NOT]);
+  auto argIdx = args.size() > POS_WGR ? POS_WGR : args.size() - 1;
+  switch (argIdx) {
+  case POS_WGR:
+    m_wiggleRoom = static_cast<std::size_t>(std::stoi(args[POS_WGR]));
+    [[fallthrough]];
+  case POS_NOT:
+    m_threadCount = static_cast<std::size_t>(std::stoi(args[POS_NOT]));
+    break;
   }
 }
