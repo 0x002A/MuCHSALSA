@@ -64,8 +64,8 @@ public:
   void parseLine(gsl::not_null<threading::Job const *> pJob);
 
 private:
-  std::ifstream &m_inputStream;               /*!< Input stream of the file */
   threading::ThreadPool *const m_pThreadPool; /*!< A pointer to the ThreadPool used for parallelization */
+  std::ifstream &m_inputStream;               /*!< Input stream of the file */
   graph::Graph *const m_pGraph;               /*!< A pointer to the Graph receiving the Vertex instances */
   matching::MatchMap *const m_pMatchMap;      /*!< A pointer to the MatchMap */
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <cstddef>
 #include <functional>
 #include <gsl/pointers>
 #include <utility>

@@ -5,10 +5,12 @@
 #include <deque>
 #include <gsl/pointers>
 #include <iosfwd>
+#include <iterator>
 #include <memory>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "Lb.fwd.h"
@@ -203,7 +205,7 @@ public:
    *                 requested subgraph
    * @return A std::unique_ptr to the Graph representing the induced subgraph
    */
-  std::unique_ptr<Graph> getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
+  std::unique_ptr<Graph> getSubgraph(std::vector<gsl::not_null<std::string const *>> const & /*vertices*/) {
     return std::make_unique<Graph>();
   }
 

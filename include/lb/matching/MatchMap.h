@@ -1,12 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <gsl/pointers>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "Lb.fwd.h"
 
@@ -31,7 +32,7 @@ struct VertexMatch {
 struct EdgeMatch {
   std::pair<int, int> const overlap; /*!< Overlap */
   bool const direction;              /*!< Edge direction */
-  std::size_t const score;           /*!< Score */
+  float const score;                 /*!< Score */
   bool const isPrimary;              /*!< Did the match pass the thresholds */
 };
 

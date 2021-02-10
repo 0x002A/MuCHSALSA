@@ -44,10 +44,10 @@ void Application::readParameters(gsl::span<char const *> const &args) {
   auto argIdx = args.size() > POS_WGR ? POS_WGR : args.size() - 1;
   switch (argIdx) {
   case POS_WGR:
-    m_wiggleRoom = std::stoi(args[POS_WGR]);
+    m_wiggleRoom = static_cast<std::size_t>(std::stoi(args[POS_WGR]));
     [[fallthrough]];
   case POS_NOT:
-    m_threadCount = std::stoi(args[POS_NOT]);
+    m_threadCount = static_cast<std::size_t>(std::stoi(args[POS_NOT]));
     break;
   }
 }

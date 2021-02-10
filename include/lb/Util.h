@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gsl/pointers>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
@@ -86,13 +87,6 @@ template <typename T> std::pair<T, T> &sortPair(std::pair<T, T> &p) {
 
 template <typename T, typename... Args> std::shared_ptr<T> make_shared_aggregate(Args &&...args) {
   return std::make_shared<T>(T{std::forward<Args>(args)...});
-}
-
-template <typename FROM, typename TO> TO safe_numeric_cast(FROM const &from) {
-  if (from > std::numeric_limits<TO>::max()) {
-    throw std::invalid_argument("Narrowing cast.");
-  }
-  return static_cast<TO>(from);
 }
 
 template <typename T> T const *make_const(T *pT) { return static_cast<T const *>(pT); }

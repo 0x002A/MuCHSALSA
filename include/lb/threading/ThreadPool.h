@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -47,7 +48,7 @@ public:
   ThreadPool &operator=(ThreadPool &&) = delete;
 
   /**
-   * Class destructor which cleans up.
+   * Class destructor.
    */
   ~ThreadPool();
 

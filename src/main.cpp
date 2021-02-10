@@ -4,6 +4,7 @@
 #include <deque>
 #include <exception>
 #include <fstream>
+#include <functional>
 #include <gsl/pointers>
 #include <gsl/span>
 #include <iostream>
@@ -52,12 +53,11 @@ using lazybastard::threading::WaitGroup;
 
 using lazybastard::util::LTCmp;
 using lazybastard::util::make_not_null_and_const;
-using lazybastard::util::safe_numeric_cast;
 
 //// CONSTANTS ////
 
-constexpr static auto BASEWEIGHT_MULTIPLIKATOR = 1.1;
-constexpr static auto MAXWEIGHT_MULTIPLIKATOR = 0.8;
+constexpr static auto BASEWEIGHT_MULTIPLIKATOR = 1.1F;
+constexpr static auto MAXWEIGHT_MULTIPLIKATOR = 0.8F;
 
 //// TYPES ////
 
@@ -442,10 +442,10 @@ void contract(gsl::not_null<Job const *> const pJob) {
   auto pContainElements = gsl::make_not_null(
       std::any_cast<std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> *const>(
           pJob->getParam(3)));
-  pContainElements->insert(std::move(std::make_pair(
+  pContainElements->insert(std::make_pair(
       pOrder->endVertex, std::make_unique<ContainElement>(ContainElement{
                              std::move(matches), pOrder->startVertex, pOrder->startVertex->getNanoporeLength(),
-                             pOrder->score, pOrder->direction, pOrder->isPrimary}))));
+                             pOrder->score, pOrder->direction, pOrder->isPrimary})));
 
   std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
 }
@@ -500,14 +500,14 @@ void decycle(gsl::not_null<Job const *> const pJob) {
     auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(1)));
     auto const shortestPath = getShortestPath(pGraph, pEdge->getVertices());
     bool direction = pEdge->getConsensusDirection();
-    auto const baseWeight = safe_numeric_cast<std::size_t, double>(pEdge->getWeight());
-    std::vector<double> weights;
+    auto const baseWeight = static_cast<float>(pEdge->getWeight());
+    std::vector<float> weights;
 
     for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
       auto const *const pPathEdge = pGraph->getEdge(std::make_pair(*it, *std::next(it)));
       if (pPathEdge != nullptr) {
         direction = direction && pPathEdge->getConsensusDirection();
-        weights.push_back(safe_numeric_cast<std::size_t, double>(pEdge->getWeight()));
+        weights.push_back(static_cast<float>(pEdge->getWeight()));
       }
     }
 

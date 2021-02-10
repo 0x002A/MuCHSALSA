@@ -1,10 +1,10 @@
 #include "matching/MatchMap.h"
 
 #include <algorithm>
+#include <any>
 #include <iterator>
 
 #include "Util.h"
-#include "graph/Edge.h"
 #include "graph/Graph.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
@@ -75,14 +75,16 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
       auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
 
-      if (overlap.first <= overlap.second && overlap.second - overlap.first > TH_OVERLAP) {
+      if (overlap.first <= overlap.second && overlap.second - overlap.first > static_cast<int>(TH_OVERLAP)) {
         auto const direction = outerMatch->direction == innerMatch->direction;
         auto const isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
-        auto const outerLength = outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1;
-        auto const innerLength = innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1;
-        auto const commonLength = overlap.second - overlap.first + 1;
-        auto const outerScore = outerMatch->score * commonLength / outerLength;
-        auto const innerScore = innerMatch->score * commonLength / innerLength;
+        auto const outerLength =
+            static_cast<float>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
+        auto const innerLength =
+            static_cast<float>(innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1);
+        auto const commonLength = static_cast<float>(overlap.second - overlap.first + 1);
+        auto const outerScore = static_cast<float>(outerMatch->score) * (commonLength / outerLength);
+        auto const innerScore = static_cast<float>(innerMatch->score) * (commonLength / innerLength);
         auto const sumScore = outerScore + innerScore;
 
         auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);

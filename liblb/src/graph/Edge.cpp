@@ -1,4 +1,5 @@
 #include "graph/Edge.h"
+#include "Util.h"
 #include "graph/Vertex.h"
 
 namespace lazybastard::graph {

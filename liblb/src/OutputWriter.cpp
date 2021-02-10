@@ -1,7 +1,7 @@
 #include "OutputWriter.h"
 
-#include <exception>
-#include <iostream>
+#include <ostream>
+#include <stdexcept>
 
 namespace lazybastard {
 OutputWriter::OutputWriter(std::ostream &osQuery, std::ostream &osPAF, std::ostream &osTarget)

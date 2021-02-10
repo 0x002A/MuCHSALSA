@@ -27,7 +27,7 @@ ThreadPool::ThreadPool(std::size_t threadCount) : m_threads(std::vector<std::thr
     }
   };
 
-  for (int i = 0; i < threadCount; ++i) {
+  for (std::size_t i = 0; i < threadCount; ++i) {
     m_threads[i] = std::thread(threadLoop);
   }
 }

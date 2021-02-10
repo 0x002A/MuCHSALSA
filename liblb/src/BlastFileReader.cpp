@@ -1,10 +1,14 @@
 #include "BlastFileReader.h"
 
+#include <algorithm>
+#include <any>
+#include <cstddef>
 #include <fstream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "Util.h"
@@ -66,7 +70,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
   auto const nanoporeLength = std::stoi(tokens[POS_NLE]);
 
   auto addNode = matches >= MINIMUM_MATCHES;
-  addNode &= illuminaRange.second - illuminaRange.first + 1 >= MINIMUM_MATCHES;
+  addNode &= illuminaRange.second - illuminaRange.first + 1 >= static_cast<int>(MINIMUM_MATCHES);
 
   if (addNode) {
     auto spVertex = std::make_shared<graph::Vertex>(tokens[POS_NID], nanoporeLength);
@@ -80,7 +84,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
     auto const rRatio = static_cast<float>(illuminaRange.second - illuminaRange.first + 1) /
                         static_cast<float>(nanoporeRange.second - nanoporeRange.first + 1);
 
-    auto isPrimary = illuminaRange.second - illuminaRange.first + 1 >= TH_LENGTH;
+    auto isPrimary = illuminaRange.second - illuminaRange.first + 1 >= static_cast<int>(TH_LENGTH);
     isPrimary &= matches >= TH_MATCHES;
 
     auto spVertexMatch = lazybastard::util::make_shared_aggregate<lazybastard::matching::VertexMatch>(

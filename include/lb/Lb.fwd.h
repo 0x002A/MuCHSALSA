@@ -13,7 +13,7 @@ namespace graph {
 
 class DiGraph;
 class Edge;
-class EdgeOrder;
+struct EdgeOrder;
 class Graph;
 class Vertex;
 

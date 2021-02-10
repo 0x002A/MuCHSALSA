@@ -7,10 +7,10 @@
 #include <set>
 #include <string>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 #include "Lb.fwd.h"
+#include "graph/Edge.h"
 
 namespace lazybastard {
 

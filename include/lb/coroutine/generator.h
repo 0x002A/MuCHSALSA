@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cstdlib>
 #include <experimental/coroutine>
-#include <memory>
 
 namespace lazybastard::coroutine {
 

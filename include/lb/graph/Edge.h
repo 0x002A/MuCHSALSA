@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "Lb.fwd.h"
-#include "Util.h"
 
 namespace lazybastard::graph {
 
