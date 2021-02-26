@@ -35,6 +35,7 @@
 
 //// USING DECLARATIONS ////
 
+using lazybastard::GraphUtil;
 using lazybastard::OutputWriter;
 
 using lazybastard::graph::ConsensusDirection;
@@ -205,7 +206,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
     edges = graph.getEdges();
     auto computeBitweightJob = [](Job const *const pJob) { computeBitweight(pJob); };
-    std::for_each(std::begin(edges), std::end(edges), [&](auto const *pEdge) {
+    std::for_each(std::begin(edges), std::end(edges), [&](auto *const pEdge) {
       wg.add(1);
       auto job = Job(computeBitweightJob, &wg, pEdge);
       threadPool.addJob(std::move(job));
@@ -344,13 +345,12 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
   auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(2)));
   if (pOrder->isContained && pOrder->isPrimary) {
     auto isSane = true;
-    auto const edges = pGraph->getEdgesOfVertex(pOrder->startVertex->getID());
+    auto const edges = pGraph->getNeighbors(pOrder->startVertex->getID());
     for (auto const &[targetID, pEdge] : edges) {
-      if (*targetID == pOrder->endVertex->getID() || pEdge->isShadow()) {
+      if (targetID == pOrder->endVertex->getID() || pEdge->isShadow()) {
         continue;
       }
-      isSane &= pGraph->hasEdge(
-          std::make_pair(make_not_null_and_const(&pOrder->endVertex->getID()), make_not_null_and_const(targetID)));
+      isSane &= pGraph->hasEdge(std::make_pair(make_not_null_and_const(&pOrder->endVertex->getID()), &targetID));
       if (!isSane) {
         break;
       }
@@ -498,13 +498,13 @@ void decycle(gsl::not_null<Job const *> const pJob) {
       !pMaxSpanTree->hasEdge(std::make_pair(make_not_null_and_const(&pEdge->getVertices().first->getID()),
                                             make_not_null_and_const(&pEdge->getVertices().second->getID())))) {
     auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(1)));
-    auto const shortestPath = getShortestPath(pGraph, pEdge->getVertices());
+    auto const shortestPath = GraphUtil::getShortestPath(pGraph, pEdge->getVertices());
     bool direction = pEdge->getConsensusDirection();
     auto const baseWeight = static_cast<float>(pEdge->getWeight());
     std::vector<float> weights;
 
     for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
-      auto const *const pPathEdge = pGraph->getEdge(std::make_pair(*it, *std::next(it)));
+      auto const *const pPathEdge = pGraph->getEdge(std::make_pair(&(*it), &(*std::next(it))));
       if (pPathEdge != nullptr) {
         direction = direction && pPathEdge->getConsensusDirection();
         weights.push_back(static_cast<float>(pEdge->getWeight()));
@@ -519,7 +519,7 @@ void decycle(gsl::not_null<Job const *> const pJob) {
                                           *iterMinWeight < *iterMaxWeight * MAXWEIGHT_MULTIPLIKATOR)) {
         auto const minWeightIdx = std::distance(weights.begin(), iterMinWeight);
         auto const *const pDeletableEdge = pGraph->getEdge(std::make_pair(
-            *std::next(shortestPath.begin(), minWeightIdx), *std::next(shortestPath.begin(), minWeightIdx + 1)));
+            &(*std::next(shortestPath.begin(), minWeightIdx)), &(*std::next(shortestPath.begin(), minWeightIdx + 1))));
         auto pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *const>(pJob->getParam(4)));
         std::lock_guard<std::mutex> guard(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT

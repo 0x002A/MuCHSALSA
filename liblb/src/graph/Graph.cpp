@@ -1,5 +1,7 @@
 #include "graph/Graph.h"
 
+#include <functional>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -9,23 +11,45 @@
 
 namespace lazybastard::graph {
 
-std::deque<gsl::not_null<std::string const *> const> getShortestPath(
-    gsl::not_null<Graph const *> const /*pGraph*/,
-    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const /*vertexIDs*/) {
-  return std::deque<gsl::not_null<std::string const *> const>();
+//// HELPER ////
+namespace {
+
+void getVertexMap(std::unordered_map<std::string, std::shared_ptr<Vertex>> &result, GraphBase const &graph,
+                  std::vector<gsl::not_null<std::string const *>> const &vertices) {
+  result.clear();
+
+  std::for_each(std::begin(vertices), std::end(vertices), [&](auto const pVertexID) {
+    auto const spVertex = graph.getVertex(*pVertexID);
+
+    if (spVertex != nullptr) {
+      result.insert(std::make_pair(spVertex->getID(), std::move(spVertex)));
+    }
+  });
 }
 
-Graph::Graph() = default;
-Graph::~Graph() = default;
+} // unnamed namespace
+//// /HELPER ////
 
-void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
+GraphBase::GraphBase(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+                     std::vector<std::shared_ptr<Edge>> &&edges, bool hasBidirectionalEdges)
+    : m_vertices(std::move(vertices)) {
+  for (auto &edge : edges) {
+    auto pV1 = gsl::make_not_null(edge->getVertices().first);
+    auto pV2 = gsl::make_not_null(edge->getVertices().second);
+    if (hasVertex(pV1->getID()) && hasVertex(pV2->getID())) {
+      addEdgeInternal(std::move(edge), hasBidirectionalEdges);
+    }
+  }
+}
+
+void GraphBase::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   lazybastard::util::check_pointers(spVertex.get());
   std::unique_lock<std::shared_mutex> lk(m_mutexVertex);
 
   m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 
-auto Graph::getVertex(std::string const &nanoporeID) const {
+std::shared_ptr<Vertex> GraphBase::getVertex(std::string const &nanoporeID) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   auto iter = m_vertices.find(nanoporeID);
@@ -33,79 +57,96 @@ auto Graph::getVertex(std::string const &nanoporeID) const {
   return iter != std::end(m_vertices) ? iter->second->getSharedPtr() : nullptr;
 }
 
-void Graph::deleteVertex(gsl::not_null<std::string const *> const pVertexID) {
-  for (auto adjacencyIter = std::begin(m_adjacencyList); adjacencyIter != std::end(m_adjacencyList);) {
-    if (adjacencyIter->first == *pVertexID) {
-      adjacencyIter = m_adjacencyList.erase(adjacencyIter);
-    } else {
-      auto targetVerticesIter = adjacencyIter->second.find(*pVertexID);
-      if (targetVerticesIter != std::end(adjacencyIter->second)) {
-        adjacencyIter->second.erase(targetVerticesIter);
+void GraphBase::_deleteVertex(gsl::not_null<std::string const *> const pVertexID, bool hasBidirectionalEdges) {
+  auto const iterSuccessors = m_adjacencyList.find(*pVertexID);
+
+  if (iterSuccessors == std::end(m_adjacencyList)) {
+    return;
+  }
+
+  using successor_t = decltype(iterSuccessors->second)::value_type;
+  auto const eraseSuccessors = hasBidirectionalEdges //
+                                   ? std::function{[&](successor_t const &s) {
+                                       auto const iterPredecessor = m_adjacencyList.find(s.first);
+                                       if (iterPredecessor != std::end(m_adjacencyList)) {
+                                         iterPredecessor->second.erase(*pVertexID);
+                                       }
+
+                                       auto const pEdge = gsl::make_not_null(s.second);
+                                       m_edges.erase(pEdge->getID());
+                                     }}
+                                   : std::function{[&](successor_t const &s) {
+                                       auto const pEdge = gsl::make_not_null(s.second);
+                                       m_edges.erase(pEdge->getID());
+                                     }};
+  std::for_each(std::begin(iterSuccessors->second), std::end(iterSuccessors->second), eraseSuccessors);
+  m_adjacencyList.erase(iterSuccessors);
+
+  if (!hasBidirectionalEdges) {
+    for (auto &[targetID, connectedVertices] : m_adjacencyList) {
+      auto const iterPredecessor = connectedVertices.find(*pVertexID);
+      if (iterPredecessor != std::end(connectedVertices)) {
+        auto const pEdge = gsl::make_not_null(iterPredecessor->second);
+        m_edges.erase(pEdge->getID());
+        connectedVertices.erase(iterPredecessor);
       }
-      ++adjacencyIter;
     }
   }
 
-  /*
-   * This MUST be done AFTERWARDS as it deletes the map entry of the Vertex and therefore
-   * releases the shared_ptr. This probably invalidates all pointers to the ID of the Vertex.
-   */
-  auto const vertexIter = m_vertices.find(*pVertexID);
-  if (vertexIter != std::end(m_vertices)) {
-    m_vertices.erase(vertexIter);
-  }
+  m_vertices.erase(*pVertexID);
 }
 
-std::string Graph::addEdge(std::pair<std::string, std::string> const &vertexIDs) {
-  std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
+void GraphBase::_addEdge(std::pair<std::string const, std::string const> const &vertexIDs, bool isBidirectional) {
   auto pV1 = getVertex(vertexIDs.first);
   auto pV2 = getVertex(vertexIDs.second);
 
-  if (!(pV1 && pV2)) {
-    throw std::invalid_argument("Vertices supplied for edge creation aren't allowed to be null.");
+  if (!(pV1 != nullptr && pV2 != nullptr)) {
+    // Edges between unknown vertices are omitted
+    return;
   }
 
-  auto edgeID = Edge::getEdgeID(std::make_pair(pV1.get(), pV2.get()));
   auto vertexPair = std::make_pair(std::move(pV1), std::move(pV2));
 
-  auto upEdge = std::make_unique<Edge>(std::move(vertexPair));
-  addEdgeInternal(std::move(upEdge));
-
-  return edgeID;
+  auto spEdge = std::make_shared<Edge>(std::move(vertexPair));
+  addEdgeInternal(std::move(spEdge), isBidirectional);
 }
 
 Edge const *
-Graph::getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
-  lazybastard::util::sortPair(vertexIDs);
-
+GraphBase::getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
   auto const outerIter = m_adjacencyList.find(*vertexIDs.first);
   if (outerIter != std::end(m_adjacencyList)) {
     auto const innerIter = outerIter->second.find(*vertexIDs.second);
     if (innerIter != std::end(outerIter->second)) {
-      return innerIter->second.get();
+      return innerIter->second;
     }
   }
 
   return nullptr;
 }
 
-void Graph::deleteEdge(const Edge *const pEdge) {
-  auto const vertices = pEdge->getVertices();
-  auto const outerIter = m_adjacencyList.find(vertices.first->getID());
+void GraphBase::_deleteEdge(const Edge *const pEdge, bool isBirectional) {
+  auto const findAndDeleteEdge = [&](std::string const &source, std::string const &target) {
+    auto const outerIter = m_adjacencyList.find(source);
 
-  if (outerIter != std::end(m_adjacencyList)) {
-    auto const innerIter = outerIter->second.find(vertices.second->getID());
-    if (innerIter != std::end(outerIter->second)) {
-      outerIter->second.erase(innerIter);
-      --m_edgeCount;
+    if (outerIter != std::end(m_adjacencyList)) {
+      auto const innerIter = outerIter->second.find(target);
+      if (innerIter != std::end(outerIter->second)) {
+        outerIter->second.erase(innerIter->first);
+        auto const pEdge = gsl::make_not_null(innerIter->second);
+        m_edges.erase(pEdge->getID());
+      }
     }
+  };
+  auto const vertices = pEdge->getVertices();
+
+  findAndDeleteEdge(vertices.first->getID(), vertices.second->getID());
+  if (isBirectional) {
+    findAndDeleteEdge(vertices.second->getID(), vertices.first->getID());
   }
 }
 
-bool Graph::hasEdge(
+bool GraphBase::hasEdge(
     std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
-  lazybastard::util::sortPair(vertexIDs);
-
   auto const iter = m_adjacencyList.find(*vertexIDs.first);
 
   if (iter != std::end(m_adjacencyList)) {
@@ -115,53 +156,86 @@ bool Graph::hasEdge(
   return false;
 }
 
-std::unordered_map<std::string const *, Edge const *> Graph::getEdgesOfVertex(std::string const &vertexID) const {
-  std::unordered_map<std::string const *, Edge const *> edgeMap;
-
+std::unordered_map<std::string, Edge *const> GraphBase::_getSuccessors(std::string const &vertexID) const {
   auto const outerIter = m_adjacencyList.find(vertexID);
   if (outerIter != std::end(m_adjacencyList)) {
-    for (auto const &[targetID, edge] : outerIter->second) {
-      edgeMap.insert({&targetID, edge.get()});
-    }
+    return outerIter->second;
   }
 
-  for (auto const &[targetID, edges] : m_adjacencyList) {
-    if (targetID == vertexID) {
+  return decltype(outerIter->second)();
+}
+
+std::unordered_map<std::string, Edge *const> GraphBase::_getPredecessors(const std::string &vertexID) const {
+  std::unordered_map<std::string, Edge *const> predecessors;
+
+  for (auto const &[currentVertexID, connectedVertices] : m_adjacencyList) {
+    if (vertexID == currentVertexID) {
       continue;
     }
 
-    auto const interIter = edges.find(vertexID);
-    if (interIter != std::end(edges)) {
-      edgeMap.insert({&targetID, interIter->second.get()});
+    auto const iter = connectedVertices.find(vertexID);
+    if (iter != std::end(connectedVertices)) {
+      predecessors.insert(std::make_pair(currentVertexID, iter->second));
     }
   }
 
-  return edgeMap;
+  return predecessors;
 }
 
-std::vector<Edge *> Graph::getEdges() const {
+std::vector<Edge *> GraphBase::getEdges() const {
   std::vector<Edge *> edges;
 
-  for (const auto &[vertexID, connectedEdges] : m_adjacencyList) {
-    LB_UNUSED(vertexID);
-
-    std::transform(std::begin(connectedEdges), std::end(connectedEdges), std::back_inserter(edges),
-                   [](const auto &pair) { return pair.second.get(); });
-  }
+  std::transform(std::begin(m_edges), std::end(m_edges), std::back_inserter(edges),
+                 [](const auto &pair) { return pair.second.get(); });
 
   return edges;
 }
 
-void Graph::addEdgeInternal(std::unique_ptr<Edge> &&upEdge) {
-  auto assignedVertices = upEdge->getVertices();
-  auto iter =
-      m_adjacencyList.emplace(assignedVertices.first->getID(), std::unordered_map<std::string, std::unique_ptr<Edge>>())
-          .first;
-  auto inserted = iter->second.emplace(assignedVertices.second->getID(), std::move(upEdge)).second;
+void GraphBase::getEdges(std::vector<std::shared_ptr<Edge>> &result) const {
+  result.clear();
 
-  if (inserted) {
-    ++m_edgeCount;
+  std::transform(std::begin(m_edges), std::end(m_edges), std::back_inserter(result),
+                 [](const auto &pair) { return pair.second; });
+}
+
+void GraphBase::addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional) {
+  std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
+
+  auto const emplaceEdge = [&](std::string const &source, std::string const &target, Edge *pEdge) {
+    auto const iterAdjacencyList =
+        m_adjacencyList.emplace(source, std::unordered_map<std::string, Edge *const>()).first;
+    iterAdjacencyList->second.emplace(target, pEdge);
+  };
+
+  auto const pVertices = spEdge->getVertices();
+  auto const iterEdges = m_edges.emplace(spEdge->getID(), std::move(spEdge)).first;
+  auto *const pEdge = iterEdges != std::end(m_edges) ? iterEdges->second.get() : nullptr;
+
+  emplaceEdge(pVertices.first->getID(), pVertices.second->getID(), pEdge);
+
+  if (isBidirectional) {
+    emplaceEdge(pVertices.second->getID(), pVertices.first->getID(), pEdge);
   }
+}
+
+std::unique_ptr<Graph> Graph::getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
+  std::unordered_map<std::string, std::shared_ptr<Vertex>> v(vertices.size());
+  std::vector<std::shared_ptr<Edge>> e(getSize());
+
+  getVertexMap(v, *this, vertices);
+  getEdges(e);
+
+  return std::make_unique<Graph>(std::move(v), std::move(e));
+}
+
+std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
+  std::unordered_map<std::string, std::shared_ptr<Vertex>> v(vertices.size());
+  std::vector<std::shared_ptr<Edge>> e(getSize());
+
+  getVertexMap(v, *this, vertices);
+  getEdges(e);
+
+  return std::make_unique<DiGraph>(std::move(v), std::move(e));
 }
 
 } // namespace lazybastard::graph

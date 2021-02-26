@@ -15,6 +15,7 @@ class DiGraph;
 class Edge;
 struct EdgeOrder;
 class Graph;
+class GraphBase;
 class Vertex;
 
 } // namespace graph

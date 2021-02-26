@@ -41,7 +41,7 @@ struct ConsensusDirection {
  * An Edge is assigned to two instances of Vertex.
  * Instances of this class are **not** thread-safe.
  */
-class Edge {
+class Edge : public std::enable_shared_from_this<Edge> {
 public:
   /**
    * Class constructor creating a new instance.
@@ -70,6 +70,20 @@ public:
    * Moving is disallowed.
    */
   Edge(Edge &&) = delete;
+
+  /**
+   * Getter returning a std::shared_ptr to this instance of Edge.
+   *
+   * @return A std::shared_ptr to this instance of Edge
+   */
+  std::shared_ptr<Edge> getSharedPtr() { return shared_from_this(); };
+
+  /**
+   * Returns a std::weak_ptr to this instance of Edge.
+   *
+   * @return A std::weak_ptr to this instance of Edge
+   */
+  std::weak_ptr<Edge> getWeakPtr() { return weak_from_this(); };
 
   /**
    * Move assignment is disallowed.
@@ -182,10 +196,10 @@ public:
   /**
    * Generates an Edge identifier based on two Vertex identifiers.
    *
-   * @param vertices an rvalue reference to a std::pair of pointers to Vertex instances
+   * @param vertexIDs an rvalue reference to a std::pair of std::string instances representing the Vertex IDs
    * @return The Edge identifier
    */
-  static std::string getEdgeID(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices);
+  static std::string getEdgeID(std::pair<std::string, std::string> &&vertexIDs);
 
 private:
   std::string const m_id; /*!< ID */

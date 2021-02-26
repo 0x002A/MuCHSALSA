@@ -5,6 +5,7 @@
 #include <iterator>
 
 #include "Util.h"
+#include "graph/Edge.h"
 #include "graph/Graph.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
@@ -88,9 +89,10 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
         auto const sumScore = outerScore + innerScore;
 
         auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
-        auto edgeID = m_pGraph->addEdge(vertexIDs);
+        m_pGraph->addEdge(vertexIDs);
 
-        addEdgeMatch(std::move(edgeID), std::any_cast<std::string>(pJob->getParam(1)),
+        addEdgeMatch(lazybastard::graph::Edge::getEdgeID(std::move(vertexIDs)),
+                     std::any_cast<std::string>(pJob->getParam(1)),
                      lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary));
       }
     }
