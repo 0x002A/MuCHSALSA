@@ -345,8 +345,8 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
   auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(2)));
   if (pOrder->isContained && pOrder->isPrimary) {
     auto isSane = true;
-    auto const edges = pGraph->getNeighbors(pOrder->startVertex->getID());
-    for (auto const &[targetID, pEdge] : edges) {
+    auto const *const edges = pGraph->getNeighbors(pOrder->startVertex->getID());
+    for (auto const &[targetID, pEdge] : *edges) {
       if (targetID == pOrder->endVertex->getID() || pEdge->isShadow()) {
         continue;
       }
@@ -504,7 +504,7 @@ void decycle(gsl::not_null<Job const *> const pJob) {
     std::vector<float> weights;
 
     for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
-      auto const *const pPathEdge = pGraph->getEdge(std::make_pair(&(*it), &(*std::next(it))));
+      auto const *const pPathEdge = pGraph->getEdge(std::make_pair(&(*it)->getID(), &(*std::next(it))->getID()));
       if (pPathEdge != nullptr) {
         direction = direction && pPathEdge->getConsensusDirection();
         weights.push_back(static_cast<float>(pEdge->getWeight()));
@@ -518,8 +518,9 @@ void decycle(gsl::not_null<Job const *> const pJob) {
       if (*iterMaxWeight < baseWeight || (baseWeight * BASEWEIGHT_MULTIPLIKATOR >= *iterMinWeight &&
                                           *iterMinWeight < *iterMaxWeight * MAXWEIGHT_MULTIPLIKATOR)) {
         auto const minWeightIdx = std::distance(weights.begin(), iterMinWeight);
-        auto const *const pDeletableEdge = pGraph->getEdge(std::make_pair(
-            &(*std::next(shortestPath.begin(), minWeightIdx)), &(*std::next(shortestPath.begin(), minWeightIdx + 1))));
+        auto const *const pDeletableEdge =
+            pGraph->getEdge(std::make_pair(&(*std::next(shortestPath.begin(), minWeightIdx))->getID(),
+                                           &(*std::next(shortestPath.begin(), minWeightIdx + 1))->getID()));
         auto pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *const>(pJob->getParam(4)));
         std::lock_guard<std::mutex> guard(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT

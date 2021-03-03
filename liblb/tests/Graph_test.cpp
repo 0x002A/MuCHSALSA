@@ -213,20 +213,20 @@ TEST(GraphTest, NeighboorTest) {
   diGraph.addEdge(std::make_pair("3", "4"));
   ASSERT_EQ(diGraph.getSize(), 4);
 
-  auto graphNeighboors = graph.getNeighbors("3");
-  ASSERT_EQ(graphNeighboors.size(), 3);
-  ASSERT_TRUE(graphNeighboors.contains("1"));
-  ASSERT_TRUE(graphNeighboors.contains("2"));
-  ASSERT_TRUE(graphNeighboors.contains("4"));
+  auto graphNeighbors = *graph.getNeighbors("3");
+  ASSERT_EQ(graphNeighbors.size(), 3);
+  ASSERT_TRUE(graphNeighbors.contains("1"));
+  ASSERT_TRUE(graphNeighbors.contains("2"));
+  ASSERT_TRUE(graphNeighbors.contains("4"));
 
-  graphNeighboors = diGraph.getPredecessors("3");
-  ASSERT_EQ(graphNeighboors.size(), 1);
-  ASSERT_TRUE(graphNeighboors.contains("1"));
+  diGraph.getPredecessors(graphNeighbors, "3");
+  ASSERT_EQ(graphNeighbors.size(), 1);
+  ASSERT_TRUE(graphNeighbors.contains("1"));
 
-  graphNeighboors = diGraph.getSuccessors("3");
-  ASSERT_EQ(graphNeighboors.size(), 2);
-  ASSERT_TRUE(graphNeighboors.contains("2"));
-  ASSERT_TRUE(graphNeighboors.contains("4"));
+  auto const diGraphNeighbors = *diGraph.getSuccessors("3");
+  ASSERT_EQ(diGraphNeighbors.size(), 2);
+  ASSERT_TRUE(diGraphNeighbors.contains("2"));
+  ASSERT_TRUE(diGraphNeighbors.contains("4"));
 }
 
 TEST(GraphTest, SubgraphTest) {
@@ -314,20 +314,20 @@ TEST(GraphTest, ShortestPathTest) {
   ASSERT_EQ(diGraph.getSize(), 5);
 
   std::string v1("1"), v2("4");
-  auto shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(graph.getVertex(v1).get()),
-                                             lazybastard::util::make_not_null_and_const(graph.getVertex(v2).get()));
+  auto shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(graph.getVertex(v1)),
+                                             lazybastard::util::make_not_null_and_const(graph.getVertex(v2)));
   auto shortestPath =
       lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&graph), shortestPathVertices);
   ASSERT_EQ(shortestPath.size(), 2);
-  ASSERT_EQ(shortestPath[0], "1");
-  ASSERT_EQ(shortestPath[1], "4");
+  ASSERT_EQ(shortestPath[0]->getID(), "1");
+  ASSERT_EQ(shortestPath[1]->getID(), "4");
 
-  shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(diGraph.getVertex(v1).get()),
-                                        lazybastard::util::make_not_null_and_const(diGraph.getVertex(v2).get()));
+  shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(diGraph.getVertex(v1)),
+                                        lazybastard::util::make_not_null_and_const(diGraph.getVertex(v2)));
   shortestPath = lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&diGraph),
                                                          shortestPathVertices);
   ASSERT_EQ(shortestPath.size(), 3);
-  ASSERT_EQ(shortestPath[0], "1");
-  ASSERT_EQ(shortestPath[1], "2");
-  ASSERT_EQ(shortestPath[2], "4");
+  ASSERT_EQ(shortestPath[0]->getID(), "1");
+  ASSERT_EQ(shortestPath[1]->getID(), "2");
+  ASSERT_EQ(shortestPath[2]->getID(), "4");
 }

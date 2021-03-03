@@ -96,7 +96,17 @@ public:
    * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be returned
    * @return A std::shared_ptr to the Vertex if found
    */
-  std::shared_ptr<Vertex> getVertex(std::string const &nanoporeID) const;
+  std::shared_ptr<Vertex> getVertexAsSharedPtr(std::string const &nanoporeID) const;
+
+  /**
+   * Returns a pointer to the requested Vertex instance if found.
+   * If no result is found, nullptr will be returned.
+   * This function is **thread-safe**.
+   *
+   * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be returned
+   * @return A pointer to the Vertex if found, nullptr otherwise
+   */
+  Vertex const *getVertex(std::string const &nanoporeID) const;
 
   /**
    * Returns a std::vector containing pointers to all Vertex instances assigned to this Graph.
@@ -224,19 +234,21 @@ protected:
    * Getter returning the successors of a particular Vertex instance.
    *
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
-   * @return A pointer to the std::unordered_map containing the connected Vertex instances with their IDs and a constant
-   *         pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
+   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
+   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
    */
-  std::unordered_map<std::string, Edge *const> _getSuccessors(std::string const &vertexID) const; // NOLINT
+  std::unordered_map<std::string, Edge *const> const *_getSuccessors(std::string const &vertexID) const; // NOLINT
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
+   * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
+   * constant pointer to the corresponding Edge instance
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
-   * @return A std::unordered_map containing the connected Vertex instances with their IDs and a constant pointer to the
-   *         corresponding Edge instance
+   * @return A bool indicating whether the Vertex has been found
    */
-  std::unordered_map<std::string, Edge *const> _getPredecessors(std::string const &vertexID) const; // NOLINT
+  bool _getPredecessors(std::unordered_map<std::string, Edge *const> &result,
+                        std::string const &vertexID) const; // NOLINT
 
 private:
   std::unordered_map<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< Map containing all the Vertex instances */
@@ -346,10 +358,10 @@ public:
    * Getter returning the neighbors of a particular Vertex instance.
    *
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
-   * @return A std::unordered_map containing the connected Vertex instances with their IDs and a constant pointer to the
-   *         corresponding Edge instance, nullptr if the Vertex wasn't found
+   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
+   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
    */
-  std::unordered_map<std::string, Edge *const> getNeighbors(std::string const &vertexID) const {
+  std::unordered_map<std::string, Edge *const> const *getNeighbors(std::string const &vertexID) const {
     return _getSuccessors(vertexID);
   };
 
@@ -454,22 +466,23 @@ public:
    * Getter returning the successors of a particular Vertex instance.
    *
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
-   * @return A std::unordered_map containing the connected Vertex instances with their IDs and a constant pointer to the
-   *         corresponding Edge instance, nullptr if the Vertex wasn't found
+   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
+   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
    */
-  std::unordered_map<std::string, Edge *const> getSuccessors(std::string const &vertexID) const {
+  std::unordered_map<std::string, Edge *const> const *getSuccessors(std::string const &vertexID) const {
     return _getSuccessors(vertexID);
   };
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
+   * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
+   * constant pointer to the corresponding Edge instance
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
-   * @return A std::unordered_map containing the connected Vertex instances with their IDs and a constant pointer to the
-   *         corresponding Edge instance
+   * @return A bool indicating whether the Vertex has been found
    */
-  std::unordered_map<std::string, Edge *const> getPredecessors(std::string const &vertexID) const {
-    return _getPredecessors(vertexID);
+  bool getPredecessors(std::unordered_map<std::string, Edge *const> &result, std::string const &vertexID) const {
+    return _getPredecessors(result, vertexID);
   };
 
   /**
@@ -512,55 +525,60 @@ struct GraphUtil {
    *
    * @param pGraph a pointer to a Graph
    * @param vertexIDs a std::pair containing pointers to the start and end Vertex
-   * @return A std::deque representing the shortest path between the supplied Vertex instances
+   * @return A std::deque containing pointers to the Vertex instances representing the shortest path between the
+   *         supplied Vertex instances
    */
   template <typename T, typename std::enable_if_t<std::is_base_of<graph::GraphBase, T>::value, bool> = true>
-  static std::deque<std::string const> getShortestPath(
-      gsl::not_null<T const *> pGraph,
-      std::pair<gsl::not_null<graph::Vertex const *> const, gsl::not_null<graph::Vertex const *> const> vertexIDs) {
-    std::deque<std::string const> result;
-    std::unordered_map<std::string, std::size_t> dist;
-    std::unordered_map<std::string, std::string> prev;
+  static std::deque<gsl::not_null<graph::Vertex const *> const>
+  getShortestPath(gsl::not_null<T const *> const pGraph,
+                  std::pair<gsl::not_null<graph::Vertex const *> const,
+                            gsl::not_null<graph::Vertex const *> const> const vertexIDs) {
+    std::deque<gsl::not_null<graph::Vertex const *> const> result;
+    std::unordered_map<std::string const *, std::size_t> dist;
+    std::unordered_map<graph::Vertex const *, graph::Vertex const *> prev;
 
-    auto vertices = std::vector<std::string>(pGraph->getOrder());
+    std::vector<graph::Vertex const *> vertices;
 
     for (auto const *const pVertex : pGraph->getVertices()) {
-      vertices.push_back(pVertex->getID());
+      vertices.push_back(pVertex);
 
-      if (pVertex->getID() == vertexIDs.first->getID()) {
-        dist[pVertex->getID()] = 0;
+      if (pVertex == vertexIDs.first) {
+        dist[&pVertex->getID()] = 0;
       } else {
-        dist[pVertex->getID()] = std::numeric_limits<std::size_t>::max() - 1;
+        dist[&pVertex->getID()] = std::numeric_limits<std::size_t>::max() - 1;
       }
     }
 
     while (vertices.size() > 0) {
-      auto minDistVertex = *std::min_element(vertices.begin(), vertices.end(),
-                                             [&](auto const &v1, auto const &v2) { return dist[v1] < dist[v2]; });
+      auto pMinDistVertex =
+          *std::min_element(vertices.begin(), vertices.end(), [&](auto const *const pV1, auto const *const pV2) {
+            return dist[&pV1->getID()] < dist[&pV2->getID()];
+          });
 
-      vertices.erase(std::remove(vertices.begin(), vertices.end(), minDistVertex), vertices.end());
+      vertices.erase(std::remove(vertices.begin(), vertices.end(), pMinDistVertex), vertices.end());
 
-      if (minDistVertex == vertexIDs.second->getID()) {
-        if (prev.contains(minDistVertex) || minDistVertex == vertexIDs.first->getID()) {
+      if (pMinDistVertex == vertexIDs.second) {
+        if (prev.contains(pMinDistVertex) || pMinDistVertex == vertexIDs.first) {
           while (true) {
-            result.push_front(minDistVertex);
+            result.push_front(pMinDistVertex);
 
-            if (!prev.contains(minDistVertex)) {
+            if (!prev.contains(pMinDistVertex)) {
               break;
             }
 
-            minDistVertex = prev[minDistVertex];
+            pMinDistVertex = prev[pMinDistVertex];
           }
         }
 
         return result;
       }
 
-      for (auto const &pNeighbor : getReachableVertices(*pGraph, minDistVertex)) {
-        auto const alt = dist[minDistVertex] + 1;
-        if (alt < dist[pNeighbor.first]) {
-          dist[pNeighbor.first] = alt;
-          prev.insert_or_assign(pNeighbor.first, minDistVertex);
+      for (auto const &neighbor : *getReachableVertices(*pGraph, pMinDistVertex->getID())) {
+        auto const alt = dist[&pMinDistVertex->getID()] + 1;
+        auto const *const pNeighbor = pGraph->getVertex(neighbor.first);
+        if (alt < dist[&pNeighbor->getID()]) {
+          dist[&pNeighbor->getID()] = alt;
+          prev.insert_or_assign(pNeighbor, pMinDistVertex);
         }
       }
     }

@@ -19,7 +19,7 @@ void getVertexMap(std::unordered_map<std::string, std::shared_ptr<Vertex>> &resu
   result.clear();
 
   std::for_each(std::begin(vertices), std::end(vertices), [&](auto const pVertexID) {
-    auto const spVertex = graph.getVertex(*pVertexID);
+    auto const spVertex = graph.getVertexAsSharedPtr(*pVertexID);
 
     if (spVertex != nullptr) {
       result.insert(std::make_pair(spVertex->getID(), std::move(spVertex)));
@@ -49,12 +49,20 @@ void GraphBase::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   m_vertices.emplace(spVertex->getID(), std::move(spVertex));
 }
 
-std::shared_ptr<Vertex> GraphBase::getVertex(std::string const &nanoporeID) const {
+std::shared_ptr<Vertex> GraphBase::getVertexAsSharedPtr(std::string const &nanoporeID) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   auto iter = m_vertices.find(nanoporeID);
 
   return iter != std::end(m_vertices) ? iter->second->getSharedPtr() : nullptr;
+}
+
+Vertex const *GraphBase::getVertex(std::string const &nanoporeID) const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
+
+  auto iter = m_vertices.find(nanoporeID);
+
+  return iter != std::end(m_vertices) ? iter->second.get() : nullptr;
 }
 
 void GraphBase::_deleteVertex(gsl::not_null<std::string const *> const pVertexID, bool hasBidirectionalEdges) {
@@ -97,8 +105,8 @@ void GraphBase::_deleteVertex(gsl::not_null<std::string const *> const pVertexID
 }
 
 void GraphBase::_addEdge(std::pair<std::string const, std::string const> const &vertexIDs, bool isBidirectional) {
-  auto pV1 = getVertex(vertexIDs.first);
-  auto pV2 = getVertex(vertexIDs.second);
+  auto pV1 = getVertexAsSharedPtr(vertexIDs.first);
+  auto pV2 = getVertexAsSharedPtr(vertexIDs.second);
 
   if (!(pV1 != nullptr && pV2 != nullptr)) {
     // Edges between unknown vertices are omitted
@@ -156,18 +164,22 @@ bool GraphBase::hasEdge(
   return false;
 }
 
-std::unordered_map<std::string, Edge *const> GraphBase::_getSuccessors(std::string const &vertexID) const {
+std::unordered_map<std::string, Edge *const> const *GraphBase::_getSuccessors(std::string const &vertexID) const {
   auto const outerIter = m_adjacencyList.find(vertexID);
   if (outerIter != std::end(m_adjacencyList)) {
-    return outerIter->second;
+    return &outerIter->second;
   }
 
-  return decltype(outerIter->second)();
+  return nullptr;
 }
 
-std::unordered_map<std::string, Edge *const> GraphBase::_getPredecessors(const std::string &vertexID) const {
-  std::unordered_map<std::string, Edge *const> predecessors;
+bool GraphBase::_getPredecessors(std::unordered_map<std::string, Edge *const> &result,
+                                 const std::string &vertexID) const {
+  if (!hasVertex(vertexID)) {
+    return false;
+  }
 
+  result.clear();
   for (auto const &[currentVertexID, connectedVertices] : m_adjacencyList) {
     if (vertexID == currentVertexID) {
       continue;
@@ -175,11 +187,11 @@ std::unordered_map<std::string, Edge *const> GraphBase::_getPredecessors(const s
 
     auto const iter = connectedVertices.find(vertexID);
     if (iter != std::end(connectedVertices)) {
-      predecessors.insert(std::make_pair(currentVertexID, iter->second));
+      result.insert(std::make_pair(currentVertexID, iter->second));
     }
   }
 
-  return predecessors;
+  return true;
 }
 
 std::vector<Edge *> GraphBase::getEdges() const {
