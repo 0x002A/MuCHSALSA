@@ -11,6 +11,7 @@
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -123,7 +124,7 @@ auto main(int const argc, char const *argv[]) -> int {
     std::for_each(std::begin(edges), std::end(edges), [&](auto *const pEdge) {
       wg.add(1);
 
-      auto job = Job(chainingJob, &wg, &matchMap, &graph, pEdge, app.getWiggleRoom());
+      auto job = Job(chainingJob, &wg, &matchMap, pEdge, app.getWiggleRoom());
       threadPool.addJob(std::move(job));
     });
     wg.wait();
@@ -270,7 +271,7 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> minusIDs;
 
   auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(1)));
-  auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(3)));
+  auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(2)));
   auto const *const pEdgeMatches = pMatchMap->getEdgeMatches(pEdge->getID());
 
   if (!pEdgeMatches) {
@@ -286,8 +287,7 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
     }
   }
 
-  auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(2)));
-  auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(4));
+  auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(3));
   auto plusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, plusIDs, true, wiggleRoom);
   auto minusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, minusIDs, false, wiggleRoom);
 
@@ -333,9 +333,12 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
     pEdge->setShadow(std::get<2>(path));
   }
 
-  std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](const auto &plusPath) {
-    pEdge->appendOrder(lazybastard::computeOverlap(pGraph, pMatchMap, std::get<0>(plusPath), pEdge, false,
-                                                   std::get<1>(plusPath), std::get<2>(plusPath)));
+  std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](auto &plusPath) {
+    auto const overlap = lazybastard::computeOverlap(pMatchMap, std::move(std::get<0>(plusPath)), pEdge, false,
+                                                     std::get<1>(plusPath), std::get<2>(plusPath));
+    if (overlap.has_value()) {
+      pEdge->appendOrder(std::move(overlap.value()));
+    }
   });
 
   std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();

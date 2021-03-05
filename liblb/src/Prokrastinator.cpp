@@ -13,18 +13,6 @@
 
 using lazybastard::coroutine::generator;
 
-lazybastard::graph::EdgeOrder
-lazybastard::computeOverlap(gsl::not_null<graph::Graph const *> const /*pGraph*/,
-                            gsl::not_null<lazybastard::matching::MatchMap const *> const /*matches*/,
-                            std::deque<gsl::not_null<std::string const *> const> const & /*ids*/,
-                            gsl::not_null<lazybastard::graph::Edge const *> const /*pEdge*/, bool /*direction*/,
-                            std::size_t /*score*/, bool /*isPrimary*/) {
-  return lazybastard::graph::EdgeOrder{
-      nullptr, nullptr, {0.0, 0.0}, {0.0, 0.0},
-      false,   nullptr, 0,          std::deque<gsl::not_null<std::string const *> const>(),
-      false,   false};
-}
-
 bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> const /*pGraph*/,
                               gsl::not_null<lazybastard::graph::Vertex const *> const /*pSubnode*/,
                               gsl::not_null<lazybastard::graph::Vertex const *> const /*pNode*/,

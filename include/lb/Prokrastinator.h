@@ -4,6 +4,7 @@
 #include <deque>
 #include <gsl/pointers>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <tuple>
@@ -14,11 +15,10 @@
 
 namespace lazybastard {
 
-graph::EdgeOrder computeOverlap(gsl::not_null<graph::Graph const *> pGraph,
-                                gsl::not_null<matching::MatchMap const *> matches,
-                                std::deque<gsl::not_null<std::string const *> const> const &ids,
-                                gsl::not_null<graph::Edge const *> pEdge, bool direction, std::size_t score,
-                                bool isPrimary);
+std::optional<graph::EdgeOrder> computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
+                                               std::deque<gsl::not_null<std::string const *> const> &&ids,
+                                               gsl::not_null<graph::Edge const *> pEdge, bool direction,
+                                               std::size_t score, bool isPrimary);
 
 std::vector<std::tuple<std::deque<gsl::not_null<std::string const *> const>, std::size_t, bool>> getMaxPairwisePaths(
     gsl::not_null<matching::MatchMap const *> matches, gsl::not_null<graph::Edge const *> pEdge,

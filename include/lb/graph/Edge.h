@@ -16,16 +16,16 @@ namespace lazybastard::graph {
  * Struct representing an order attached to an Edge.
  */
 struct EdgeOrder {
-  Vertex const *const startVertex;                                /*!< Start Vertex */
-  Vertex const *const endVertex;                                  /*!< End Vertex */
-  std::pair<float const, float const> const leftOffset;           /*!< Left offset */
-  std::pair<float const, float const> const rightOffset;          /*!< Right offset */
-  bool const isContained;                                         /*!< Bool indicating containment */
-  Vertex const *const baseVertex;                                 /*!< Base Vertex */
-  std::size_t const score;                                        /*!< Score */
-  std::deque<gsl::not_null<std::string const *> const> const ids; /*!< IDs */
-  bool const direction;                                           /*!< Bool indicating direction */
-  bool const isPrimary;                                           /*!< Bool indicating a primary */
+  Vertex const *startVertex;                                /*!< Start Vertex */
+  Vertex const *endVertex;                                  /*!< End Vertex */
+  float leftOffset;                                         /*!< Left offset */
+  float rightOffset;                                        /*!< Right offset */
+  bool isContained;                                         /*!< Bool indicating containment */
+  Vertex const *baseVertex;                                 /*!< Base Vertex */
+  std::size_t score;                                        /*!< Score */
+  std::deque<gsl::not_null<std::string const *> const> ids; /*!< IDs */
+  bool direction;                                           /*!< Bool indicating direction */
+  bool isPrimary;                                           /*!< Bool indicating a primary */
 };
 
 /**
