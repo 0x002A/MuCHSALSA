@@ -37,7 +37,7 @@ struct EdgeMatch {
 };
 
 /**
- * Class representing a map containing illumina IDs matched with nanopore IDs.
+ * Class representing a map containing Illumina IDs matched with Nanopore IDs.
  *
  * Instances of this class are designed to be thread-safe.
  */
@@ -71,15 +71,39 @@ public:
    */
   [[nodiscard]] VertexMatch const *getVertexMatch(std::string const &vertexID, std::string const &illuminaID) const {
     auto const vertexIter = m_vertexMatches.find(vertexID);
-    if (vertexIter != m_vertexMatches.end()) {
+    if (vertexIter != std::end(m_vertexMatches)) {
       auto const illuminaIter = vertexIter->second.find(illuminaID);
-      if (illuminaIter != vertexIter->second.end()) {
+      if (illuminaIter != std::end(vertexIter->second)) {
         return illuminaIter->second.get();
       }
     }
 
     return nullptr;
   };
+
+  /**
+   * Getter returning all EdgeMatch instances for a specific Edge stored within this map.
+   *
+   * @param vertexID a constant reference to the identifier of the Vertex
+   * @return A pointer to the std::unordered_map containing all VertexMatch instances associated with the requested
+   *         Vertex
+   */
+  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch>> const *
+  getVertexMatches(std::string const &vertexID) const {
+    auto iter = m_vertexMatches.find(vertexID);
+    if (iter != std::end(m_vertexMatches)) {
+      return &(iter->second);
+    }
+
+    return nullptr;
+  };
+
+  /**
+   * Getter returning all VertexMatch instances stored within this map.
+   *
+   * @return The std::unordered_map containing all VertexMatch instances
+   */
+  [[nodiscard]] auto const &getVertexMatches() const { return m_vertexMatches; };
 
   /**
    * Adds an Edge match to the map.
@@ -89,6 +113,42 @@ public:
    * @param spMatch an rvalue reference to the std::shared_pointer to the EdgeMatch to be added to the map (by moving)
    */
   void addEdgeMatch(std::string &&edgeID, std::string const &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
+
+  /**
+   * Getter returning a specific match of the Edge having the supplied ID.
+   * This functions returns nullptr if the requested EdgeMatch wasn't found.
+   *
+   * @param edgeID a constant reference to the identifier of the Edge
+   * @param illuminaID a constant reference to the illumina ID associated with the EdgeMatch
+   * @return A pointer to the EdgeMatch (constant) if found nullptr otherwise
+   */
+  [[nodiscard]] EdgeMatch const *getEdgeMatch(std::string const &edgeID, std::string const &illuminaID) const {
+    auto const edgeIter = m_edgeMatches.find(edgeID);
+    if (edgeIter != std::end(m_edgeMatches)) {
+      auto const illuminaIter = edgeIter->second.find(illuminaID);
+      if (illuminaIter != std::end(edgeIter->second)) {
+        return illuminaIter->second.get();
+      }
+    }
+
+    return nullptr;
+  };
+
+  /**
+   * Getter returning all EdgeMatch instances for a specific Edge stored within this map.
+   *
+   * @param edgeID a constant reference to the identifier of the Edge
+   * @return A pointer to the std::unordered_map containing all EdgeMatch instances associated with the requested Edge
+   */
+  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch>> const *
+  getEdgeMatches(std::string const &edgeID) const {
+    auto const iter = m_edgeMatches.find(edgeID);
+    if (iter != std::end(m_edgeMatches)) {
+      return &iter->second;
+    }
+
+    return nullptr;
+  };
 
   /**
    * Getter returning all EdgeMatch instances stored within this map.

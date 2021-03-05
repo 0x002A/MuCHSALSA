@@ -123,7 +123,7 @@ auto main(int const argc, char const *argv[]) -> int {
     std::for_each(std::begin(edges), std::end(edges), [&](auto *const pEdge) {
       wg.add(1);
 
-      auto job = Job(chainingJob, &wg, &matchMap, &graph, pEdge);
+      auto job = Job(chainingJob, &wg, &matchMap, &graph, pEdge, app.getWiggleRoom());
       threadPool.addJob(std::move(job));
     });
     wg.wait();
@@ -136,7 +136,7 @@ auto main(int const argc, char const *argv[]) -> int {
         wg.add(1);
 
         auto job =
-            Job(contractionEdgesJob, &wg, &graph, order, &contractionEdges, std::reference_wrapper<std::mutex>(mutex));
+            Job(contractionEdgesJob, &wg, &graph, &order, &contractionEdges, std::reference_wrapper<std::mutex>(mutex));
         threadPool.addJob(std::move(job));
       });
     });
@@ -266,19 +266,19 @@ auto main(int const argc, char const *argv[]) -> int {
 }
 
 void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
-  std::set<std::string const *const, LTCmp<std::string const *const>> plusIDs;
-  std::set<const std::string *const, LTCmp<std::string const *const>> minusIDs;
+  std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> plusIDs;
+  std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> minusIDs;
 
   auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(1)));
   auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(3)));
-  auto const edgeMatches = pMatchMap->getEdgeMatches().find(pEdge->getID());
+  auto const *const pEdgeMatches = pMatchMap->getEdgeMatches(pEdge->getID());
 
-  if (edgeMatches == pMatchMap->getEdgeMatches().end()) {
+  if (!pEdgeMatches) {
     std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
     return;
   }
 
-  for (auto const &[illuminaID, edgeMatch] : edgeMatches->second) {
+  for (auto const &[illuminaID, edgeMatch] : *pEdgeMatches) {
     if (edgeMatch->direction) {
       plusIDs.insert(&illuminaID);
     } else {
@@ -287,8 +287,9 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(2)));
-  auto plusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pGraph, pEdge, plusIDs, true);
-  auto minusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pGraph, pEdge, minusIDs, false);
+  auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(4));
+  auto plusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, plusIDs, true, wiggleRoom);
+  auto minusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, minusIDs, false, wiggleRoom);
 
   auto hasPrimary =
       std::any_of(plusPaths.begin(), plusPaths.end(), [](auto const &plusPath) { return std::get<2>(plusPath); });
@@ -333,7 +334,7 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](const auto &plusPath) {
-    pEdge->appendOrder(lazybastard::computeOverlap(pMatchMap, pGraph, std::get<0>(plusPath), pEdge, false,
+    pEdge->appendOrder(lazybastard::computeOverlap(pGraph, pMatchMap, std::get<0>(plusPath), pEdge, false,
                                                    std::get<1>(plusPath), std::get<2>(plusPath)));
   });
 
@@ -341,8 +342,8 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
 }
 
 void findContractionEdges(gsl::not_null<Job const *> const pJob) {
-  auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(2)));
-  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(2)));
+  auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(1)));
+  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder const *const>(pJob->getParam(2)));
   if (pOrder->isContained && pOrder->isPrimary) {
     auto isSane = true;
     auto const *const edges = pGraph->getNeighbors(pOrder->startVertex->getID());
@@ -545,13 +546,13 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(2)));
 
   if (pMaxNPLVertex != nullptr) {
-    auto const pDiGraph = lazybastard::getDirectionGraph(pMatchMap, pGraph, pConnectedComponent, pMaxNPLVertex);
+    auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pMatchMap, pConnectedComponent, pMaxNPLVertex);
     auto const paths = lazybastard::linearizeGraph(pDiGraph.get());
 
     auto pID2OverlapMap = gsl::make_not_null(std::any_cast<ID2OverlapMap *const>(pJob->getParam(3)));
     auto const assemblyIdx = std::any_cast<std::size_t>(pJob->getParam(5));
     std::for_each(paths.begin(), paths.end(), [&](auto const &path) {
-      lazybastard::assemblePath(pMatchMap, pGraph, pID2OverlapMap, &path, pDiGraph.get(), assemblyIdx,
+      lazybastard::assemblePath(pGraph, pMatchMap, pID2OverlapMap, &path, pDiGraph.get(), assemblyIdx,
                                 std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(6)).get());
     });
   }

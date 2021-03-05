@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <gsl/pointers>
 #include <limits>
 #include <memory>
@@ -95,6 +96,24 @@ template <typename T> T const *make_const(T const *pT) { return pT; }
 
 template <typename T> gsl::not_null<T const *> make_not_null_and_const(T *pT) {
   return gsl::make_not_null(make_const(pT));
+}
+
+template <typename T> constexpr void swap_if(T &first, T &second, bool p) {
+  if (p) {
+    std::swap(first, second);
+  }
+}
+
+template <typename BidirIt> constexpr void reverse_if(BidirIt first, BidirIt last, bool p) {
+  if (p) {
+    std::reverse(first, last);
+  }
+}
+
+template <class T, class U = T> constexpr void exchange_if(T &obj, U &&new_value, bool p) {
+  if (p) {
+    std::exchange(obj, std::forward<U>(new_value));
+  }
 }
 
 } // namespace lazybastard::util
