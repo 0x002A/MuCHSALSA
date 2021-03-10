@@ -137,7 +137,7 @@ auto main(int const argc, char const *argv[]) -> int {
         wg.add(1);
 
         auto job =
-            Job(contractionEdgesJob, &wg, &graph, &order, &contractionEdges, std::reference_wrapper<std::mutex>(mutex));
+            Job(contractionEdgesJob, &wg, &graph, &order, &contractionEdges, std::ref(mutex), app.getWiggleRoom());
         threadPool.addJob(std::move(job));
       });
     });
@@ -151,8 +151,7 @@ auto main(int const argc, char const *argv[]) -> int {
       LB_UNUSED(pEdge);
 
       wg.add(1);
-      auto job = lazybastard::threading::Job(contractionTargetsJob, &wg, pOrder, &contractionTargets,
-                                             std::reference_wrapper<std::mutex>(mutex));
+      auto job = lazybastard::threading::Job(contractionTargetsJob, &wg, pOrder, &contractionTargets, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -165,7 +164,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
       wg.add(1);
       auto job = lazybastard::threading::Job(deletableVerticesJob, &wg, pOrder, &deletableVertices, &contractionRoots,
-                                             &contractionTargets, std::reference_wrapper<std::mutex>(mutex));
+                                             &contractionTargets, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -177,22 +176,16 @@ auto main(int const argc, char const *argv[]) -> int {
 
       wg.add(1);
       auto job = lazybastard::threading::Job(contractionJob, &wg, pOrder, &containElements, &contractionRoots,
-                                             &matchMap, std::reference_wrapper<std::mutex>(mutex));
+                                             &matchMap, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
-
-    std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
-
-    std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
-                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget); });
-    deletableVertices.clear();
 
     std::set<Edge const *const> deletableEdges;
     auto deletableEdgesJob = [](Job const *const pJob) { findDeletableEdges(pJob); };
     std::for_each(std::begin(edges), std::end(edges), [&](auto *const pEdge) {
       wg.add(1);
-      auto job = Job(deletableEdgesJob, &wg, pEdge, &deletableEdges, std::reference_wrapper<std::mutex>(mutex));
+      auto job = Job(deletableEdgesJob, &wg, pEdge, &deletableEdges, std::ref(mutex));
       threadPool.addJob(std::move(job));
     });
     wg.wait();
@@ -202,6 +195,12 @@ auto main(int const argc, char const *argv[]) -> int {
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
                   [&](auto const *const pTarget) { graph.deleteEdge(pTarget); });
     deletableEdges.clear();
+
+    std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
+
+    std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
+                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget); });
+    deletableVertices.clear();
 
     std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
 
@@ -219,8 +218,7 @@ auto main(int const argc, char const *argv[]) -> int {
     auto decycleJob = [](Job const *const pJob) { decycle(pJob); };
     std::for_each(std::begin(edges), std::end(edges), [&](auto const *const pEdge) {
       wg.add(1);
-      auto job = Job(decycleJob, &wg, &graph, pEdge, maxSpanTree.get(), &deletableEdges,
-                     std::reference_wrapper<std::mutex>(mutex));
+      auto job = Job(decycleJob, &wg, &graph, pEdge, maxSpanTree.get(), &deletableEdges, std::ref<std::mutex>(mutex));
       threadPool.addJob(std::move(job));
     });
     wg.wait();
@@ -252,7 +250,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
       wg.add(1);
       auto job = Job(assemblyJob, &wg, &graph, &matchMap, &id2OverlapMap, &connectedComponent, assemblyIdx,
-                     std::reference_wrapper<OutputWriter>(outputWriter));
+                     std::ref(outputWriter));
       threadPool.addJob(std::move(job));
 
       ++assemblyIdx;
@@ -270,12 +268,12 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> plusIDs;
   std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> minusIDs;
 
-  auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(1)));
-  auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(2)));
+  auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(1)));
+  auto const pEdge = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(2)));
   auto const *const pEdgeMatches = pMatchMap->getEdgeMatches(pEdge->getID());
 
   if (!pEdgeMatches) {
-    std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+    std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
     return;
   }
 
@@ -341,16 +339,17 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
     }
   });
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void findContractionEdges(gsl::not_null<Job const *> const pJob) {
-  auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(1)));
-  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder const *const>(pJob->getParam(2)));
+  auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
+  auto const pOrder = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(2)));
   if (pOrder->isContained && pOrder->isPrimary) {
     auto isSane = true;
-    auto const *const edges = pGraph->getNeighbors(pOrder->startVertex->getID());
-    for (auto const &[targetID, pEdge] : *edges) {
+    auto const *const pNeighbors = pGraph->getNeighbors(pOrder->startVertex->getID());
+    auto const edges = std::map<std::string, Edge *>(std::begin(*pNeighbors), std::end(*pNeighbors));
+    for (auto const &[targetID, pEdge] : edges) {
       if (targetID == pOrder->endVertex->getID() || pEdge->isShadow()) {
         continue;
       }
@@ -362,25 +361,28 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
       auto const *const pTargetVertex =
           pEdge->getVertices().first != pOrder->startVertex ? pEdge->getVertices().first : pEdge->getVertices().second;
 
-      isSane &= lazybastard::sanityCheck(pGraph, pOrder->startVertex, pOrder->endVertex, pTargetVertex, pOrder);
+      auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(5));
+
+      isSane &=
+          lazybastard::sanityCheck(pGraph, pOrder->startVertex, pOrder->endVertex, pTargetVertex, pOrder, wiggleRoom);
 
       if (!isSane) {
         break;
       }
 
-      auto pContractionEdges = gsl::make_not_null(
-          std::any_cast<std::unordered_map<Edge const *, EdgeOrder const *> *const>(pJob->getParam(3)));
       std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get());
+      auto const pContractionEdges =
+          gsl::make_not_null(std::any_cast<std::unordered_map<Edge const *, EdgeOrder const *> *>(pJob->getParam(3)));
       pContractionEdges->insert({pEdge, pOrder});
     }
   }
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void findContractionTargets(gsl::not_null<Job const *> const pJob) {
-  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(1)));
-  auto pContractionTargets =
-      gsl::make_not_null(std::any_cast<std::unordered_map<Vertex const *, Vertex const *> *const>(pJob->getParam(2)));
+  auto const pOrder = gsl::make_not_null(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
+  auto const pContractionTargets =
+      gsl::make_not_null(std::any_cast<std::unordered_map<Vertex const *, Vertex const *> *>(pJob->getParam(2)));
   {
     std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get());
 
@@ -392,22 +394,22 @@ void findContractionTargets(gsl::not_null<Job const *> const pJob) {
     }
   }
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void findDeletableVertices(gsl::not_null<const Job *> pJob) {
-  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(1)));
-  auto pDeletableVertices =
-      gsl::make_not_null(std::any_cast<std::set<std::string const *const> *const>(pJob->getParam(2)));
+  auto const pOrder = gsl::make_not_null(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
+  auto const pDeletableVertices =
+      gsl::make_not_null(std::any_cast<std::set<std::string const *const> *>(pJob->getParam(2)));
   {
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
     pDeletableVertices->insert(&pOrder->startVertex->getID());
   }
 
-  auto pContractionTargets =
-      gsl::make_not_null(std::any_cast<std::unordered_map<Vertex const *, Vertex const *> *const>(pJob->getParam(4)));
-  auto pContractionRoots = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *const>(pJob->getParam(3)));
+  auto const pContractionTargets =
+      gsl::make_not_null(std::any_cast<std::unordered_map<Vertex const *, Vertex const *> *>(pJob->getParam(4)));
+  auto const pContractionRoots = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *>(pJob->getParam(3)));
   {
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
@@ -419,20 +421,20 @@ void findDeletableVertices(gsl::not_null<const Job *> pJob) {
     pContractionRoots->erase(pOrder->startVertex);
   }
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void contract(gsl::not_null<Job const *> const pJob) {
-  auto pOrder = make_not_null_and_const(std::any_cast<EdgeOrder *const>(pJob->getParam(1)));
-  auto pContractionRoots = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *const>(pJob->getParam(3)));
+  auto const pOrder = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
+  auto const pContractionRoots = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *>(pJob->getParam(3)));
   auto const iter = pContractionRoots->find(pOrder->endVertex);
 
   if (iter == pContractionRoots->end()) {
-    std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+    std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
     return;
   }
 
-  auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(4)));
+  auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(4)));
   std::unordered_map<std::string const *, VertexMatch const *> matches;
   std::for_each(std::begin(pOrder->ids), std::end(pOrder->ids), [&](auto const id) {
     auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getID(), *id);
@@ -443,40 +445,40 @@ void contract(gsl::not_null<Job const *> const pJob) {
 
   std::lock_guard<std::mutex> guard(
       std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
-  auto pContainElements = gsl::make_not_null(
-      std::any_cast<std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> *const>(
-          pJob->getParam(3)));
+  auto const pContainElements = gsl::make_not_null(
+      std::any_cast<std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> *>(
+          pJob->getParam(2)));
   pContainElements->insert(std::make_pair(
       pOrder->endVertex, std::make_unique<ContainElement>(ContainElement{
                              std::move(matches), pOrder->startVertex, pOrder->startVertex->getNanoporeLength(),
                              pOrder->score, pOrder->direction, pOrder->isPrimary})));
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void findDeletableEdges(gsl::not_null<Job const *> const pJob) {
-  auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(1)));
+  auto const pEdge = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(1)));
   std::vector<EdgeOrder> filteredOrders;
-  std::remove_copy_if(pEdge->getEdgeOrders().begin(), pEdge->getEdgeOrders().end(), std::back_inserter(filteredOrders),
-                      [](auto const &order) { return order.isContained; });
+  std::remove_copy_if(std::begin(pEdge->getEdgeOrders()), std::end(pEdge->getEdgeOrders()),
+                      std::back_inserter(filteredOrders), [](auto const &order) { return order.isContained; });
 
   if (filteredOrders.empty()) {
-    auto pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *const>(pJob->getParam(2)));
+    auto const pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *>(pJob->getParam(2)));
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get()); // NOLINT
-    pDeletableEdges->insert(pEdge);
+    pDeletableEdges->insert(pEdge.get());
   }
 
   pEdge->replaceOrders(std::move(filteredOrders));
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void computeBitweight(gsl::not_null<Job const *> const pJob) {
-  auto pEdge = gsl::make_not_null(std::any_cast<Edge *const>(pJob->getParam(1)));
+  auto const pEdge = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(1)));
   auto const &orders = pEdge->getEdgeOrders();
 
   if (orders.empty()) {
-    std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+    std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
     return;
   }
 
@@ -492,16 +494,16 @@ void computeBitweight(gsl::not_null<Job const *> const pJob) {
     pEdge->setConsensusDirection(orders[0].direction);
   }
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void decycle(gsl::not_null<Job const *> const pJob) {
-  auto pEdge = gsl::make_not_null(std::any_cast<Edge const *const>(pJob->getParam(2)));
-  auto pMaxSpanTree = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(3)));
+  auto const pEdge = gsl::make_not_null(std::any_cast<Edge const *>(pJob->getParam(2)));
+  auto const pMaxSpanTree = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(3)));
   if (pEdge->getConsensusDirection() != ConsensusDirection::Enum::e_NONE &&
       !pMaxSpanTree->hasEdge(std::make_pair(make_not_null_and_const(&pEdge->getVertices().first->getID()),
                                             make_not_null_and_const(&pEdge->getVertices().second->getID())))) {
-    auto pGraph = make_not_null_and_const(std::any_cast<Graph *const>(pJob->getParam(1)));
+    auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
     auto const shortestPath = GraphUtil::getShortestPath(pGraph, pEdge->getVertices());
     bool direction = pEdge->getConsensusDirection();
     auto const baseWeight = static_cast<float>(pEdge->getWeight());
@@ -525,7 +527,8 @@ void decycle(gsl::not_null<Job const *> const pJob) {
         auto const *const pDeletableEdge =
             pGraph->getEdge(std::make_pair(&(*std::next(shortestPath.begin(), minWeightIdx))->getID(),
                                            &(*std::next(shortestPath.begin(), minWeightIdx + 1))->getID()));
-        auto pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *const>(pJob->getParam(4)));
+        auto const pDeletableEdges =
+            gsl::make_not_null(std::any_cast<std::set<Edge const *const> *>(pJob->getParam(4)));
         std::lock_guard<std::mutex> guard(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
         pDeletableEdges->insert(pDeletableEdge);
@@ -533,26 +536,26 @@ void decycle(gsl::not_null<Job const *> const pJob) {
     }
   }
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void assemblePaths(gsl::not_null<Job const *> const pJob) {
-  auto pGraph = gsl::make_not_null(std::any_cast<Graph *const>(pJob->getParam(1)));
-  auto pConnectedComponent = make_not_null_and_const(
-      std::any_cast<std::vector<gsl::not_null<std::string const *>> const *const>(pJob->getParam(4)));
+  auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
+  auto const pConnectedComponent = make_not_null_and_const(
+      std::any_cast<std::vector<gsl::not_null<std::string const *>> const *>(pJob->getParam(4)));
 
   auto const pSubGraph = pGraph->getSubgraph(*pConnectedComponent);
   auto const maxNPLVertexIter = std::max_element(
       pSubGraph->getVertices().begin(), pSubGraph->getVertices().end(),
       [](Vertex const *v1, Vertex const *v2) { return v1->getNanoporeLength() < v2->getNanoporeLength(); });
   auto const *const pMaxNPLVertex = maxNPLVertexIter == pSubGraph->getVertices().end() ? nullptr : *maxNPLVertexIter;
-  auto pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *const>(pJob->getParam(2)));
+  auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNPLVertex != nullptr) {
     auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pMatchMap, pConnectedComponent, pMaxNPLVertex);
     auto const paths = lazybastard::linearizeGraph(pDiGraph.get());
 
-    auto pID2OverlapMap = gsl::make_not_null(std::any_cast<ID2OverlapMap *const>(pJob->getParam(3)));
+    auto const pID2OverlapMap = gsl::make_not_null(std::any_cast<ID2OverlapMap *>(pJob->getParam(3)));
     auto const assemblyIdx = std::any_cast<std::size_t>(pJob->getParam(5));
     std::for_each(paths.begin(), paths.end(), [&](auto const &path) {
       lazybastard::assemblePath(pGraph, pMatchMap, pID2OverlapMap, &path, pDiGraph.get(), assemblyIdx,
@@ -560,5 +563,5 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
     });
   }
 
-  std::any_cast<WaitGroup *const>(pJob->getParam(0))->done();
+  std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }

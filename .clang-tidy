@@ -9,6 +9,7 @@ Checks:
 -cppcoreguidelines-avoid-magic-numbers,
 -readability-implicit-bool-conversion,
 -hicpp-multiway-paths-covered,
+-readability-function-cognitive-complexity,
 '
 
 InheritParentConfig: true

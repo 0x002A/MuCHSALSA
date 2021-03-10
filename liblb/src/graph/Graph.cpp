@@ -198,7 +198,7 @@ std::vector<Edge *> GraphBase::getEdges() const {
   std::vector<Edge *> edges;
 
   std::transform(std::begin(m_edges), std::end(m_edges), std::back_inserter(edges),
-                 [](const auto &pair) { return pair.second.get(); });
+                 [](auto const &pair) { return pair.second.get(); });
 
   return edges;
 }

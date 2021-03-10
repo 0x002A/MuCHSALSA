@@ -28,7 +28,7 @@ std::vector<std::tuple<std::deque<gsl::not_null<std::string const *> const>, std
 
 bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph::Vertex const *> pSubnode,
                  gsl::not_null<graph::Vertex const *> pNode, gsl::not_null<graph::Vertex const *> pTarget,
-                 gsl::not_null<graph::EdgeOrder const *> pOrder);
+                 gsl::not_null<graph::EdgeOrder const *> pOrder, std::size_t wiggleRoom);
 
 std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
 
