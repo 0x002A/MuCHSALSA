@@ -31,6 +31,7 @@
 #include <lb/threading/Job.h>
 #include <lb/threading/ThreadPool.h>
 #include <lb/threading/WaitGroup.h>
+#include <lb/types/Toggle.h>
 
 #include "Application.h"
 
@@ -483,7 +484,7 @@ void computeBitweight(gsl::not_null<Job const *> const pJob) {
   }
 
   if (pEdge->isShadow()) {
-    auto const &initial = orders[0].direction;
+    auto const initial = orders[0].direction;
     auto const findOther = std::find_if(orders.begin(), orders.end(),
                                         [&](auto const &order) { return order.direction != initial; }) != orders.end();
     if (!findOther) {
@@ -505,7 +506,7 @@ void decycle(gsl::not_null<Job const *> const pJob) {
                                             make_not_null_and_const(&pEdge->getVertices().second->getID())))) {
     auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
     auto const shortestPath = GraphUtil::getShortestPath(pGraph, pEdge->getVertices());
-    bool direction = pEdge->getConsensusDirection();
+    lazybastard::Toggle direction = pEdge->getConsensusDirection();
     auto const baseWeight = static_cast<float>(pEdge->getWeight());
     std::vector<float> weights;
 

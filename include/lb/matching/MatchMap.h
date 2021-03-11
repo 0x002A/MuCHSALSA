@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "Lb.fwd.h"
+#include "types/Toggle.h"
 
 namespace lazybastard::matching {
 
@@ -20,10 +21,10 @@ struct VertexMatch {
   std::pair<int, int> const nanoporeRange; /*!< Nanopore range */
   std::pair<int, int> const illuminaRange; /*!< Illumina range */
   float const rRatio;                      /*!< Read ratio */
-  bool const direction;                    /*!< Read direction */
+  Toggle const direction;                  /*!< Read direction */
   std::size_t const score;                 /*!< Score (number of matches) */
-  bool const isPrimary;                    /*!< Did the match pass the thresholds concerning
-                                                length and match count */
+  Toggle const isPrimary;                  /*!< Did the match pass the thresholds concerning
+                                              length and match count */
 };
 
 /**
@@ -31,9 +32,9 @@ struct VertexMatch {
  */
 struct EdgeMatch {
   std::pair<int, int> const overlap; /*!< Overlap */
-  bool const direction;              /*!< Edge direction */
+  Toggle const direction;            /*!< Edge direction */
   float const score;                 /*!< Score */
-  bool const isPrimary;              /*!< Did the match pass the thresholds */
+  Toggle const isPrimary;            /*!< Did the match pass the thresholds */
 };
 
 /**

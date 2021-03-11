@@ -1,5 +1,3 @@
-#include <gsl/pointers>
-
 #include <gtest/gtest.h>
 
 #include "Prokrastinator.h"

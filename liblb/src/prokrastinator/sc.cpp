@@ -19,7 +19,7 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
   auto isSane = false;
   for (auto const &checkOnOrder : checkOnEdge->getEdgeOrders()) {
     for (auto const &checkForOrder : checkForEdge->getEdgeOrders()) {
-      isSane = pOrder->direction * checkOnOrder.direction == checkForOrder.direction;
+      isSane = (pOrder->direction && checkOnOrder.direction) == checkForOrder.direction;
 
       auto const isContainedCheckFor = checkForOrder.isContained;
       auto const isContainedCheckOn = checkOnOrder.isContained;

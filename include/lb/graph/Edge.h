@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "Lb.fwd.h"
+#include "types/Toggle.h"
 
 namespace lazybastard::graph {
 
@@ -20,12 +21,12 @@ struct EdgeOrder {
   Vertex const *endVertex;                                  /*!< End Vertex */
   float leftOffset;                                         /*!< Left offset */
   float rightOffset;                                        /*!< Right offset */
-  bool isContained;                                         /*!< Bool indicating containment */
+  Toggle isContained;                                       /*!< Bool indicating containment */
   Vertex const *baseVertex;                                 /*!< Base Vertex */
   std::size_t score;                                        /*!< Score */
   std::deque<gsl::not_null<std::string const *> const> ids; /*!< IDs */
-  bool direction;                                           /*!< Bool indicating direction */
-  bool isPrimary;                                           /*!< Bool indicating a primary */
+  Toggle direction;                                         /*!< Bool indicating direction */
+  Toggle isPrimary;                                         /*!< Bool indicating a primary */
 };
 
 /**
