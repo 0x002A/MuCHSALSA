@@ -119,7 +119,7 @@ void GraphBase::_addEdge(std::pair<std::string const, std::string const> const &
   addEdgeInternal(std::move(spEdge), isBidirectional);
 }
 
-Edge const *
+Edge *
 GraphBase::getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const {
   auto const outerIter = m_adjacencyList.find(*vertexIDs.first);
   if (outerIter != std::end(m_adjacencyList)) {

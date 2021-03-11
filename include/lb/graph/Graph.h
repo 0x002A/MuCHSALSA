@@ -53,24 +53,48 @@ public:
   ~GraphBase() = default;
 
   /**
-   * Moving is disallowed.
+   * Copy constructor.
    */
-  GraphBase(GraphBase const &) = delete;
+  GraphBase(GraphBase const &other)
+      : m_vertices(other.m_vertices), m_edges(other.m_edges), m_adjacencyList(other.m_adjacencyList){};
 
   /**
-   * Copying is disallowed.
+   * Move constructor.
    */
-  GraphBase(GraphBase &&) = delete;
+  GraphBase(GraphBase &&other) : GraphBase() { swap(*this, other); };
 
   /**
-   * Move assignment is disallowed.
+   * Copy assignment operator.
    */
-  GraphBase &operator=(GraphBase &&) = delete;
+  GraphBase &operator=(GraphBase other) {
+    swap(*this, other);
+
+    return *this;
+  };
 
   /**
-   * Copy assignment is disallowed.
+   * Move assignment operator.
    */
-  GraphBase &operator=(GraphBase const &) = delete;
+  GraphBase &operator=(GraphBase &&other) {
+    GraphBase tmp(std::move(other));
+
+    swap(*this, tmp);
+    return *this;
+  };
+
+  /**
+   * Swaps two instances of GraphBase.
+   *
+   * @param first a reference to an instance of GraphBase
+   * @param second a reference to an instance of GraphBase
+   */
+  friend void swap(GraphBase &first, GraphBase &second) noexcept {
+    using std::swap;
+
+    swap(first.m_vertices, second.m_vertices);
+    swap(first.m_edges, second.m_edges);
+    swap(first.m_adjacencyList, second.m_adjacencyList);
+  }
 
   /**
    * Adds a std::shared_ptr to Vertex to this Graph.
@@ -129,10 +153,9 @@ public:
    *
    * @param vertexIDs a reference to a std::pair containing pointers to the IDs of the Vertex instances connected by the
    *                  Edge
-   * @return A pointer to the requested Edge (constant) if found nullptr otherwise
+   * @return A pointer to the requested Edge if found nullptr otherwise
    */
-  Edge const *
-  getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
+  Edge *getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
 
   /**
    * Getter returning a specific Edge.
@@ -140,10 +163,9 @@ public:
    *
    * @param vertexIDs an rvalue reference to a std::pair containing pointers to the IDs of the Vertex instances
    *                  connected by the Edge
-   * @return A pointer to the requested Edge (constant) if found nullptr otherwise
+   * @return A pointer to the requested Edge if found nullptr otherwise
    */
-  Edge const *
-  getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
+  Edge *getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
     auto temp = std::move(vertexIDs);
     return getEdge(temp);
   };
@@ -183,6 +205,14 @@ public:
    * @param result a reference to a std::vector which should receive the std::shared_ptr instances
    */
   void getEdges(std::vector<std::shared_ptr<Edge>> &result) const;
+
+  /**
+   * Replaces the Edge store of the Graph with the supplied one.
+   *
+   * @param edges a std::unordered_map containing the shared_ptr instances pointing to the Edge instances mapped to
+   *              their respective Edge identifiers
+   */
+  void replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges) { m_edges = std::move(edges); }
 
   /**
    * Getter returning the number of Vertex instances attached to the Graph.
@@ -297,24 +327,27 @@ public:
   ~Graph() = default;
 
   /**
-   * Moving is disallowed.
+   * Copy constructor.
    */
-  Graph(Graph const &) = delete;
+  Graph(Graph const &other) : GraphBase(other){};
 
   /**
-   * Copying is disallowed.
+   * Moving is disallowed.
    */
   Graph(Graph &&) = delete;
+
+  /**
+   * Copy assignment operator.
+   */
+  Graph &operator=(Graph const &other) {
+    GraphBase::operator=(other);
+    return *this;
+  };
 
   /**
    * Move assignment is disallowed.
    */
   Graph &operator=(Graph &&) = delete;
-
-  /**
-   * Copy assignment is disallowed.
-   */
-  Graph &operator=(Graph const &) = delete;
 
   /**
    * Deletes a Vertex from the Graph.
@@ -405,24 +438,27 @@ public:
   ~DiGraph() = default;
 
   /**
-   * Moving is disallowed.
+   * Copy constructor.
    */
-  DiGraph(DiGraph const &) = delete;
+  DiGraph(DiGraph const &other) : GraphBase(other){};
 
   /**
-   * Copying is disallowed.
+   * Moving is disallowed.
    */
   DiGraph(DiGraph &&) = delete;
+
+  /**
+   * Copy assignment operator.
+   */
+  DiGraph &operator=(DiGraph const &other) {
+    GraphBase::operator=(other);
+    return *this;
+  };
 
   /**
    * Move assignment is disallowed.
    */
   DiGraph &operator=(DiGraph &&) = delete;
-
-  /**
-   * Copy assignment is disallowed.
-   */
-  DiGraph &operator=(DiGraph const &) = delete;
 
   /**
    * Deletes a Vertex from the DiGraph.

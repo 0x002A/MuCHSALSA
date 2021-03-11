@@ -32,7 +32,7 @@ struct EdgeOrder {
  * Scoped enum representing the consensus direction.
  */
 struct ConsensusDirection {
-  enum Enum : bool { e_POS = true, e_NEG = false, e_NONE };
+  enum Enum : char { e_POS = 'a', e_NEG = 'b', e_NONE = 'c' };
 };
 
 /**
