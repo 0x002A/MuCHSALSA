@@ -14,15 +14,13 @@ namespace lazybastard::graph {
 //// HELPER ////
 namespace {
 
-void getVertexMap(std::unordered_map<std::string, std::shared_ptr<Vertex>> &result, GraphBase const &graph,
-                  std::vector<gsl::not_null<std::string const *>> const &vertices) {
+void getVertexMap(std::unordered_map<std::string, std::shared_ptr<Vertex>> &result,
+                  std::vector<lazybastard::graph::Vertex *> const &vertices) {
   result.clear();
 
-  std::for_each(std::begin(vertices), std::end(vertices), [&](auto const pVertexID) {
-    auto const spVertex = graph.getVertexAsSharedPtr(*pVertexID);
-
-    if (spVertex != nullptr) {
-      result.insert(std::make_pair(spVertex->getID(), std::move(spVertex)));
+  std::for_each(std::begin(vertices), std::end(vertices), [&](auto *pVertex) {
+    if (pVertex != nullptr) {
+      result.insert(std::make_pair(pVertex->getID(), pVertex->getSharedPtr()));
     }
   });
 }
@@ -57,7 +55,7 @@ std::shared_ptr<Vertex> GraphBase::getVertexAsSharedPtr(std::string const &nanop
   return iter != std::end(m_vertices) ? iter->second->getSharedPtr() : nullptr;
 }
 
-Vertex const *GraphBase::getVertex(std::string const &nanoporeID) const {
+Vertex *GraphBase::getVertex(std::string const &nanoporeID) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
   auto iter = m_vertices.find(nanoporeID);
@@ -230,21 +228,21 @@ void GraphBase::addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirecti
   }
 }
 
-std::unique_ptr<Graph> Graph::getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
+std::unique_ptr<Graph> Graph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
   std::unordered_map<std::string, std::shared_ptr<Vertex>> v(vertices.size());
   std::vector<std::shared_ptr<Edge>> e(getSize());
 
-  getVertexMap(v, *this, vertices);
+  getVertexMap(v, vertices);
   getEdges(e);
 
   return std::make_unique<Graph>(std::move(v), std::move(e));
 }
 
-std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices) {
+std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
   std::unordered_map<std::string, std::shared_ptr<Vertex>> v(vertices.size());
   std::vector<std::shared_ptr<Edge>> e(getSize());
 
-  getVertexMap(v, *this, vertices);
+  getVertexMap(v, vertices);
   getEdges(e);
 
   return std::make_unique<DiGraph>(std::move(v), std::move(e));

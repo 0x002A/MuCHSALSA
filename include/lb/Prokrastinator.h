@@ -32,13 +32,12 @@ bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph
 
 std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
 
-coroutine::generator<std::vector<gsl::not_null<std::string const *>>>
+std::vector<std::vector<lazybastard::graph::Vertex *>>
 getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
 
-std::unique_ptr<graph::DiGraph>
-getDirectionGraph(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<matching::MatchMap const *> matches,
-                  gsl::not_null<std::vector<gsl::not_null<std::string const *>> const *> connectedComponent,
-                  gsl::not_null<graph::Vertex const *> pStartNode);
+std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph const *> pGraph,
+                                                  gsl::not_null<graph::Graph const *> pConnectedComponent,
+                                                  gsl::not_null<graph::Vertex *> pStartNode);
 
 std::vector<std::vector<gsl::not_null<std::string const *>>>
 linearizeGraph(gsl::not_null<graph::DiGraph const *> pDiGraph);

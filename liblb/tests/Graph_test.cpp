@@ -249,9 +249,9 @@ TEST(GraphTest, SubgraphTest) {
   ASSERT_EQ(graph.getSize(), 4);
 
   auto diGraph = lazybastard::graph::DiGraph();
-  diGraph.addVertex(std::move(spVertex1));
+  diGraph.addVertex(spVertex1->getSharedPtr());
   diGraph.addVertex(std::move(spVertex2));
-  diGraph.addVertex(std::move(spVertex3));
+  diGraph.addVertex(spVertex3->getSharedPtr());
   diGraph.addVertex(std::move(spVertex4));
   ASSERT_EQ(diGraph.getOrder(), 4);
 
@@ -261,22 +261,22 @@ TEST(GraphTest, SubgraphTest) {
   diGraph.addEdge(std::make_pair("3", "4"));
   ASSERT_EQ(diGraph.getSize(), 4);
 
-  std::string v1("1"), v2("3");
-  auto const subgraphVertices = std::vector<gsl::not_null<std::string const *>>({&v1, &v2});
+  auto v1 = spVertex1.get(), v2 = spVertex3.get();
+  auto const subgraphVertices = std::vector<lazybastard::graph::Vertex *>({v1, v2});
   auto const subgraph = graph.getSubgraph(subgraphVertices);
   ASSERT_EQ(subgraph->getSize(), 1);
-  ASSERT_TRUE(subgraph->hasVertex(v1));
-  ASSERT_TRUE(subgraph->hasVertex(v2));
+  ASSERT_TRUE(subgraph->hasVertex(v1->getID()));
+  ASSERT_TRUE(subgraph->hasVertex(v2->getID()));
 
-  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(&v1, &v2)));
-  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(&v2, &v1)));
+  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(&v1->getID(), &v2->getID())));
+  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(&v2->getID(), &v1->getID())));
 
   auto const subDigraph = diGraph.getSubgraph(subgraphVertices);
   ASSERT_EQ(subgraph->getSize(), 1);
-  ASSERT_TRUE(subDigraph->hasVertex(v1));
-  ASSERT_TRUE(subDigraph->hasVertex(v2));
+  ASSERT_TRUE(subDigraph->hasVertex(v1->getID()));
+  ASSERT_TRUE(subDigraph->hasVertex(v2->getID()));
 
-  ASSERT_TRUE(subDigraph->hasEdge(std::make_pair(&v1, &v2)));
+  ASSERT_TRUE(subDigraph->hasEdge(std::make_pair(&v1->getID(), &v2->getID())));
 }
 
 TEST(GraphTest, ShortestPathTest) {

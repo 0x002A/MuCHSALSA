@@ -246,8 +246,7 @@ auto main(int const argc, char const *argv[]) -> int {
     auto id2OverlapMap = ID2OverlapMap();
     auto connectedComponents = lazybastard::getConnectedComponents(&graph);
     auto assemblyJob = [](Job const *const pJob) { assemblePaths(pJob); };
-    while (connectedComponents.next()) {
-      auto const connectedComponent = connectedComponents.getValue();
+    for (auto const &connectedComponent : connectedComponents) {
 
       wg.add(1);
       auto job = Job(assemblyJob, &wg, &graph, &matchMap, &id2OverlapMap, &connectedComponent, assemblyIdx,
@@ -542,18 +541,19 @@ void decycle(gsl::not_null<Job const *> const pJob) {
 
 void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
-  auto const pConnectedComponent = make_not_null_and_const(
-      std::any_cast<std::vector<gsl::not_null<std::string const *>> const *>(pJob->getParam(4)));
+  auto const pConnectedComponent =
+      make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(4)));
 
   auto const pSubGraph = pGraph->getSubgraph(*pConnectedComponent);
+  auto const subGraphVertices = pSubGraph->getVertices();
   auto const maxNPLVertexIter = std::max_element(
-      pSubGraph->getVertices().begin(), pSubGraph->getVertices().end(),
+      std::begin(subGraphVertices), std::end(subGraphVertices),
       [](Vertex const *v1, Vertex const *v2) { return v1->getNanoporeLength() < v2->getNanoporeLength(); });
-  auto const *const pMaxNPLVertex = maxNPLVertexIter == pSubGraph->getVertices().end() ? nullptr : *maxNPLVertexIter;
+  auto *const pMaxNPLVertex = maxNPLVertexIter == pSubGraph->getVertices().end() ? nullptr : *maxNPLVertexIter;
   auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNPLVertex != nullptr) {
-    auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pMatchMap, pConnectedComponent, pMaxNPLVertex);
+    auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pSubGraph.get(), pMaxNPLVertex);
     auto const paths = lazybastard::linearizeGraph(pDiGraph.get());
 
     auto const pID2OverlapMap = gsl::make_not_null(std::any_cast<ID2OverlapMap *>(pJob->getParam(3)));

@@ -130,15 +130,15 @@ public:
    * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be returned
    * @return A pointer to the Vertex if found, nullptr otherwise
    */
-  Vertex const *getVertex(std::string const &nanoporeID) const;
+  Vertex *getVertex(std::string const &nanoporeID) const;
 
   /**
    * Returns a std::vector containing pointers to all Vertex instances assigned to this Graph.
    *
    * @return A std::vector containing pointers to all Vertex instances
    */
-  std::vector<Vertex const *> getVertices() const {
-    std::vector<Vertex const *> vertices;
+  std::vector<Vertex *> getVertices() const {
+    std::vector<Vertex *> vertices;
 
     std::transform(m_vertices.begin(), m_vertices.end(), std::back_inserter(vertices),
                    [](const std::unordered_map<std::string, std::shared_ptr<Vertex>>::value_type &pair) {
@@ -265,7 +265,8 @@ protected:
    *
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
    * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
-   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
+   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
+   *         successive Vertex instances
    */
   std::unordered_map<std::string, Edge *const> const *_getSuccessors(std::string const &vertexID) const; // NOLINT
 
@@ -392,7 +393,8 @@ public:
    *
    * @param vertexID a constant reference to a std::string representing the ID of the Vertex
    * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
-   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
+   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
+   *         adjacent Vertex instances
    */
   std::unordered_map<std::string, Edge *const> const *getNeighbors(std::string const &vertexID) const {
     return _getSuccessors(vertexID);
@@ -405,7 +407,7 @@ public:
    *                 requested subgraph
    * @return A std::unique_ptr to the Graph representing the induced subgraph
    */
-  std::unique_ptr<Graph> getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices);
+  std::unique_ptr<Graph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 };
 
 /**
@@ -528,7 +530,7 @@ public:
    *                 requested subgraph
    * @return A std::unique_ptr to the DiGraph representing the induced subgraph
    */
-  std::unique_ptr<DiGraph> getSubgraph(std::vector<gsl::not_null<std::string const *>> const &vertices);
+  std::unique_ptr<DiGraph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 };
 
 //// INLINE DEFINITIONS ////
