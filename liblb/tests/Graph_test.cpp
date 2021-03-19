@@ -156,7 +156,7 @@ TEST(GraphTest, VertexDeletionTest) {
 
   auto diGraph = lazybastard::graph::DiGraph();
   diGraph.addVertex(std::move(spVertex1));
-  diGraph.addVertex(std::move(spVertex2));
+  diGraph.addVertex(spVertex2->getSharedPtr());
   diGraph.addVertex(std::move(spVertex3));
   ASSERT_EQ(diGraph.getOrder(), 3);
 
@@ -165,16 +165,15 @@ TEST(GraphTest, VertexDeletionTest) {
   diGraph.addEdge(std::make_pair("2", "3"));
   ASSERT_EQ(diGraph.getSize(), 3);
 
-  std::string vertex2Delete("2"), firstVertex("1"), thirdVertex("3");
-  auto const pVertex2Delete = gsl::make_not_null(&vertex2Delete);
+  std::string firstVertex("1"), thirdVertex("3");
 
-  graph.deleteVertex(pVertex2Delete);
+  graph.deleteVertex(spVertex2.get());
   ASSERT_EQ(graph.getOrder(), 2);
   ASSERT_EQ(graph.getSize(), 1);
 
   ASSERT_TRUE(graph.hasEdge(std::make_pair(&firstVertex, &thirdVertex)));
 
-  diGraph.deleteVertex(pVertex2Delete);
+  diGraph.deleteVertex(spVertex2.get());
   ASSERT_EQ(diGraph.getOrder(), 2);
   ASSERT_EQ(diGraph.getSize(), 1);
 
@@ -277,6 +276,16 @@ TEST(GraphTest, SubgraphTest) {
   ASSERT_TRUE(subDigraph->hasVertex(v2->getID()));
 
   ASSERT_TRUE(subDigraph->hasEdge(std::make_pair(&v1->getID(), &v2->getID())));
+
+  auto const &inDegrees = subDigraph->getInDegrees();
+  ASSERT_EQ(inDegrees.size(), 2);
+  ASSERT_EQ(inDegrees.at(v1), 0);
+  ASSERT_EQ(inDegrees.at(v2), 1);
+
+  auto const &outDegrees = subDigraph->getOutDegrees();
+  ASSERT_EQ(outDegrees.size(), 2);
+  ASSERT_EQ(outDegrees.at(v1), 1);
+  ASSERT_EQ(outDegrees.at(v2), 0);
 }
 
 TEST(GraphTest, ShortestPathTest) {
@@ -330,4 +339,63 @@ TEST(GraphTest, ShortestPathTest) {
   ASSERT_EQ(shortestPath[0]->getID(), "1");
   ASSERT_EQ(shortestPath[1]->getID(), "2");
   ASSERT_EQ(shortestPath[2]->getID(), "4");
+}
+
+TEST(GraphTest, DegreeTest) {
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
+
+  auto firstEdge = std::make_pair(spVertex1->getID(), spVertex2->getID());
+  auto secondEdge = std::make_pair(spVertex1->getID(), spVertex3->getID());
+  auto thirdEdge = std::make_pair(spVertex2->getID(), spVertex3->getID());
+
+  auto diGraph = lazybastard::graph::DiGraph();
+  diGraph.addVertex(spVertex1->getSharedPtr());
+  diGraph.addVertex(spVertex2->getSharedPtr());
+  diGraph.addVertex(spVertex3->getSharedPtr());
+  ASSERT_EQ(diGraph.getOrder(), 3);
+
+  diGraph.addEdge(firstEdge);
+  diGraph.addEdge(secondEdge);
+  diGraph.addEdge(thirdEdge);
+  ASSERT_EQ(diGraph.getSize(), 3);
+
+  auto inDegrees = diGraph.getInDegrees();
+  ASSERT_EQ(inDegrees.size(), 3);
+  ASSERT_EQ(inDegrees.at(spVertex1.get()), 0);
+  ASSERT_EQ(inDegrees.at(spVertex2.get()), 1);
+  ASSERT_EQ(inDegrees.at(spVertex3.get()), 2);
+
+  auto outDegrees = diGraph.getOutDegrees();
+  ASSERT_EQ(outDegrees.size(), 3);
+  ASSERT_EQ(outDegrees.at(spVertex1.get()), 2);
+  ASSERT_EQ(outDegrees.at(spVertex2.get()), 1);
+  ASSERT_EQ(outDegrees.at(spVertex3.get()), 0);
+
+  diGraph.deleteVertex(spVertex2.get());
+
+  inDegrees = diGraph.getInDegrees();
+  ASSERT_EQ(inDegrees.size(), 2);
+  ASSERT_EQ(inDegrees.at(spVertex1.get()), 0);
+  ASSERT_EQ(inDegrees.at(spVertex3.get()), 1);
+
+  outDegrees = diGraph.getOutDegrees();
+  ASSERT_EQ(outDegrees.size(), 2);
+  ASSERT_EQ(outDegrees.at(spVertex1.get()), 1);
+  ASSERT_EQ(outDegrees.at(spVertex3.get()), 0);
+
+  auto pSecondEdge = diGraph.getEdge(std::make_pair(&secondEdge.first, &secondEdge.second));
+  ASSERT_NE(pSecondEdge, nullptr);
+  diGraph.deleteEdge(pSecondEdge);
+
+  inDegrees = diGraph.getInDegrees();
+  ASSERT_EQ(inDegrees.size(), 2);
+  ASSERT_EQ(inDegrees.at(spVertex1.get()), 0);
+  ASSERT_EQ(inDegrees.at(spVertex3.get()), 0);
+
+  outDegrees = diGraph.getOutDegrees();
+  ASSERT_EQ(outDegrees.size(), 2);
+  ASSERT_EQ(outDegrees.at(spVertex1.get()), 0);
+  ASSERT_EQ(outDegrees.at(spVertex3.get()), 0);
 }

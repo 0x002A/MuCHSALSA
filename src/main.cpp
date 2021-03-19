@@ -22,7 +22,6 @@
 #include <lb/OutputWriter.h>
 #include <lb/Prokrastinator.h>
 #include <lb/Util.h>
-#include <lb/coroutine/generator.h>
 #include <lb/graph/Edge.h>
 #include <lb/graph/Graph.h>
 #include <lb/graph/Vertex.h>
@@ -157,7 +156,7 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::set<std::string const *const> deletableVertices;
+    std::set<Vertex const *const> deletableVertices;
     std::set<Vertex const *const> contractionRoots;
     auto deletableVerticesJob = [](Job const *const pJob) { findDeletableVertices(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
@@ -399,12 +398,11 @@ void findContractionTargets(gsl::not_null<Job const *> const pJob) {
 
 void findDeletableVertices(gsl::not_null<const Job *> pJob) {
   auto const pOrder = gsl::make_not_null(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
-  auto const pDeletableVertices =
-      gsl::make_not_null(std::any_cast<std::set<std::string const *const> *>(pJob->getParam(2)));
+  auto const pDeletableVertices = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *>(pJob->getParam(2)));
   {
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
-    pDeletableVertices->insert(&pOrder->startVertex->getID());
+    pDeletableVertices->insert(pOrder->startVertex);
   }
 
   auto const pContractionTargets =

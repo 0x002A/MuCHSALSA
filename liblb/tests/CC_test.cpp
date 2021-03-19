@@ -40,7 +40,7 @@ TEST(CCTest, BasicTest) {
   ASSERT_TRUE(contains(cc[0], spVertex2.get()));
   ASSERT_TRUE(contains(cc[0], spVertex3.get()));
   ASSERT_TRUE(contains(cc[0], spVertex4.get()));
-  //  ASSERT_TRUE(contains(cc[0], spVertex5.get()));
+  ASSERT_TRUE(contains(cc[0], spVertex5.get()));
 
   auto spVertex6 = std::make_shared<lazybastard::graph::Vertex>("6", 0);
   auto spVertex7 = std::make_shared<lazybastard::graph::Vertex>("7", 0);

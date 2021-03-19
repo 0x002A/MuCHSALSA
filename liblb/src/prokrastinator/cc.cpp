@@ -37,10 +37,11 @@ lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Grap
         while (iterNeighbor != std::end(*pNeighborsOfCurrentNeighbor)) {
 
           pCurrentNeighbor = pGraph->getVertex(iterNeighbor->first);
-          if (!visited.contains(pCurrentNeighbor) &&
-              iterNeighbor->second->getConsensusDirection() != lazybastard::graph::ConsensusDirection::e_NONE) {
-            *biComponent++ = pCurrentNeighbor;
-            neighbors.push_back(pCurrentNeighbor);
+          if (!visited.contains(pCurrentNeighbor)) {
+            if (iterNeighbor->second->getConsensusDirection() != lazybastard::graph::ConsensusDirection::e_NONE) {
+              *biComponent++ = pCurrentNeighbor;
+              neighbors.push_back(pCurrentNeighbor);
+            }
             visited.insert(pCurrentNeighbor);
           }
 
