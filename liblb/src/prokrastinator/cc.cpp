@@ -18,7 +18,7 @@ lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Grap
       continue;
     }
 
-    auto const *const pNeighbors = pGraph->getNeighbors(pVertex->getID());
+    auto const *const pNeighbors = pGraph->getNeighbors(pVertex);
     std::vector<lazybastard::graph::Vertex *> component({pVertex});
     visited.insert(pVertex);
     if (pNeighbors) {
@@ -30,7 +30,7 @@ lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Grap
 
       while (!neighbors.empty()) {
         auto *pCurrentNeighbor = neighbors.front();
-        auto const *const pNeighborsOfCurrentNeighbor = pGraph->getNeighbors(pCurrentNeighbor->getID());
+        auto const *const pNeighborsOfCurrentNeighbor = pGraph->getNeighbors(pCurrentNeighbor);
 
         auto iterNeighbor = std::begin(*pNeighborsOfCurrentNeighbor);
         auto biComponent = std::back_inserter(component);

@@ -1,16 +1,17 @@
 #include "Prokrastinator.h"
 
+#include <cassert>
 #include <stack>
 
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
-#include "matching/MatchMap.h"
+#include "types/Toggle.h"
 
 std::unique_ptr<lazybastard::graph::DiGraph>
 lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const pGraph,
                                gsl::not_null<graph::Graph const *> const pConnectedComponent,
-                               gsl::not_null<lazybastard::graph::Vertex *> const pStartNode) {
-  std::stack<std::tuple<lazybastard::graph::Vertex const *, bool>> stack;
+                               gsl::not_null<lazybastard::graph::Vertex const *> const pStartNode) {
+  std::stack<std::tuple<lazybastard::graph::Vertex const *, Toggle>> stack;
   stack.push(std::make_tuple(pStartNode, true));
 
   auto diGraph = std::make_unique<lazybastard::graph::DiGraph>();
@@ -18,18 +19,33 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const pGraph,
     auto const currentNode = stack.top();
     stack.pop();
 
-    if (!diGraph->hasVertex(std::get<0>(currentNode)->getID())) {
-      diGraph->addVertex(pGraph->getVertexAsSharedPtr(std::get<0>(currentNode)->getID()));
+    auto const *const pCurrentNode = std::get<0>(currentNode);
+
+    if (!diGraph->hasVertex(pCurrentNode->getID())) {
+      diGraph->addVertex(pGraph->getVertexAsSharedPtr(pCurrentNode->getID()));
     }
 
-    auto const edges = pConnectedComponent->getEdges();
-    for (auto const *const pCCEdge : edges) {
-      auto const vertices = pCCEdge->getVertices();
-      auto const *const otherNode = vertices.second;
-      auto otherNodeExists = diGraph->hasVertex(otherNode->getID());
+    if (pCurrentNode->getVertexDirection() == graph::VertexDirection::e_NONE) {
+      diGraph->getVertex(pCurrentNode->getID())->setVertexDirection(std::get<1>(currentNode));
+    }
+
+    auto const *const pNeighbors = pConnectedComponent->getNeighbors(pCurrentNode);
+
+    if (!pNeighbors) {
+      continue;
+    }
+
+    for (auto const &[neighborID, pNeighborEdge] : *pNeighbors) {
+      auto const *const pOtherNode = pGraph->getVertex(neighborID);
+      auto const vertices = pNeighborEdge->getVertices();
+      auto otherNodeExists = diGraph->hasVertex(neighborID);
+
+      if (otherNodeExists) {
+        otherNodeExists = pOtherNode->getVertexDirection() != graph::VertexDirection::e_NONE;
+      }
 
       if (!otherNodeExists) {
-        diGraph->addVertex(pConnectedComponent->getVertexAsSharedPtr(otherNode->getID()));
+        diGraph->addVertex(pConnectedComponent->getVertexAsSharedPtr(neighborID));
       }
 
       if (diGraph->hasEdge(std::make_pair(&vertices.first->getID(), &vertices.second->getID())) ||
@@ -38,14 +54,14 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const pGraph,
       }
 
       auto const *const pEdge = pGraph->getEdge(std::make_pair(&vertices.first->getID(), &vertices.second->getID()));
-      for (auto const &order : pCCEdge->getEdgeOrders()) {
+      for (auto const &order : pNeighborEdge->getEdgeOrders()) {
         auto flip = false;
-        if (!order.direction && order.baseVertex == otherNode) {
-          flip = true;
+        if (!order.direction && order.baseVertex == pOtherNode) {
+          flip = !flip;
         }
 
         if (!std::get<1>(currentNode)) {
-          flip = false;
+          flip = !flip;
         }
 
         auto const *pStart = order.startVertex;
@@ -56,29 +72,31 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const pGraph,
 
         auto *pNewEdge = diGraph->getEdge(std::make_pair(&pStart->getID(), &pEnd->getID()));
         if (!pNewEdge) {
+          diGraph->addMissingVertex(pGraph->getVertexAsSharedPtr(pStart->getID()));
+          diGraph->addMissingVertex(pGraph->getVertexAsSharedPtr(pEnd->getID()));
           diGraph->addEdge(std::make_pair(pStart->getID(), pEnd->getID()));
           pNewEdge = diGraph->getEdge(std::make_pair(&pStart->getID(), &pEnd->getID()));
 
           pNewEdge->setShadow(pEdge->isShadow());
 
           if (!pEdge->isShadow()) {
-            pNewEdge->setWeight(pCCEdge->getWeight());
+            pNewEdge->setWeight(pNeighborEdge->getWeight());
           }
         }
 
         pNewEdge->appendOrder(order);
       }
 
-      if (pCCEdge->getConsensusDirection() == lazybastard::graph::ConsensusDirection::e_NONE) {
+      if (pNeighborEdge->getConsensusDirection() == lazybastard::graph::ConsensusDirection::e_NONE) {
         continue;
       }
 
-      auto const nextMod = static_cast<bool>(
-          lazybastard::Toggle(std::get<1>(currentNode)) &&
-          lazybastard::Toggle(pCCEdge->getConsensusDirection() == lazybastard::graph::ConsensusDirection::e_POS));
+      auto const nextMod =
+          std::get<1>(currentNode) *
+          lazybastard::Toggle(pNeighborEdge->getConsensusDirection() == lazybastard::graph::ConsensusDirection::e_POS);
 
       if (!otherNodeExists) {
-        stack.push(std::make_tuple(otherNode, nextMod));
+        stack.push(std::make_tuple(pOtherNode, nextMod));
       }
     }
   }

@@ -10,16 +10,13 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
                               gsl::not_null<lazybastard::graph::Vertex const *> const pTarget,
                               gsl::not_null<lazybastard::graph::EdgeOrder const *> const pOrder,
                               std::size_t wiggleRoom) {
-
   auto const checkOnEdge =
       util::make_not_null_and_const(pGraph->getEdge(std::make_pair(&pNode->getID(), &pTarget->getID())));
   auto const checkForEdge =
       util::make_not_null_and_const(pGraph->getEdge(std::make_pair(&pSubnode->getID(), &pTarget->getID())));
-
-  auto isSane = false;
   for (auto const &checkOnOrder : checkOnEdge->getEdgeOrders()) {
     for (auto const &checkForOrder : checkForEdge->getEdgeOrders()) {
-      isSane = (pOrder->direction && checkOnOrder.direction) == checkForOrder.direction;
+      auto isSane = pOrder->direction * checkOnOrder.direction == checkForOrder.direction;
 
       auto const isContainedCheckFor = checkForOrder.isContained;
       auto const isContainedCheckOn = checkOnOrder.isContained;
@@ -27,7 +24,7 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
       if (isContainedCheckFor && isContainedCheckOn) {
         isSane &= (checkForOrder.startVertex == pTarget || checkForOrder.endVertex == pTarget) &&
                   checkOnOrder.startVertex == pTarget;
-      } else if ((isContainedCheckFor && !isContainedCheckOn) && (checkForOrder.endVertex != pTarget)) {
+      } else if (isContainedCheckFor && !isContainedCheckOn) {
         if (checkForOrder.endVertex != pTarget) {
           auto l1 = false;
           auto l2 = false;
@@ -51,7 +48,7 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
           auto const d2 = l2 ? checkForOrder.leftOffset : checkForOrder.rightOffset;
           auto const d3 = l3 ? checkOnOrder.leftOffset : checkOnOrder.rightOffset;
 
-          isSane &= (d1 + d2 + d3) < static_cast<float>(wiggleRoom);
+          isSane &= (d1 + d2 + d3) < static_cast<double>(wiggleRoom);
         }
       } else if (!isContainedCheckFor && isContainedCheckOn) {
         isSane &= checkOnOrder.startVertex == pTarget;
@@ -65,8 +62,12 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
 
         isSane &= d1 == d2;
       }
+
+      if (isSane) {
+        return true;
+      }
     }
   }
 
-  return isSane;
+  return false;
 }

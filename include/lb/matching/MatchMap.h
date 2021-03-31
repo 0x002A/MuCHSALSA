@@ -12,7 +12,15 @@
 #include "Lb.fwd.h"
 #include "types/Toggle.h"
 
-namespace lazybastard::matching {
+namespace lazybastard {
+
+//// UTILITY FUNCTIONS ////
+struct MatchingUtil {
+  static bool scaffoldLineIdxCmp(graph::Vertex const *pV1, graph::Vertex const *pV2);
+};
+//// /UTILITY FUNCTIONS ////
+
+namespace matching {
 
 /**
  * Struct representing a match attached to a Vertex.
@@ -20,7 +28,7 @@ namespace lazybastard::matching {
 struct VertexMatch {
   std::pair<int, int> const nanoporeRange; /*!< Nanopore range */
   std::pair<int, int> const illuminaRange; /*!< Illumina range */
-  float const rRatio;                      /*!< Read ratio */
+  double const rRatio;                     /*!< Read ratio */
   Toggle const direction;                  /*!< Read direction */
   std::size_t const score;                 /*!< Score (number of matches) */
   Toggle const isPrimary;                  /*!< Did the match pass the thresholds concerning
@@ -33,7 +41,7 @@ struct VertexMatch {
 struct EdgeMatch {
   std::pair<int, int> const overlap; /*!< Overlap */
   Toggle const direction;            /*!< Edge direction */
-  float const score;                 /*!< Score */
+  double const score;                /*!< Score */
   Toggle const isPrimary;            /*!< Did the match pass the thresholds */
 };
 
@@ -177,11 +185,14 @@ private:
       m_vertexMatches; /*!< Map containing the VertexMatch instances */
   um<std::string, um<std::string, std::shared_ptr<EdgeMatch>>>
       m_edgeMatches; /*!< Map containing the EdgeMatch instances */
-  um<std::string, std::map<std::string, std::shared_ptr<VertexMatch>>> m_scaffolds; /*!< Map containing the scaffolds */
+  um<std::string,
+     std::map<graph::Vertex *, std::shared_ptr<VertexMatch>, decltype(&lazybastard::MatchingUtil::scaffoldLineIdxCmp)>>
+      m_scaffolds;          /*!< Map containing the scaffolds */
   std::mutex m_vertexMutex; /*!< std::mutex for securing the parallel use of the map containing VertexMatches */
   std::mutex m_edgeMutex;   /*!< std::mutex for securing the parallel use of the map containing EdgeMatches */
   threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
   graph::Graph *const m_pGraph;               /*!< Pointer to the Graph receiving the Vertex instances */
 };
 
-} // namespace lazybastard::matching
+} // namespace matching
+} // namespace lazybastard

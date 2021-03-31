@@ -98,7 +98,7 @@ private:
   std::string m_contigsFilePath, m_unitigsFilePath, m_nanoporeFilePath, m_outputPath;
   //@}
   std::size_t m_threadCount;     /*!< Number of threads to use */
-  std::size_t m_wiggleRoom{700}; /*!< Wiggle room */
+  std::size_t m_wiggleRoom{300}; /*!< Wiggle room */
 
   /**
    * Parses the parameters from the command line.

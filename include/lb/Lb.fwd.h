@@ -41,6 +41,7 @@ template <typename T> struct LTCmp;
 } // namespace util
 
 class OutputWriter;
+struct Toggle;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 } // namespace lazybastard

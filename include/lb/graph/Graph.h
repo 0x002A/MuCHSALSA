@@ -56,7 +56,7 @@ public:
    * Copy constructor.
    */
   GraphBase(GraphBase const &other)
-      : m_vertices(other.m_vertices), m_edges(other.m_edges), m_adjacencyList(other.m_adjacencyList){};
+      : m_vertices(other.m_vertices), m_edges(other.m_edges), m_adjacencyList(other.m_adjacencyList) {}
 
   /**
    * Move constructor.
@@ -264,23 +264,24 @@ protected:
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexID a constant reference to a std::string representing the ID of the Vertex
+   * @param vertexID a pointer to the Vertex
    * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
    *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
    *         successive Vertex instances
    */
-  std::unordered_map<std::string, Edge *const> const *_getSuccessors(std::string const &vertexID) const; // NOLINT
+  std::unordered_map<std::string, Edge *const> const *
+  _getSuccessors(gsl::not_null<Vertex const *> pVertex) const; // NOLINT
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
    * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
    * constant pointer to the corresponding Edge instance
-   * @param vertexID a constant reference to a std::string representing the ID of the Vertex
+   * @param vertexID a pointer to the Vertex
    * @return A bool indicating whether the Vertex has been found
    */
   bool _getPredecessors(std::unordered_map<std::string, Edge *const> &result,
-                        std::string const &vertexID) const; // NOLINT
+                        gsl::not_null<Vertex const *> pVertex) const; // NOLINT
 
   /**
    * Hook which is getting called every time an Edge is about to get added.
@@ -386,6 +387,17 @@ public:
   void addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); };
 
   /**
+   * Adds a std::shared_ptr to Vertex to this Graph if the Vertex is not already attached to the Graph.
+   *
+   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   */
+  void addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
+    if (!hasVertex(spVertex->getID())) {
+      addVertex(std::move(spVertex));
+    }
+  };
+
+  /**
    * Deletes a Vertex from the Graph.
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
@@ -426,13 +438,13 @@ public:
   /**
    * Getter returning the neighbors of a particular Vertex instance.
    *
-   * @param vertexID a constant reference to a std::string representing the ID of the Vertex
+   * @param vertexID a pointer to the Vertex
    * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
    *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
    *         adjacent Vertex instances
    */
-  std::unordered_map<std::string, Edge *const> const *getNeighbors(std::string const &vertexID) const {
-    return _getSuccessors(vertexID);
+  std::unordered_map<std::string, Edge *const> const *getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
+    return _getSuccessors(pVertex);
   };
 
   /**
@@ -479,7 +491,7 @@ public:
   /**
    * Copy constructor.
    */
-  DiGraph(DiGraph const &other) : GraphBase(other){};
+  DiGraph(DiGraph const &other) : GraphBase(other), m_inDegrees(other.m_inDegrees), m_outDegrees(other.m_outDegrees){};
 
   /**
    * Moving is disallowed.
@@ -534,6 +546,17 @@ public:
   };
 
   /**
+   * Adds a std::shared_ptr to Vertex to this Graph if the Vertex is not already attached to the Graph.
+   *
+   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   */
+  void addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
+    if (!hasVertex(spVertex->getID())) {
+      addVertex(std::move(spVertex));
+    }
+  };
+
+  /**
    * Deletes a Vertex from the DiGraph.
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
@@ -579,24 +602,25 @@ public:
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexID a constant reference to a std::string representing the ID of the Vertex
+   * @param vertexID a pointer to the Vertex
    * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
    *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
    */
-  std::unordered_map<std::string, Edge *const> const *getSuccessors(std::string const &vertexID) const {
-    return _getSuccessors(vertexID);
+  std::unordered_map<std::string, Edge *const> const *getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
+    return _getSuccessors(pVertex);
   };
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
    * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
-   * constant pointer to the corresponding Edge instance
-   * @param vertexID a constant reference to a std::string representing the ID of the Vertex
+   *               constant pointer to the corresponding Edge instance
+   * @param vertexID a pointer to the Vertex
    * @return A bool indicating whether the Vertex has been found
    */
-  bool getPredecessors(std::unordered_map<std::string, Edge *const> &result, std::string const &vertexID) const {
-    return _getPredecessors(result, vertexID);
+  bool getPredecessors(std::unordered_map<std::string, Edge *const> &result,
+                       gsl::not_null<Vertex const *> const pVertex) const {
+    return _getPredecessors(result, pVertex);
   };
 
   /**
@@ -712,13 +736,15 @@ private:
     _decreaseInDegree(pVertices.second);
   };
 
+  /**
+   * Recalculates the in-degrees and out-degrees based on the Edge instances attached to the DiGraph.
+   */
   void _updateDegrees();
 };
 
 //// INLINE DEFINITIONS ////
 
 inline void Graph::addEdge(std::pair<std::string, std::string> &vertexIDs) {
-  lazybastard::util::sortPair(vertexIDs);
   _addEdge(vertexIDs, true);
 }
 
@@ -792,7 +818,7 @@ struct GraphUtil {
         return result;
       }
 
-      for (auto const &neighbor : *getReachableVertices(*pGraph, pMinDistVertex->getID())) {
+      for (auto const &neighbor : *getReachableVertices(*pGraph, pMinDistVertex)) {
         auto const alt = dist[&pMinDistVertex->getID()] + 1;
         auto const *const pNeighbor = pGraph->getVertex(neighbor.first);
         if (alt < dist[&pNeighbor->getID()]) {
@@ -806,11 +832,14 @@ struct GraphUtil {
   };
 
 private:
-  static auto getReachableVertices(graph::Graph const &graph, std::string const &vertexID) {
-    return graph.getNeighbors(vertexID);
+  static auto getReachableVertices(graph::Graph const &graph,
+                                   gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
+    return graph.getNeighbors(pVertex);
   };
-  static auto getReachableVertices(graph::DiGraph const &graph, std::string const &vertexID) {
-    return graph.getSuccessors(vertexID);
+
+  static auto getReachableVertices(graph::DiGraph const &graph,
+                                   gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
+    return graph.getSuccessors(pVertex);
   };
 };
 //// /UTILITY FUNCTIONS ////

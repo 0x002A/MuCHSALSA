@@ -171,8 +171,9 @@ bool GraphBase::hasEdge(
   return false;
 }
 
-std::unordered_map<std::string, Edge *const> const *GraphBase::_getSuccessors(std::string const &vertexID) const {
-  auto const outerIter = m_adjacencyList.find(vertexID);
+std::unordered_map<std::string, Edge *const> const *
+GraphBase::_getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
+  auto const outerIter = m_adjacencyList.find(pVertex->getID());
   if (outerIter != std::end(m_adjacencyList)) {
     return &outerIter->second;
   }
@@ -181,18 +182,19 @@ std::unordered_map<std::string, Edge *const> const *GraphBase::_getSuccessors(st
 }
 
 bool GraphBase::_getPredecessors(std::unordered_map<std::string, Edge *const> &result,
-                                 const std::string &vertexID) const {
-  if (!hasVertex(vertexID)) {
+                                 gsl::not_null<Vertex const *> const pVertex) const {
+  auto const *const pVertexID = &pVertex->getID();
+  if (!hasVertex(*pVertexID)) {
     return false;
   }
 
   result.clear();
   for (auto const &[currentVertexID, connectedVertices] : m_adjacencyList) {
-    if (vertexID == currentVertexID) {
+    if (*pVertexID == currentVertexID) {
       continue;
     }
 
-    auto const iter = connectedVertices.find(vertexID);
+    auto const iter = connectedVertices.find(*pVertexID);
     if (iter != std::end(connectedVertices)) {
       result.insert(std::make_pair(currentVertexID, iter->second));
     }

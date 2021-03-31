@@ -41,11 +41,14 @@ void BlastFileReader::read() {
   auto jobFn = [this](threading::Job const *const pJob) { parseLine(pJob); };
 
   std::string line;
+  std::size_t lineIdx = 0;
   while (std::getline(m_inputStream, line)) {
     wg.add(1);
 
-    auto job = threading::Job(jobFn, &wg, line);
+    auto job = threading::Job(jobFn, &wg, line, lineIdx);
     m_pThreadPool->addJob(std::move(job));
+
+    ++lineIdx;
   }
 
   wg.wait();
@@ -73,7 +76,8 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
   addNode &= illuminaRange.second - illuminaRange.first + 1 >= static_cast<int>(MINIMUM_MATCHES);
 
   if (addNode) {
-    auto spVertex = std::make_shared<graph::Vertex>(tokens[POS_NID], nanoporeLength);
+    auto spVertex =
+        std::make_shared<graph::Vertex>(tokens[POS_NID], nanoporeLength, std::any_cast<std::size_t>(pJob->getParam(2)));
     m_pGraph->addVertex(std::move(spVertex));
 
     auto const &nanoporeID = tokens[POS_NID];
@@ -81,8 +85,8 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
 
     auto const nanoporeRange = std::make_pair(std::stoi(tokens[POS_NRS]), std::stoi(tokens[POS_NRE]) - 1);
     auto const direction = tokens[POS_DIR] == "+";
-    auto const rRatio = static_cast<float>(illuminaRange.second - illuminaRange.first + 1) /
-                        static_cast<float>(nanoporeRange.second - nanoporeRange.first + 1);
+    auto const rRatio = static_cast<double>(illuminaRange.second - illuminaRange.first + 1) /
+                        static_cast<double>(nanoporeRange.second - nanoporeRange.first + 1);
 
     auto isPrimary = illuminaRange.second - illuminaRange.first + 1 >= static_cast<int>(TH_LENGTH);
     isPrimary &= matches >= TH_MATCHES;

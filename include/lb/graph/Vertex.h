@@ -10,6 +10,13 @@
 namespace lazybastard::graph {
 
 /**
+ * Scoped enum representing the Vertex direction.
+ */
+struct VertexDirection {
+  enum Enum : char { e_POS = 'a', e_NEG = 'b', e_NONE = 'c' };
+};
+
+/**
  * Class representing a Vertex.
  *
  * A Vertex holds a bunch of meta data and can be assigned to Graph.
@@ -93,9 +100,40 @@ public:
    */
   std::size_t getNanoporeLength() const { return m_nanoporeLength; }
 
+  /**
+   * Getter returning the VertexDirection.
+   *
+   * @return The VertexDirection
+   */
+  [[nodiscard]] VertexDirection::Enum getVertexDirection() const { return m_direction; };
+
+  /**
+   * Setter setting the VertexDirection.
+   *
+   * @param vertexDirection the VertexDirection
+   */
+  void setVertexDirection(bool vertexDirection) {
+    m_direction = vertexDirection ? VertexDirection::Enum::e_POS : VertexDirection::Enum::e_NEG;
+  };
+
+  /**
+   * Getter returning the requested meta datum.
+   *
+   * @tparam T the type of the meta datum
+   * @param idx the index of the meta datum to return
+   * @return The meta datum
+   */
+  template <typename T> T getMetaDatum(std::size_t idx) const { return std::any_cast<T>(m_metaData.at(idx)); }
+
+  /**
+   * Clears the internal store holding the meta data.
+   */
+  void clearMetaData() { m_metaData.clear(); };
+
 private:
   std::string const m_id;             /*!< Unique Vertex ID */
   std::size_t const m_nanoporeLength; /*!< Nanopore length*/
+  VertexDirection::Enum m_direction;  /*!< Vertex direction */
   std::vector<std::any> m_metaData;   /*!< Vertex's meta data */
 
   /**

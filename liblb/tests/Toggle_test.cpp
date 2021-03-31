@@ -7,7 +7,7 @@ TEST(ToggleTest, BasicTest) {
   lazybastard::Toggle const tFalse = false;
 
   lazybastard::Toggle tShouldBeTrue = false;
-  tShouldBeTrue &= false;
+  tShouldBeTrue *= false;
 
   ASSERT_EQ(((bool)tTrue), true);
   ASSERT_EQ(((bool)tFalse), false);

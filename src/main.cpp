@@ -53,13 +53,12 @@ using lazybastard::threading::Job;
 using lazybastard::threading::ThreadPool;
 using lazybastard::threading::WaitGroup;
 
-using lazybastard::util::LTCmp;
 using lazybastard::util::make_not_null_and_const;
 
 //// CONSTANTS ////
 
-constexpr static auto BASEWEIGHT_MULTIPLIKATOR = 1.1F;
-constexpr static auto MAXWEIGHT_MULTIPLIKATOR = 0.8F;
+constexpr static auto BASEWEIGHT_MULTIPLIKATOR = 1.1;
+constexpr static auto MAXWEIGHT_MULTIPLIKATOR = 0.8;
 
 //// TYPES ////
 
@@ -97,7 +96,7 @@ auto main(int const argc, char const *argv[]) -> int {
   }
 
   // Keep one free for the main program
-  auto threadCount = app.getThreadCount() - 1;
+  auto const threadCount = app.getThreadCount() - 1;
   auto threadPool = ThreadPool(threadCount);
 
   // Read BLAST file
@@ -133,13 +132,10 @@ auto main(int const argc, char const *argv[]) -> int {
     std::unordered_map<Edge const *, EdgeOrder const *> contractionEdges;
     auto contractionEdgesJob = [](Job const *const pJob) { findContractionEdges(pJob); };
     std::for_each(std::begin(edges), std::end(edges), [&](auto const *const pEdge) {
-      std::for_each(std::begin(pEdge->getEdgeOrders()), std::end(pEdge->getEdgeOrders()), [&](auto const &order) {
-        wg.add(1);
+      wg.add(1);
 
-        auto job =
-            Job(contractionEdgesJob, &wg, &graph, &order, &contractionEdges, std::ref(mutex), app.getWiggleRoom());
-        threadPool.addJob(std::move(job));
-      });
+      auto job = Job(contractionEdgesJob, &wg, &graph, pEdge, &contractionEdges, std::ref(mutex), app.getWiggleRoom());
+      threadPool.addJob(std::move(job));
     });
     wg.wait();
 
@@ -156,6 +152,8 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
+    std::cout << "Number of contraction target: " << contractionTargets.size() << std::endl;
+
     std::set<Vertex const *const> deletableVertices;
     std::set<Vertex const *const> contractionRoots;
     auto deletableVerticesJob = [](Job const *const pJob) { findDeletableVertices(pJob); };
@@ -169,6 +167,8 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
+    std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
+
     std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> containElements;
     auto contractionJob = [](Job const *const pJob) { contract(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
@@ -180,6 +180,11 @@ auto main(int const argc, char const *argv[]) -> int {
       threadPool.addJob(std::move(job));
     }
     wg.wait();
+
+    std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
+                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget); });
+    deletableVertices.clear();
+    edges = graph.getEdges();
 
     std::set<Edge const *const> deletableEdges;
     auto deletableEdgesJob = [](Job const *const pJob) { findDeletableEdges(pJob); };
@@ -195,12 +200,6 @@ auto main(int const argc, char const *argv[]) -> int {
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
                   [&](auto const *const pTarget) { graph.deleteEdge(pTarget); });
     deletableEdges.clear();
-
-    std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
-
-    std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
-                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget); });
-    deletableVertices.clear();
 
     std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
 
@@ -256,7 +255,7 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::cout << "Finished assembly" << std::endl;
+    std::cout << "Finished assembly " << std::endl;
   } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
@@ -264,8 +263,8 @@ auto main(int const argc, char const *argv[]) -> int {
 }
 
 void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
-  std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> plusIDs;
-  std::set<gsl::not_null<std::string const *> const, LTCmp<gsl::not_null<std::string const *> const>> minusIDs;
+  std::vector<std::string> plusIDs;
+  std::vector<std::string> minusIDs;
 
   auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(1)));
   auto const pEdge = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(2)));
@@ -278,9 +277,9 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
 
   for (auto const &[illuminaID, edgeMatch] : *pEdgeMatches) {
     if (edgeMatch->direction) {
-      plusIDs.insert(&illuminaID);
+      plusIDs.push_back(illuminaID);
     } else {
-      minusIDs.insert(&illuminaID);
+      minusIDs.push_back(illuminaID);
     }
   }
 
@@ -325,16 +324,24 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   auto const combinedSize = plusPaths.size() + minusPaths.size();
   if (combinedSize > 1) {
     pEdge->setShadow(true);
-  } else if (combinedSize == 1) {
+  } else {
     auto const &path = !minusPaths.empty() ? minusPaths[0] : plusPaths[0];
-    pEdge->setShadow(std::get<2>(path));
+    pEdge->setShadow(!std::get<2>(path));
   }
 
-  std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](auto &plusPath) {
-    auto const overlap = lazybastard::computeOverlap(pMatchMap, std::move(std::get<0>(plusPath)), pEdge, false,
-                                                     std::get<1>(plusPath), std::get<2>(plusPath));
+  std::for_each(std::begin(minusPaths), std::end(minusPaths), [=](auto &minusPath) {
+    auto const overlap = lazybastard::computeOverlap(pMatchMap, std::get<0>(minusPath), pEdge, false,
+                                                     std::get<1>(minusPath), std::get<2>(minusPath));
     if (overlap.has_value()) {
       pEdge->appendOrder(std::move(overlap.value()));
+    }
+  });
+
+  std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](auto &plusPath) {
+    auto const order = lazybastard::computeOverlap(pMatchMap, std::get<0>(plusPath), pEdge, true, std::get<1>(plusPath),
+                                                   std::get<2>(plusPath));
+    if (order.has_value()) {
+      pEdge->appendOrder(std::move(order.value()));
     }
   });
 
@@ -343,36 +350,44 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
 
 void findContractionEdges(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
-  auto const pOrder = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(2)));
-  if (pOrder->isContained && pOrder->isPrimary) {
-    auto isSane = true;
-    auto const *const pNeighbors = pGraph->getNeighbors(pOrder->startVertex->getID());
-    auto const edges = std::map<std::string, Edge *>(std::begin(*pNeighbors), std::end(*pNeighbors));
-    for (auto const &[targetID, pEdge] : edges) {
-      if (targetID == pOrder->endVertex->getID() || pEdge->isShadow()) {
-        continue;
+  auto const pEdge = make_not_null_and_const(std::any_cast<Edge const *const>(pJob->getParam(2)));
+
+  auto const &edgeOrders = pEdge->getEdgeOrders();
+  for (auto const &order : edgeOrders) {
+    if (order.isContained && order.isPrimary) {
+      auto isSane = true;
+      auto const *const pNeighbors = pGraph->getNeighbors(order.startVertex);
+      auto const edges = std::map<std::string, Edge *>(std::begin(*pNeighbors), std::end(*pNeighbors));
+      for (auto const &[targetID, pSubedge] : edges) {
+        auto const *const pTargetVertex = pGraph->getVertex(targetID);
+
+        if (targetID == order.endVertex->getID() || pSubedge->isShadow()) {
+          continue;
+        }
+
+        isSane &= pGraph->hasEdge(
+            std::make_pair(make_not_null_and_const(&order.endVertex->getID()), &pTargetVertex->getID()));
+        if (!isSane) {
+          break;
+        }
+
+        auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(5));
+        isSane &=
+            lazybastard::sanityCheck(pGraph, order.startVertex, order.endVertex, pTargetVertex, &order, wiggleRoom);
+
+        if (!isSane) {
+          break;
+        }
       }
-      isSane &= pGraph->hasEdge(std::make_pair(make_not_null_and_const(&pOrder->endVertex->getID()), &targetID));
-      if (!isSane) {
+
+      if (isSane) {
+        std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get());
+        auto const pContractionEdges =
+            gsl::make_not_null(std::any_cast<std::unordered_map<Edge const *, EdgeOrder const *> *>(pJob->getParam(3)));
+        pContractionEdges->insert({pEdge, &order});
+
         break;
       }
-
-      auto const *const pTargetVertex =
-          pEdge->getVertices().first != pOrder->startVertex ? pEdge->getVertices().first : pEdge->getVertices().second;
-
-      auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(5));
-
-      isSane &=
-          lazybastard::sanityCheck(pGraph, pOrder->startVertex, pOrder->endVertex, pTargetVertex, pOrder, wiggleRoom);
-
-      if (!isSane) {
-        break;
-      }
-
-      std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get());
-      auto const pContractionEdges =
-          gsl::make_not_null(std::any_cast<std::unordered_map<Edge const *, EdgeOrder const *> *>(pJob->getParam(3)));
-      pContractionEdges->insert({pEdge, pOrder});
     }
   }
   std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
@@ -435,9 +450,9 @@ void contract(gsl::not_null<Job const *> const pJob) {
   auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(4)));
   std::unordered_map<std::string const *, VertexMatch const *> matches;
   std::for_each(std::begin(pOrder->ids), std::end(pOrder->ids), [&](auto const id) {
-    auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getID(), *id);
+    auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getID(), id);
     if (pVertexMatches != nullptr) {
-      matches.insert({id, pVertexMatches});
+      matches.insert({&id, pVertexMatches});
     }
   });
 
@@ -464,7 +479,7 @@ void findDeletableEdges(gsl::not_null<Job const *> const pJob) {
     auto const pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *>(pJob->getParam(2)));
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get()); // NOLINT
-    pDeletableEdges->insert(pEdge.get());
+    pDeletableEdges->insert(pEdge);
   }
 
   pEdge->replaceOrders(std::move(filteredOrders));
@@ -501,35 +516,41 @@ void decycle(gsl::not_null<Job const *> const pJob) {
   if (pEdge->getConsensusDirection() != ConsensusDirection::Enum::e_NONE &&
       !pMaxSpanTree->hasEdge(std::make_pair(make_not_null_and_const(&pEdge->getVertices().first->getID()),
                                             make_not_null_and_const(&pEdge->getVertices().second->getID())))) {
-    auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
-    auto const shortestPath = GraphUtil::getShortestPath(pGraph, pEdge->getVertices());
+    auto const shortestPath = GraphUtil::getShortestPath(pMaxSpanTree, pEdge->getVertices());
     lazybastard::Toggle direction = pEdge->getConsensusDirection();
-    auto const baseWeight = static_cast<float>(pEdge->getWeight());
-    std::vector<float> weights;
+    auto const baseWeight = static_cast<double>(pEdge->getWeight());
 
+    std::vector<double> weights;
+    auto const pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
     for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
-      auto const *const pPathEdge = pGraph->getEdge(std::make_pair(&(*it)->getID(), &(*std::next(it))->getID()));
-      if (pPathEdge != nullptr) {
-        direction = direction && pPathEdge->getConsensusDirection();
-        weights.push_back(static_cast<float>(pEdge->getWeight()));
-      }
+      auto const pPathEdge =
+          make_not_null_and_const(pGraph->getEdge(std::make_pair(&(*it)->getID(), &(*std::next(it))->getID())));
+
+      direction *= pPathEdge->getConsensusDirection();
+      weights.push_back(static_cast<double>(pPathEdge->getWeight()));
     }
 
     if (!direction && !weights.empty()) {
       auto const iterMinWeight = std::min_element(weights.begin(), weights.end());
       auto const iterMaxWeight = std::max_element(weights.begin(), weights.end());
 
-      if (*iterMaxWeight < baseWeight || (baseWeight * BASEWEIGHT_MULTIPLIKATOR >= *iterMinWeight &&
+      auto const pDeletableEdges = gsl::make_not_null(std::any_cast<std::set<Edge const *const> *>(pJob->getParam(4)));
+      if (*iterMinWeight < baseWeight || (baseWeight * BASEWEIGHT_MULTIPLIKATOR >= *iterMinWeight &&
                                           *iterMinWeight < *iterMaxWeight * MAXWEIGHT_MULTIPLIKATOR)) {
         auto const minWeightIdx = std::distance(weights.begin(), iterMinWeight);
         auto const *const pDeletableEdge =
             pGraph->getEdge(std::make_pair(&(*std::next(shortestPath.begin(), minWeightIdx))->getID(),
                                            &(*std::next(shortestPath.begin(), minWeightIdx + 1))->getID()));
-        auto const pDeletableEdges =
-            gsl::make_not_null(std::any_cast<std::set<Edge const *const> *>(pJob->getParam(4)));
-        std::lock_guard<std::mutex> guard(
+
+        std::unique_lock<std::mutex> lck(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
         pDeletableEdges->insert(pDeletableEdge);
+      }
+
+      {
+        std::unique_lock<std::mutex> lck(
+            std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+        pDeletableEdges->insert(pEdge);
       }
     }
   }
@@ -541,7 +562,6 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
   auto const pConnectedComponent =
       make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(4)));
-
   auto const pSubGraph = pGraph->getSubgraph(*pConnectedComponent);
   auto const subGraphVertices = pSubGraph->getVertices();
   auto const maxNPLVertexIter = std::max_element(

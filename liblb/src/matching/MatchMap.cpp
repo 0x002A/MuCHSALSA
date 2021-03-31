@@ -7,6 +7,7 @@
 #include "Util.h"
 #include "graph/Edge.h"
 #include "graph/Graph.h"
+#include "graph/Vertex.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
 #include "threading/WaitGroup.h"
@@ -14,7 +15,17 @@
 // Constants
 constexpr std::size_t TH_OVERLAP = 100;
 
-namespace lazybastard::matching {
+namespace lazybastard {
+
+//// UTILITY FUNCTIONS ////
+
+bool MatchingUtil::scaffoldLineIdxCmp(const graph::Vertex *pV1, const graph::Vertex *pV2) {
+  return pV1->getMetaDatum<std::size_t>(0) < pV2->getMetaDatum<std::size_t>(0);
+};
+
+//// /UTILITY FUNCTIONS ////
+
+namespace matching {
 
 void MatchMap::addVertexMatch(const std::string &nanoporeID, const std::string &illuminaID,
                               std::shared_ptr<VertexMatch> &&spMatch) {
@@ -28,8 +39,11 @@ void MatchMap::addVertexMatch(const std::string &nanoporeID, const std::string &
 
   // Map representing the scaffolds
   auto nanoporeIDs =
-      m_scaffolds.insert(std::make_pair(illuminaID, std::map<std::string, std::shared_ptr<VertexMatch>>())).first;
-  nanoporeIDs->second.insert(std::make_pair(nanoporeID, spMatch));
+      m_scaffolds
+          .insert(std::make_pair(illuminaID,
+                                 decltype(m_scaffolds)::mapped_type(lazybastard::MatchingUtil::scaffoldLineIdxCmp)))
+          .first;
+  nanoporeIDs->second.insert(std::make_pair(m_pGraph->getVertex(nanoporeID), spMatch));
 
   // Actual map containing the matches
   auto illuminaIDs =
@@ -64,14 +78,19 @@ void MatchMap::calculateEdges() {
   }
 
   wg.wait();
+
+  // Clear line numbers
+  for (auto *const pVertex : m_pGraph->getVertices()) {
+    pVertex->clearMetaData();
+  }
 }
 
 void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob) {
-  auto const scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
+  auto scaffold = std::any_cast<decltype(m_scaffolds)::mapped_type>(pJob->getParam(2));
 
   for (auto outerIter = std::begin(scaffold); outerIter != std::end(scaffold); ++outerIter) {
     auto const *const outerMatch = outerIter->second.get();
-    for (auto innerIter = std::next(outerIter, 1); innerIter != std::end(scaffold); ++innerIter) {
+    for (auto innerIter = std::begin(scaffold); innerIter != outerIter; ++innerIter) {
       auto const *const innerMatch = innerIter->second.get();
       auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
@@ -80,15 +99,15 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
         auto const direction = outerMatch->direction == innerMatch->direction;
         auto const isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
         auto const outerLength =
-            static_cast<float>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
+            static_cast<double>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
         auto const innerLength =
-            static_cast<float>(innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1);
-        auto const commonLength = static_cast<float>(overlap.second - overlap.first + 1);
-        auto const outerScore = static_cast<float>(outerMatch->score) * (commonLength / outerLength);
-        auto const innerScore = static_cast<float>(innerMatch->score) * (commonLength / innerLength);
+            static_cast<double>(innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1);
+        auto const commonLength = static_cast<double>(overlap.second - overlap.first + 1);
+        auto const outerScore = static_cast<double>(outerMatch->score) * commonLength / outerLength;
+        auto const innerScore = static_cast<double>(innerMatch->score) * commonLength / innerLength;
         auto const sumScore = outerScore + innerScore;
 
-        auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
+        auto vertexIDs = std::make_pair(innerIter->first->getID(), outerIter->first->getID());
         m_pGraph->addEdge(vertexIDs);
 
         addEdgeMatch(lazybastard::graph::Edge::getEdgeID(std::move(vertexIDs)),
@@ -101,4 +120,5 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }
 
-} // namespace lazybastard::matching
+} // namespace matching
+} // namespace lazybastard

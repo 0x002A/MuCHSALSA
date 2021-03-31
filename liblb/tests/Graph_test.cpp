@@ -55,7 +55,7 @@ TEST(GraphTest, InverseOrderTest) {
   ASSERT_EQ(graph.getOrder(), 2);
 
   graph.addEdge(vertexIDs);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeID(std::move(vertexIDs)), "1,2");
+  ASSERT_EQ(lazybastard::graph::Edge::getEdgeID(std::move(vertexIDs)), "2,1");
 
   auto const v1 = std::string("1");
   auto const v2 = std::string("2");
@@ -202,7 +202,7 @@ TEST(GraphTest, NeighboorTest) {
   auto diGraph = lazybastard::graph::DiGraph();
   diGraph.addVertex(std::move(spVertex1));
   diGraph.addVertex(std::move(spVertex2));
-  diGraph.addVertex(std::move(spVertex3));
+  diGraph.addVertex(spVertex3->getSharedPtr());
   diGraph.addVertex(std::move(spVertex4));
   ASSERT_EQ(diGraph.getOrder(), 4);
 
@@ -212,17 +212,17 @@ TEST(GraphTest, NeighboorTest) {
   diGraph.addEdge(std::make_pair("3", "4"));
   ASSERT_EQ(diGraph.getSize(), 4);
 
-  auto graphNeighbors = *graph.getNeighbors("3");
+  auto graphNeighbors = *graph.getNeighbors(spVertex3.get());
   ASSERT_EQ(graphNeighbors.size(), 3);
   ASSERT_TRUE(graphNeighbors.contains("1"));
   ASSERT_TRUE(graphNeighbors.contains("2"));
   ASSERT_TRUE(graphNeighbors.contains("4"));
 
-  diGraph.getPredecessors(graphNeighbors, "3");
+  diGraph.getPredecessors(graphNeighbors, spVertex3.get());
   ASSERT_EQ(graphNeighbors.size(), 1);
   ASSERT_TRUE(graphNeighbors.contains("1"));
 
-  auto const diGraphNeighbors = *diGraph.getSuccessors("3");
+  auto const diGraphNeighbors = *diGraph.getSuccessors(spVertex3.get());
   ASSERT_EQ(diGraphNeighbors.size(), 2);
   ASSERT_TRUE(diGraphNeighbors.contains("2"));
   ASSERT_TRUE(diGraphNeighbors.contains("4"));
