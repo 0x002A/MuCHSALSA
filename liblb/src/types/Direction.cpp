@@ -19,28 +19,6 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#include "graph/Edge.h"
-#include "Util.h"
-#include "graph/Vertex.h"
-
-namespace lazybastard::graph {
-
-// =====================================================================================================================
-//                                                     CLASS METHODS
-// =====================================================================================================================
-
-Edge::Edge(std::pair<std::shared_ptr<Vertex const> const, std::shared_ptr<Vertex const> const> &&vertices)
-    : m_id(Edge::getEdgeId(std::make_pair(vertices.first.get(), vertices.second.get()))),
-      m_vertices(std::move(vertices)), m_shadow(false), m_weight(0), m_consensusDirection(Direction::e_NONE) {}
-
-std::string Edge::getEdgeId(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) {
-  auto id = vertices.first->getId();
-  id.append(",");
-  id.append(vertices.second->getId());
-
-  return id;
-}
-
-} // namespace lazybastard::graph
+#include "types/Direction.h"
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

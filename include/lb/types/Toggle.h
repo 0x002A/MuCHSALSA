@@ -1,6 +1,39 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
+#ifndef INCLUDED_LAZYBASTARD_TOGGLE
+#define INCLUDED_LAZYBASTARD_TOGGLE
+
 #pragma once
 
 namespace lazybastard {
+
+// =====================================================================================================================
+//                                                         TYPES
+// =====================================================================================================================
+
+// ------------
+// class Toggle
+// ------------
+
 /**
  * Class representing a toggle which can reach two possible states.
  *
@@ -44,39 +77,85 @@ namespace lazybastard {
  *  }
  */
 struct Toggle {
-  Toggle(bool b) : m_state(b){};
-  operator bool() const { return m_state; };
-  Toggle &operator*=(Toggle t) {
-    *this *= t.m_state;
+  /**
+   * Conversion constructor.
+   *
+   * @param b a bool to convert from
+   */
+  Toggle(bool b) : m_state(b){}; // NOLINT
 
-    return *this;
-  };
-  Toggle &operator*=(bool b) {
-    m_state = m_state == b;
+  /**
+   * Implicit conversion operator.
+   *
+   * @return The boolean representation of the Toggle
+   */
+  operator bool() const { return m_state; }; // NOLINT
 
-    return *this;
-  };
-  Toggle &operator&=(Toggle t) {
-    *this &= t.m_state;
+  Toggle &operator*=(Toggle rhs);
+  Toggle &operator*=(bool rhs);
+  Toggle &operator&=(Toggle rhs);
+  Toggle &operator&=(bool rhs);
 
-    return *this;
-  };
-  Toggle &operator&=(bool b) {
-    this->m_state &= b;
+  bool operator&&(Toggle rhs) const;
+  bool operator&&(bool rhs) const;
+  bool operator==(Toggle rhs) const;
+  bool operator==(bool rhs) const;
+  bool operator!=(Toggle rhs) const;
+  bool operator!=(bool rhs) const;
 
-    return *this;
-  };
-  bool operator&&(Toggle t) const { return *this && t.m_state; };
-  bool operator&&(bool b) const { return m_state && b; };
-  bool operator==(Toggle t) const { return *this == t.m_state; };
-  bool operator==(bool b) const { return m_state == b; };
-  bool operator!=(Toggle t) const { return !(*this == t); };
-  bool operator!=(bool b) const { return !(*this == b); };
+  Toggle operator*(Toggle const &rhs) const;
+  Toggle operator*(bool rhs) const;
 
-  Toggle operator*(Toggle const &t) const { return *this * t.m_state; };
-  Toggle operator*(bool b) const { return Toggle(this->m_state == b); };
-
-protected:
+private:
   bool m_state{false};
 };
+
+// =====================================================================================================================
+//                                                  INLINE DEFINITIONS
+// =====================================================================================================================
+
+// -------------
+// struct Toggle
+// -------------
+
+inline Toggle &Toggle::operator*=(Toggle rhs) {
+  *this *= rhs.m_state;
+
+  return *this;
+}
+
+inline Toggle &Toggle::operator*=(bool rhs) {
+  m_state = m_state == rhs;
+
+  return *this;
+}
+
+inline Toggle &Toggle::operator&=(Toggle rhs) {
+  *this &= rhs.m_state;
+
+  return *this;
+}
+
+inline Toggle &Toggle::operator&=(bool rhs) {
+  m_state &= rhs;
+
+  return *this;
+}
+
+inline bool Toggle::operator&&(Toggle rhs) const { return *this && rhs.m_state; }
+inline bool Toggle::operator&&(bool rhs) const { return m_state && rhs; }
+inline bool Toggle::operator==(Toggle rhs) const { return *this == rhs.m_state; }
+inline bool Toggle::operator==(bool rhs) const { return m_state == rhs; }
+inline bool Toggle::operator!=(Toggle rhs) const { return !(*this == rhs); }
+inline bool Toggle::operator!=(bool rhs) const { return !(*this == rhs); }
+
+inline Toggle Toggle::operator*(Toggle const &rhs) const { return *this * rhs.m_state; }
+inline Toggle Toggle::operator*(bool rhs) const { return Toggle(m_state == rhs); }
+
+// PUBLIC CLASS METHODS
+
 } // namespace lazybastard
+
+#endif // INCLUDED_LAZYBASTARD_TOGGLE
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

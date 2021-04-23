@@ -1,19 +1,38 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
 #include "Prokrastinator.h"
 
 #include "Util.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
 
-bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> const pGraph,
-                              gsl::not_null<lazybastard::graph::Vertex const *> const pSubnode,
-                              gsl::not_null<lazybastard::graph::Vertex const *> const pNode,
+bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> const     pGraph,
+                              gsl::not_null<lazybastard::graph::Vertex const *> const    pSubnode,
+                              gsl::not_null<lazybastard::graph::Vertex const *> const    pNode,
                               gsl::not_null<lazybastard::graph::Vertex const *> const pTarget,
                               gsl::not_null<lazybastard::graph::EdgeOrder const *> const pOrder,
                               std::size_t wiggleRoom) {
-  auto const checkOnEdge =
-      util::make_not_null_and_const(pGraph->getEdge(std::make_pair(&pNode->getID(), &pTarget->getID())));
-  auto const checkForEdge =
-      util::make_not_null_and_const(pGraph->getEdge(std::make_pair(&pSubnode->getID(), &pTarget->getID())));
+  auto const checkOnEdge  = util::make_not_null_and_const(pGraph->getEdge(std::make_pair(pNode, pTarget)));
+  auto const checkForEdge = util::make_not_null_and_const(pGraph->getEdge(std::make_pair(pSubnode, pTarget)));
   for (auto const &checkOnOrder : checkOnEdge->getEdgeOrders()) {
     for (auto const &checkForOrder : checkForEdge->getEdgeOrders()) {
       auto isSane = pOrder->direction * checkOnOrder.direction == checkForOrder.direction;
@@ -71,3 +90,5 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
 
   return false;
 }
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

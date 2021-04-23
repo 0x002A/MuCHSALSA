@@ -1,21 +1,50 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
 #include "Application.h"
 
 #include <filesystem>
 #include <stdexcept>
 #include <thread>
 
-constexpr static std::size_t MIN_PAR = 4;
+// =====================================================================================================================
+//                                                       CONSTANTS
+// =====================================================================================================================
 
-constexpr static std::size_t POS_CFP = 1;
-constexpr static std::size_t POS_UFP = 2;
-constexpr static std::size_t POS_NFP = 3;
-constexpr static std::size_t POS_OFP = 4;
-constexpr static std::size_t POS_NOT = 5;
-constexpr static std::size_t POS_WGR = 6;
+constexpr std::size_t MIN_PAR = 4;
+
+constexpr std::size_t POS_CFP = 1;
+constexpr std::size_t POS_UFP = 2;
+constexpr std::size_t POS_NFP = 3;
+constexpr std::size_t POS_OFP = 4;
+constexpr std::size_t POS_NOT = 5;
+constexpr std::size_t POS_WGR = 6;
+
+// =====================================================================================================================
+//                                                     CLASS METHODS
+// =====================================================================================================================
 
 Application::Application(gsl::span<char const *> const &args) : m_threadCount(std::thread::hardware_concurrency()) {
   if (args.size() >= MIN_PAR + 1) {
-    readParameters(args);
+    _readParameters(args);
   } else {
     throw std::runtime_error("Invalid parameter count");
   }
@@ -33,12 +62,12 @@ auto Application::checkIntegrity() const -> bool {
   return exists;
 }
 
-void Application::readParameters(gsl::span<char const *> const &args) {
+void Application::_readParameters(gsl::span<char const *> const &args) {
 
-  m_contigsFilePath = args[POS_CFP];
-  m_unitigsFilePath = args[POS_UFP];
+  m_contigsFilePath  = args[POS_CFP];
+  m_unitigsFilePath  = args[POS_UFP];
   m_nanoporeFilePath = args[POS_NFP];
-  m_outputPath = args[POS_OFP];
+  m_outputPath       = args[POS_OFP];
 
   // Check for optional parameter
   auto argIdx = args.size() > POS_WGR ? POS_WGR : args.size() - 1;
@@ -51,3 +80,5 @@ void Application::readParameters(gsl::span<char const *> const &args) {
     break;
   }
 }
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

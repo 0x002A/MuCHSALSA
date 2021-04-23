@@ -1,3 +1,24 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
 #include "Prokrastinator.h"
 
 #include <algorithm>
@@ -6,6 +27,7 @@
 #include "graph/Edge.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
+#include "types/Direction.h"
 
 namespace {
 class UnionFind {
@@ -53,7 +75,7 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
   auto edges = pGraph->getEdges();
   edges.erase(std::remove_if(std::begin(edges), std::end(edges),
                              [](auto const *const pEdge) {
-                               return pEdge->getConsensusDirection() == lazybastard::graph::ConsensusDirection::e_NONE;
+                               return pEdge->getConsensusDirection() == lazybastard::Direction::e_NONE;
                              }),
               edges.end());
   std::sort(std::begin(edges), std::end(edges),
@@ -64,7 +86,7 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
   for (auto *pEdge : edges) {
     auto const vertices = pEdge->getVertices();
     if (uf[vertices.first] != uf[vertices.second]) {
-      result.insert({pEdge->getID(), pEdge->getSharedPtr()});
+      result.insert({pEdge->getId(), pEdge->getSharedPtr()});
       uf.unify(vertices.first, vertices.second);
     }
   }
@@ -80,3 +102,5 @@ lazybastard::getMaxSpanTree(gsl::not_null<lazybastard::graph::Graph const *> con
 
   return pNewGraph;
 }
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

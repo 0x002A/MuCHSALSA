@@ -21,13 +21,13 @@ TEST(CCTest, BasicTest) {
   graph.addVertex(spVertex4->getSharedPtr());
   graph.addVertex(spVertex5->getSharedPtr());
 
-  graph.addEdge(std::make_pair(spVertex1->getID(), spVertex2->getID()));
-  graph.addEdge(std::make_pair(spVertex1->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex2->getID(), spVertex3->getID()));
-  graph.addEdge(std::make_pair(spVertex2->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex3->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex3->getID(), spVertex4->getID()));
-  graph.addEdge(std::make_pair(spVertex4->getID(), spVertex5->getID()));
+  graph.addEdge(std::make_pair(spVertex1.get(), spVertex2.get()));
+  graph.addEdge(std::make_pair(spVertex1.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex2.get(), spVertex3.get()));
+  graph.addEdge(std::make_pair(spVertex2.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex3.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex3.get(), spVertex4.get()));
+  graph.addEdge(std::make_pair(spVertex4.get(), spVertex5.get()));
 
   auto cc = lazybastard::getConnectedComponents(&graph);
   ASSERT_EQ(cc.size(), 1);
@@ -50,9 +50,9 @@ TEST(CCTest, BasicTest) {
   graph.addVertex(spVertex7->getSharedPtr());
   graph.addVertex(spVertex8->getSharedPtr());
 
-  graph.addEdge(std::make_pair(spVertex6->getID(), spVertex7->getID()));
-  graph.addEdge(std::make_pair(spVertex6->getID(), spVertex8->getID()));
-  graph.addEdge(std::make_pair(spVertex7->getID(), spVertex8->getID()));
+  graph.addEdge(std::make_pair(spVertex6.get(), spVertex7.get()));
+  graph.addEdge(std::make_pair(spVertex6.get(), spVertex8.get()));
+  graph.addEdge(std::make_pair(spVertex7.get(), spVertex8.get()));
 
   cc = lazybastard::getConnectedComponents(&graph);
   ASSERT_EQ(cc.size(), 2);

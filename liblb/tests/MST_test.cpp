@@ -19,41 +19,41 @@ TEST(MSTTest, BasicTest) {
   graph.addVertex(spVertex4->getSharedPtr());
   graph.addVertex(spVertex5->getSharedPtr());
 
-  graph.addEdge(std::make_pair(spVertex1->getID(), spVertex2->getID()));
-  graph.addEdge(std::make_pair(spVertex1->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex2->getID(), spVertex3->getID()));
-  graph.addEdge(std::make_pair(spVertex2->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex3->getID(), spVertex5->getID()));
-  graph.addEdge(std::make_pair(spVertex3->getID(), spVertex4->getID()));
-  graph.addEdge(std::make_pair(spVertex4->getID(), spVertex5->getID()));
+  graph.addEdge(std::make_pair(spVertex1.get(), spVertex2.get()));
+  graph.addEdge(std::make_pair(spVertex1.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex2.get(), spVertex3.get()));
+  graph.addEdge(std::make_pair(spVertex2.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex3.get(), spVertex5.get()));
+  graph.addEdge(std::make_pair(spVertex3.get(), spVertex4.get()));
+  graph.addEdge(std::make_pair(spVertex4.get(), spVertex5.get()));
 
   // Set weights
-  graph.getEdge(std::make_pair(&spVertex1->getID(), &spVertex2->getID()))->setWeight(4);
-  graph.getEdge(std::make_pair(&spVertex1->getID(), &spVertex5->getID()))->setWeight(7);
-  graph.getEdge(std::make_pair(&spVertex2->getID(), &spVertex3->getID()))->setWeight(3);
-  graph.getEdge(std::make_pair(&spVertex2->getID(), &spVertex5->getID()))->setWeight(5);
-  graph.getEdge(std::make_pair(&spVertex3->getID(), &spVertex5->getID()))->setWeight(6);
-  graph.getEdge(std::make_pair(&spVertex3->getID(), &spVertex4->getID()))->setWeight(3);
-  graph.getEdge(std::make_pair(&spVertex4->getID(), &spVertex5->getID()))->setWeight(1);
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex2.get()))->setWeight(4);
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex5.get()))->setWeight(7);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex3.get()))->setWeight(3);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex5.get()))->setWeight(5);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex5.get()))->setWeight(6);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setWeight(3);
+  graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setWeight(1);
 
   auto mst = lazybastard::getMaxSpanTree(&graph);
   ASSERT_EQ(mst->getSize(), 0);
 
   // Set consensus direction
-  graph.getEdge(std::make_pair(&spVertex1->getID(), &spVertex2->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex1->getID(), &spVertex5->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex2->getID(), &spVertex3->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex2->getID(), &spVertex5->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex3->getID(), &spVertex5->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex3->getID(), &spVertex4->getID()))->setConsensusDirection(true);
-  graph.getEdge(std::make_pair(&spVertex4->getID(), &spVertex5->getID()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex2.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex5.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex3.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex5.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex5.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setConsensusDirection(true);
+  graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setConsensusDirection(true);
 
   mst = lazybastard::getMaxSpanTree(&graph);
   ASSERT_EQ(mst->getSize(), 4);
   ASSERT_EQ(mst->getOrder(), graph.getOrder());
 
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(&spVertex1->getID(), &spVertex5->getID())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(&spVertex3->getID(), &spVertex4->getID())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(&spVertex5->getID(), &spVertex2->getID())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(&spVertex5->getID(), &spVertex3->getID())));
+  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex1.get(), spVertex5.get())));
+  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex3.get(), spVertex4.get())));
+  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex5.get(), spVertex2.get())));
+  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex5.get(), spVertex3.get())));
 }

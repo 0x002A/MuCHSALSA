@@ -1,11 +1,35 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
+#ifndef INCLUDED_LAZYBASTARD_GRAPH
+#define INCLUDED_LAZYBASTARD_GRAPH
+
 #pragma once
 
 #include <algorithm>
 #include <cstddef>
 #include <deque>
 #include <gsl/pointers>
-#include <iosfwd>
 #include <iterator>
+#include <list>
 #include <memory>
 #include <shared_mutex>
 #include <string>
@@ -14,174 +38,152 @@
 #include <vector>
 
 #include "Lb.fwd.h"
-#include "Util.h"
 #include "graph/Vertex.h"
 
 namespace lazybastard {
-namespace graph {
 
-//// TYPES ////
+// =====================================================================================================================
+//                                                   UTILITY FUNCTIONS
+// =====================================================================================================================
+
+// ----------------
+// struct GraphUtil
+// ----------------
 
 /**
- * Class representing a Graph.
+ * Struct providing a namespace for utility functions regarding Graph and DiGraph.
+ */
+struct GraphUtil {
+  /**
+   * Calculates the shortest path between two Vertex instances within a given Graph or DiGraph.
+   *
+   * @param pGraph a pointer pointing to a Graph or DiGraph
+   * @param pVertices a std::pair containing pointers pointing to the start and end Vertex
+   * @return A std::deque containing pointers pointing to the Vertex instances representing the shortest path between
+   *         the supplied Vertex instances
+   */
+  template <typename TYPE, typename std::enable_if_t<std::is_base_of<graph::GraphBase, TYPE>::value, bool> = true>
+  static auto getShortestPath(
+      gsl::not_null<TYPE const *>                                                                       pGraph,
+      std::pair<gsl::not_null<graph::Vertex const *> const, gsl::not_null<graph::Vertex const *> const> pVertices);
+
+private:
+  /**
+   * Returns all Vertex instances connected to the supplied Vertex.
+   *
+   * @param graph a const reference to the Graph containing the Vertex
+   * @param pVertex a pointer pointing to the Vertex to return the reachable Vertex instances for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
+   */
+  [[maybe_unused]] static auto _getReachableVertices(graph::Graph const &                              graph,
+                                                     gsl::not_null<lazybastard::graph::Vertex const *> pVertex);
+
+  /**
+   * Returns all Vertex instances connected to the supplied Vertex.
+   *
+   * @param diGraph a const reference to the DiGraph containing the Vertex
+   * @param pVertex a pointer pointing to the Vertex to return the reachable Vertex instances for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
+   */
+  [[maybe_unused]] static auto _getReachableVertices(graph::DiGraph const &                            diGraph,
+                                                     gsl::not_null<lazybastard::graph::Vertex const *> pVertex);
+};
+
+namespace graph {
+
+// =====================================================================================================================
+//                                                         TYPES
+// =====================================================================================================================
+
+// ---------------
+// class GraphBase
+// ---------------
+
+/**
+ * Base class implementing common functionality required by concrete Graph implementations (Graph and DiGraph).
  *
- * A Graph holds a list of Vertex and Edge instances.
- * Instances of this class are designed to be **partially** thread-safe.
+ * In general a Graph holds a list of Vertex and Edge instances.
+ * The methods of this class are **partially** thread-safe.
  */
 class GraphBase {
 public:
-  /**
-   * Constructor creating a new instance.
-   */
-  GraphBase() = default;
-
-  /**
-   * Constructor  creating a new instance.
-   *
-   * @param vertices an rvalue reference to a std::unordered_map containing the std::shared_ptr instances pointing to
-   *                 all Vertex instances and their IDs
-   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
-   *                 Edge instances
-   * @param hasBidirectionalEdges a bool indicating whether Edge instances should be inserted bidirectional
-   */
-  GraphBase(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-            std::vector<std::shared_ptr<Edge>> &&edges, bool hasBidirectionalEdges);
-
   /**
    * Destructor.
    */
   virtual ~GraphBase() = default;
 
   /**
-   * Copy constructor.
-   */
-  GraphBase(GraphBase const &other)
-      : m_vertices(other.m_vertices), m_edges(other.m_edges), m_adjacencyList(other.m_adjacencyList) {}
-
-  /**
-   * Move constructor.
-   */
-  GraphBase(GraphBase &&other) noexcept : GraphBase() { swap(*this, other); };
-
-  /**
-   * Copy assignment operator.
-   */
-  GraphBase &operator=(GraphBase other) {
-    swap(*this, other);
-
-    return *this;
-  };
-
-  /**
-   * Move assignment operator.
-   */
-  GraphBase &operator=(GraphBase &&other) noexcept {
-    GraphBase tmp(std::move(other));
-
-    swap(*this, tmp);
-    return *this;
-  };
-
-  /**
-   * Swaps two instances of GraphBase.
-   *
-   * @param first a reference to an instance of GraphBase
-   * @param second a reference to an instance of GraphBase
-   */
-  friend void swap(GraphBase &first, GraphBase &second) noexcept {
-    using std::swap;
-
-    swap(first.m_vertices, second.m_vertices);
-    swap(first.m_edges, second.m_edges);
-    swap(first.m_adjacencyList, second.m_adjacencyList);
-  }
-
-  /**
    * Returns a bool indicating whether the supplied Vertex is present or not.
    *
-   * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be checked
+   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be checked
    * @return A bool indicating whether the Vertex is present or not
    */
-  bool hasVertex(std::string const &nanoporeID) const { return m_vertices.find(nanoporeID) != std::end(m_vertices); };
+  bool hasVertex(std::string const &nanoporeId) const;
 
   /**
    * Returns a std::shared_ptr to the requested Vertex instance if found.
    * If no result is found, the std::shared_ptr will be initialized with nullptr.
    * This function is **thread-safe**.
    *
-   * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be returned
-   * @return A std::shared_ptr to the Vertex if found
+   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be returned
+   * @return A std::shared_ptr to the Vertex (nullptr if not found)
    */
-  std::shared_ptr<Vertex> getVertexAsSharedPtr(std::string const &nanoporeID) const;
+  std::shared_ptr<Vertex> getVertexAsSharedPtr(std::string const &nanoporeId) const;
 
   /**
-   * Returns a pointer to the requested Vertex instance if found.
+   * Returns a pointer pointing to the requested Vertex instance if found.
    * If no result is found, nullptr will be returned.
    * This function is **thread-safe**.
    *
-   * @param nanoporeID a constant reference to a std::string representing the ID of the Vertex to be returned
-   * @return A pointer to the Vertex if found, nullptr otherwise
+   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be returned
+   * @return A pointer pointing to the Vertex if found (nullptr if not found)
    */
-  Vertex *getVertex(std::string const &nanoporeID) const;
+  Vertex *getVertex(std::string const &nanoporeId) const;
 
   /**
    * Returns a std::vector containing pointers to all Vertex instances assigned to this Graph.
    *
    * @return A std::vector containing pointers to all Vertex instances
    */
-  std::vector<Vertex *> getVertices() const {
-    std::vector<Vertex *> vertices;
+  std::vector<Vertex *> getVertices() const;
 
-    std::transform(m_vertices.begin(), m_vertices.end(), std::back_inserter(vertices),
-                   [](const std::unordered_map<std::string, std::shared_ptr<Vertex>>::value_type &pair) {
-                     return pair.second.get();
-                   });
-    return vertices;
-  }
+  /**
+   * Checks whether an Edge between Vertex instances exists or not.
+   *
+   * @param vertices a reference to a std::pair containing pointers to the Vertex instances to be checked for an Edge
+   * @return A bool indicating whether an Edge exists or not
+   */
+  bool hasEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &vertices) const;
+
+  /**
+   * Checks whether an Edge between Vertex instances exists or not.
+   *
+   * @param vertices an rvalue reference to a std::pair containing pointers to the Vertex instances to be checked for
+   *                 an Edge
+   * @return A bool indicating whether an Edge exists or not
+   */
+  bool hasEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) const;
+
+  /**
+   * Getter returning a specific Edge instance.
+   * This function returns nullptr if the requested Edge is not present.
+   *
+   * @param vertices a reference to a std::pair containing pointers to the Vertex instances connected by the Edge
+   * @return A pointer pointing to the requested Edge if found (nullptr if not found)
+   */
+  Edge *getEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &vertices) const;
 
   /**
    * Getter returning a specific Edge.
    * This function returns nullptr if the requested Edge wasn't found.
    *
-   * @param vertexIDs a reference to a std::pair containing pointers to the IDs of the Vertex instances connected by the
-   *                  Edge
-   * @return A pointer to the requested Edge if found nullptr otherwise
+   * @param vertices an rvalue reference to a std::pair containing pointers to the Vertex instances connected by the
+   *                 Edge
+   * @return A pointer pointing to the requested Edge if found (nullptr if not found)
    */
-  Edge *getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
-
-  /**
-   * Getter returning a specific Edge.
-   * This function returns nullptr if the requested Edge wasn't found.
-   *
-   * @param vertexIDs an rvalue reference to a std::pair containing pointers to the IDs of the Vertex instances
-   *                  connected by the Edge
-   * @return A pointer to the requested Edge if found nullptr otherwise
-   */
-  Edge *getEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
-    auto temp = std::move(vertexIDs);
-    return getEdge(temp);
-  };
-
-  /**
-   * Checks whether an Edge between Vertex instances exists or not.
-   *
-   * @param vertexIDs a reference to a std::pair containing pointers to the IDs of the Vertex instances to be
-   *                  checked for an Edge
-   * @return A bool indicating whether an Edge exists or not
-   */
-  bool hasEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &vertexIDs) const;
-
-  /**
-   * Checks whether an Edge between Vertex instances exists or not.
-   *
-   * @param vertexIDs an rvalue reference to a std::pair containing pointers to the IDs of the Vertex instances to be
-   *                  checked for an Edge
-   * @return A bool indicating whether an Edge exists or not
-   */
-  bool hasEdge(std::pair<gsl::not_null<std::string const *>, gsl::not_null<std::string const *>> &&vertexIDs) const {
-    auto temp = std::move(vertexIDs);
-    return hasEdge(temp);
-  };
+  Edge *getEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) const;
 
   /**
    * Getter returning all Edge instances attached to this Graph.
@@ -191,24 +193,15 @@ public:
   std::vector<Edge *> getEdges() const;
 
   /**
-   * Fills the supplied std::vector with std::shared_ptr instances pointing to all Edge instances attached to this
-   * Graph.
-   *
-   * @param result a reference to a std::vector which should receive the std::shared_ptr instances
-   */
-  void getEdges(std::vector<std::shared_ptr<Edge>> &result) const;
-
-  /**
    * Replaces the Edge store of the Graph with the supplied one.
    *
    * @param edges a std::unordered_map containing the shared_ptr instances pointing to the Edge instances mapped to
    *              their respective Edge identifiers
    */
-  void replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges) { m_edges = std::move(edges); }
+  void replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges);
 
   /**
    * Getter returning the number of Vertex instances attached to the Graph.
-   * This function is **thread-safe**.
    *
    * @return The number of Vertex instances attached to the Graph
    */
@@ -216,7 +209,6 @@ public:
 
   /**
    * Getter returning the number of Edge instances attached to the Graph.
-   * This function is **thread-safe**.
    *
    * @return The number of Edge instances attached to the Graph
    */
@@ -224,10 +216,55 @@ public:
 
 protected:
   /**
+   * Constructor creating a new instance.
+   */
+  GraphBase() = default;
+
+  /**
+   * Copy constructor.
+   */
+  GraphBase(GraphBase const &other);
+
+  /**
+   * Move constructor.
+   */
+  GraphBase(GraphBase &&other) noexcept;
+
+  /**
+   * Copy assignment operator.
+   */
+  GraphBase &operator=(GraphBase other);
+
+  /**
+   * Move assignment operator.
+   */
+  GraphBase &operator=(GraphBase &&other) noexcept;
+
+  /**
+   * Swaps two instances of GraphBase.
+   *
+   * @param lhs a reference to an instance of GraphBase
+   * @param rhs a reference to an instance of GraphBase
+   */
+  friend void swap(GraphBase &lhs, GraphBase &rhs) noexcept;
+
+  /**
+   * Constructor creating a new instance.
+   *
+   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
+   *                 all Vertex instances to their ids
+   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
+   *                 Edge instances
+   * @param hasBidirectionalEdges a bool indicating whether Edge instances should be inserted bidirectional
+   */
+  GraphBase(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+            std::vector<std::shared_ptr<Edge>> &&edges, bool hasBidirectionalEdges);
+
+  /**
    * Adds a std::shared_ptr to Vertex to this Graph.
    * This function is **thread-safe**.
    *
-   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the Graph
    */
   void _addVertex(std::shared_ptr<Vertex> &&spVertex);
 
@@ -236,99 +273,98 @@ protected:
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
    *
-   * @param pVertex a pointer to the Vertex to be deleted
+   * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
    */
-  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges); // NOLINT
+  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges);
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    * This method is **thread-safe**.
    *
-   * @param vertexIDs a constant reference to a std::pair containing pointers to constant std::string instances
-   *                  representing the IDs of the Vertex instances to be connected by the Edge
+   * @param vertexIds a const reference to a std::pair containing pointers pointing to the Vertex instances to be
+   *                  connected by the Edge
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
    */
-  void _addEdge(std::pair<std::string const, std::string const> const &vertexIDs, // NOLINT
+  void _addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds,
                 bool isBidirectional);
 
   /**
    * Deletes an Edge from the Graph.
    * The memory will be cleaned up and all references will become invalid.
    *
-   * @param pEdge a pointer to the Edge to become deleted
+   * @param pEdge a pointer pointing to the Edge to become deleted
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
    */
-  void _deleteEdge(Edge const *pEdge, bool isBidirectional); // NOLINT
+  void _deleteEdge(gsl::not_null<Edge const *> pEdge, bool isBidirectional);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexID a pointer to the Vertex
-   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
-   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
-   *         successive Vertex instances
+   * @param vertexId a pointer pointing to the Vertex to return the successors for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> const *
-  _getSuccessors(gsl::not_null<Vertex const *> pVertex) const; // NOLINT
+  std::unordered_map<std::string, Edge *const> _getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
-   * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
-   * constant pointer to the corresponding Edge instance
-   * @param vertexID a pointer to the Vertex
-   * @return A bool indicating whether the Vertex has been found
+   * @param vertexId a pointer pointing to the Vertex to return the predecessors for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
    */
-  bool _getPredecessors(std::unordered_map<std::string, Edge *const> &result,
-                        gsl::not_null<Vertex const *> pVertex) const; // NOLINT
+  std::unordered_map<std::string, Edge *const> _getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Hook which is getting called every time an Edge is about to get added.
-   * This method can be overridden by child classes.
+   * This method can be overridden by deriving classes.
    *
-   * @param pVertices a std::pair of const pointers to the Vertex instances connected by the Edge which is about to get
-   *                  added
+   * @param pVertices a std::pair of pointers to the Vertex instances connected by the Edge which is
+   *                  about to get added
    */
   virtual void
-  _onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
-    LB_UNUSED(pVertices);
-  };
+  _onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
 
   /**
    * Hook which is getting called every time an Edge is about to get deleted.
-   * This method can be overridden by child classes.
+   * This method can be overridden by deriving classes.
    *
-   * @param pVertices a std::pair of const pointers to the Vertex instances connected by the Edge which is about to get
-   *                  deleted
+   * @param pVertices a std::pair of pointers to the Vertex instances connected by the Edge which is
+   *                  about to get deleted
    */
   virtual void
-  _onEdgeDeleted(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
-    LB_UNUSED(pVertices);
-  };
+  _onEdgeDeleted(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< Map containing all the Vertex instances */
-  std::unordered_map<std::string, std::shared_ptr<Edge>> m_edges;      /*!< Map containing all the Edge instances */
-  std::unordered_map<std::string, std::unordered_map<std::string, Edge *const>>
-      m_adjacencyList;                     /*!< Map containing all the Edge instances */
-  mutable std::shared_mutex m_mutexVertex; /*!< std::shared_mutex for securing the parallel use of the Vertex map */
-  mutable std::shared_mutex m_mutexEdge;   /*!< std::shared_mutex for securing the parallel use of the Edge map */
+  template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
+  um_t<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< std::unordered_map containing all the Vertex instances */
+  um_t<std::string, std::shared_ptr<Edge>>   m_edges;    /*!< std::unordered_map  containing all the Edge instances */
+  um_t<std::string, um_t<std::string, Edge *const>>
+                            m_adjacencyList; /*!< std::unordered_map  containing all the Edge instances */
+  mutable std::shared_mutex m_mutexVertex;   /*!< std::shared_mutex for securing the parallel use of the Vertex map */
+  mutable std::shared_mutex m_mutexEdge;     /*!< std::shared_mutex for securing the parallel use of the Edge map */
 
   /**
    * Adds an Edge to this Graph.
-   * This is the class-internal, unsynchronized version.
+   * This is the class-internal version which is **not thread-safe**.
    *
-   * @param spEdge an rvalue reference to the std::shared_ptr to the Edge instance to be added to the Graph (by moving)
+   * @param spEdge an rvalue reference to the std::shared_ptr pointing to the Edge instance to be added to the Graph
+   *               (by moving)
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
    */
   void _addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional);
 };
 
+// -----------
+// class Graph
+// -----------
+
 /**
  * Class representing an undirected Graph.
  *
- * In contrast to a directed Graph the insertion order of Edges is not preserved.
+ * In contrast to a directed Graph the insertion order of Edges is not preserved and Edge instances are inserted
+ * bidirectional.
  */
 class Graph final : public GraphBase {
 public:
@@ -338,15 +374,15 @@ public:
   Graph() = default;
 
   /**
-   * Constructor  creating a new instance.
+   * Constructor creating a new instance.
    *
-   * @param vertices an rvalue reference to a std::unordered_map containing the std::shared_ptr instances pointing to
-   *                 all Vertex instances and their IDs
+   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
+   *                 all Vertex instances to their ids
    * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
    *                 Edge instances
    */
-  Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices, std::vector<std::shared_ptr<Edge>> &&edges)
-      : GraphBase(std::move(vertices), std::move(edges), true){};
+  Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+        std::vector<std::shared_ptr<Edge>> &&                      edges);
 
   /**
    * Destructor.
@@ -366,12 +402,7 @@ public:
   /**
    * Copy assignment operator.
    */
-  Graph &operator=(Graph other) {
-    if (&other != this) {
-      swap(static_cast<GraphBase &>(*this), static_cast<GraphBase &>(other));
-    }
-    return *this;
-  };
+  Graph &operator=(Graph other);
 
   /**
    * Move assignment is disallowed.
@@ -379,88 +410,84 @@ public:
   Graph &operator=(Graph &&) = delete;
 
   /**
-   * Adds a std::shared_ptr to Vertex to this Graph.
+   * Adds a std::shared_ptr pointing to Vertex to this Graph.
    * This function is **thread-safe**.
    *
-   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the Graph
    */
-  void addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); };
+  void addVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
-   * Adds a std::shared_ptr to Vertex to this Graph if the Vertex is not already attached to the Graph.
+   * Adds a std::shared_ptr pointing to Vertex to this Graph if the Vertex is not already attached to the Graph.
    *
-   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the Graph
    */
-  void addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
-    if (!hasVertex(spVertex->getID())) {
-      addVertex(std::move(spVertex));
-    }
-  };
+  [[maybe_unused]] void addMissingVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
    * Deletes a Vertex from the Graph.
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
    *
-   * @param pVertexID a pointer to the Vertex to be deleted
+   * @param pVertexId a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex) { _deleteVertex(pVertex, true); };
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
 
   /**
-   * Adds an Edge to this Graph. Already existing edges are omitted.
+   * Adds an Edge to this Graph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIDs a reference to a std::pair containing the IDs of the Vertex instances to be connected by the Edge
+   * @param vertexIds a const reference to a std::pair containing pointers pointing to the Vertex instances to be
+   *                  connected by the Edge
    */
-  void addEdge(std::pair<std::string, std::string> &vertexIDs);
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds);
 
   /**
-   * Adds an Edge to this DiGraph. Already existing edges are omitted.
+   * Adds an Edge to this Graph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIDs an rvalue reference to a std::pair containing the IDs of the Vertex instances to be connected by
-   *                  the Edge
+   * @param vertexIds an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
+   *                  connected by the Edge
    */
-  void addEdge(std::pair<std::string, std::string> &&vertexIDs) {
-    auto temp = std::move(vertexIDs);
-    addEdge(temp);
-  }
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds);
 
   /**
    * Deletes an Edge from the Graph.
    * The memory will be cleaned up and all references will become invalid.
    *
-   * @param pEdge a pointer to the Edge to become deleted
+   * @param pEdge a pointer pointing to the Edge to become deleted
    */
-  void deleteEdge(Edge const *pEdge) { _deleteEdge(pEdge, true); };
+  void deleteEdge(gsl::not_null<Edge const *> pEdge);
 
   /**
    * Getter returning the neighbors of a particular Vertex instance.
    *
-   * @param vertexID a pointer to the Vertex
-   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
-   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found or hasn't got any
-   *         adjacent Vertex instances
+   * @param vertexId a pointer pointing to the Vertex to return the neighbors for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> const *getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
-    return _getSuccessors(pVertex);
-  };
+  std::unordered_map<std::string, Edge *const> getNeighbors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Returns a Graph representing the subgraph induced by the supplied Vertex instances.
    *
-   * @param vertices a constant reference to a std::vector containing pointers to the Vertex instances inducing the
-   *                 requested subgraph
+   * @param vertices a const reference to a std::vector containing pointers pointing to the Vertex instances inducing
+   *                 the requested subgraph
    * @return A std::unique_ptr to the Graph representing the induced subgraph
    */
   std::unique_ptr<Graph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 };
 
+// -------------
+// class DiGraph
+// -------------
+
 /**
  * Class representing a directed Graph.
  *
- * In contrast to an undirected Graph the insertion order of Edges is preserved.
+ * In contrast to an undirected Graph the insertion order of Edges is preserved and Edges are not inserted
+ * bidirectional.
  */
 class DiGraph final : public GraphBase {
 public:
@@ -470,18 +497,15 @@ public:
   DiGraph() = default;
 
   /**
-   * Constructor  creating a new instance.
+   * Constructor creating a new instance.
    *
-   * @param vertices an rvalue reference to a std::unordered_map containing the std::shared_ptr instances pointing to
-   *                 all Vertex instances and their IDs
+   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
+   *                 all Vertex instances to their ids
    * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
    *                 Edge instances
    */
   DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-          std::vector<std::shared_ptr<Edge>> &&edges)
-      : GraphBase(std::move(vertices), std::move(edges), false) {
-    _updateDegrees();
-  };
+          std::vector<std::shared_ptr<Edge>> &&                      edges);
 
   /**
    * Destructor.
@@ -491,7 +515,7 @@ public:
   /**
    * Copy constructor.
    */
-  DiGraph(DiGraph const &other) : GraphBase(other), m_inDegrees(other.m_inDegrees), m_outDegrees(other.m_outDegrees){};
+  DiGraph(DiGraph const &other);
 
   /**
    * Moving is disallowed.
@@ -501,12 +525,7 @@ public:
   /**
    * Copy assignment operator.
    */
-  DiGraph &operator=(DiGraph other) {
-    if (&other != this) {
-      swap(*this, other);
-    }
-    return *this;
-  };
+  DiGraph &operator=(DiGraph other);
 
   /**
    * Move assignment is disallowed.
@@ -514,227 +533,159 @@ public:
   DiGraph &operator=(DiGraph &&) = delete;
 
   /**
-   * Swaps two instances of GraphBase.
+   * Swaps two instances of DiGraph.
    *
-   * @param first a reference to an instance of DiGraph
-   * @param second a reference to an instance of DiGraph
+   * @param lhs a reference to an instance of DiGraph
+   * @param rhs a reference to an instance of DiGraph
    */
-  friend void swap(DiGraph &first, DiGraph &second) noexcept {
-    using std::swap;
-
-    swap(static_cast<GraphBase &>(first), static_cast<GraphBase &>(second));
-    swap(first.m_inDegrees, second.m_inDegrees);
-    swap(first.m_outDegrees, second.m_outDegrees);
-  }
+  friend void swap(DiGraph &lhs, DiGraph &rhs) noexcept;
 
   /**
-   * Adds a std::shared_ptr to Vertex to this Graph.
+   * Adds a std::shared_ptr to Vertex to this DiGraph.
    * This function is **thread-safe**.
    *
-   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the DiGraph
    */
-  void addVertex(std::shared_ptr<Vertex> &&spVertex) {
-    auto const *const pVertex = spVertex.get();
-
-    _addVertex(std::move(spVertex));
-
-    {
-      std::unique_lock<std::mutex> lck(m_mutexDegrees);
-      m_inDegrees.insert({pVertex, 0});
-      m_outDegrees.insert({pVertex, 0});
-    }
-  };
+  void addVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
-   * Adds a std::shared_ptr to Vertex to this Graph if the Vertex is not already attached to the Graph.
+   * Adds a std::shared_ptr to Vertex to this DiGraph if the Vertex is not already attached to the DiGraph.
    *
-   * @param spVertex an rvalue reference to the std::shared_ptr to Vertex to be added to the Graph
+   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the DiGraph
    */
-  void addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
-    if (!hasVertex(spVertex->getID())) {
-      addVertex(std::move(spVertex));
-    }
-  };
+  [[maybe_unused]] void addMissingVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
    * Deletes a Vertex from the DiGraph.
-   * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
+   * If the Vertex is not assigned to another (Di-)Graph the memory will be cleaned up and all references
    * will become invalid.
    *
-   * @param pVertex a pointer to the Vertex to be deleted
+   * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex) {
-    _deleteVertex(pVertex, false);
-
-    m_inDegrees.erase(pVertex);
-    m_outDegrees.erase(pVertex);
-  };
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
 
   /**
-   * Adds an Edge to this DiGraph. Already existing edges are omitted.
+   * Adds an Edge to this DiGraph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIDs a reference to a std::pair containing the IDs of the Vertex instances to be connected by the Edge
-   */
-  void addEdge(std::pair<std::string, std::string> &vertexIDs);
-
-  /**
-   * Adds an Edge to this DiGraph. Already existing edges are omitted.
-   * This function is **thread-safe**.
-   *
-   * @param vertexIDs an rvalue reference to a std::pair containing the IDs of the Vertex instances to be connected by
+   * @param vertexIds a reference to a std::pair containing pointers pointing to the Vertex instances to be connected by
    *                  the Edge
    */
-  void addEdge(std::pair<std::string, std::string> &&vertexIDs) {
-    auto temp = std::move(vertexIDs);
-    return addEdge(temp);
-  }
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds);
 
   /**
-   * Deletes an Edge from the Graph.
+   * Adds an Edge to this DiGraph. Already existing edges are omitted.
+   * This function is **thread-safe**.
+   *
+   * @param vertexIds an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
+   *                  connected by the Edge
+   */
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds);
+
+  /**
+   * Deletes an Edge from the DiGraph.
    * The memory will be cleaned up and all references will become invalid.
    *
-   * @param pEdge a pointer to the Edge to become deleted
+   * @param pEdge a pointer pointing to the Edge to become deleted
    */
-  void deleteEdge(Edge const *pEdge) { _deleteEdge(pEdge, false); };
+  void deleteEdge(gsl::not_null<Edge const *> pEdge);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexID a pointer to the Vertex
-   * @return A pointer to a constant std::unordered_map containing the connected Vertex instances with their IDs and a
-   *         constant pointer to the corresponding Edge instance, nullptr if the Vertex wasn't found
+   * @param vertexId a pointer pointing to the Vertex to return the successors for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> const *getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
-    return _getSuccessors(pVertex);
-  };
+  std::unordered_map<std::string, Edge *const> getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
-   * @param result a reference to a std::unordered_map receiving the connected Vertex instances with their IDs and a
-   *               constant pointer to the corresponding Edge instance
-   * @param vertexID a pointer to the Vertex
-   * @return A bool indicating whether the Vertex has been found
+   * @param vertexId a pointer pointing to the Vertex to return the predecessors for
+   * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
+   *         corresponding Edge instance
    */
-  bool getPredecessors(std::unordered_map<std::string, Edge *const> &result,
-                       gsl::not_null<Vertex const *> const pVertex) const {
-    return _getPredecessors(result, pVertex);
-  };
+  std::unordered_map<std::string, Edge *const> getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Returns a DiGraph representing the subgraph induced by the supplied Vertex instances.
    *
-   * @param vertices a constant reference to a std::vector containing pointers to the Vertex instances inducing the
-   *                 requested subgraph
+   * @param vertices a const reference to a std::vector containing pointers pointing to the Vertex instances inducing
+   *                 the requested subgraph
    * @return A std::unique_ptr to the DiGraph representing the induced subgraph
    */
   std::unique_ptr<DiGraph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 
   /**
-   * Returns the std::unordered_map containing the mapping of all Vertex instances to their in-degrees via constant
-   * reference.
+   * Returns the std::unordered_map containing the mapping of all Vertex instances to their in-degrees.
    *
-   * @return The std::unordered_map containing the mapping of all Vertex instances to their in-degrees via constant
-   * reference
+   * @return A const reference to the std::unordered_map containing the mapping of all Vertex instances to their
+   *         in-degrees
    */
-  auto const &getInDegrees() const { return m_inDegrees; };
+  auto const &getInDegrees() const;
 
   /**
-   * Returns the std::unordered_map containing the mapping of all Vertex instances to their out-degrees via constant
-   * reference.
+   * Returns the std::unordered_map containing the mapping of all Vertex instances to their out-degrees.
    *
-   * @return The std::unordered_map containing the mapping of all Vertex instances to their out-degrees via constant
-   * reference
+   * @return A const reference to the std::unordered_map containing the mapping of all Vertex instances to their
+   *         out-degrees
    */
-  auto const &getOutDegrees() const { return m_outDegrees; };
+  auto const &getOutDegrees() const;
 
 private:
-  std::unordered_map<Vertex const *, std::size_t> m_inDegrees;  /*!< Map containing the in-degrees */
-  std::unordered_map<Vertex const *, std::size_t> m_outDegrees; /*!< Map containing the out-degrees */
+  std::unordered_map<Vertex const *, std::size_t> m_inDegrees;  /*!< std::unordered_map containing the in-degrees */
+  std::unordered_map<Vertex const *, std::size_t> m_outDegrees; /*!< std::unordered_map containing the out-degrees */
   std::mutex m_mutexDegrees; /*!< std::mutex for securing the parallel use of the in-degree and out-degree maps */
 
   /**
-   * Increases the in-degree value for the given Verrtex instance.
+   * Increases the in-degree value for the given Vertex instance.
    *
-   * @param pVertex a pointer to the Vertex instance the in-degree should be updated for
+   * @param pVertex a pointer pointing to the Vertex instance to update the in-degree for
    */
-  void _increaseInDegree(Vertex const *const pVertex) {
-    auto const iter = m_inDegrees.find(pVertex);
-    if (iter == std::end(m_inDegrees)) {
-      return;
-    }
-
-    ++iter->second;
-  }
+  void _increaseInDegree(Vertex const *pVertex);
 
   /**
    * Decreases the in-degree value for the given Vertex instance.
    *
-   * @param pVertex a pointer to the Vertex instance the in-degree should be updated for
+   * @param pVertex a pointer pointing to the Vertex instance to update the in-degree for
    */
-  void _decreaseInDegree(Vertex const *const pVertex) {
-    auto const iter = m_inDegrees.find(pVertex);
-    if (iter == std::end(m_inDegrees)) {
-      return;
-    }
-
-    --iter->second;
-  }
+  void _decreaseInDegree(Vertex const *pVertex);
 
   /**
    * Increases the out-degree value for the given Vertex instance.
    *
-   * @param pVertex a pointer to the Vertex instance the out-degree should be updated for
+   * @param pVertex a pointer pointing to the Vertex instance to update the out-degree for
    */
-  void _increaseOutDegree(Vertex const *const pVertex) {
-    auto const iter = m_outDegrees.find(pVertex);
-    if (iter == std::end(m_outDegrees)) {
-      return;
-    }
-
-    ++iter->second;
-  }
+  void _increaseOutDegree(Vertex const *pVertex);
 
   /**
    * Decreases the out-degree value for the given Vertex instance.
    *
-   * @param pVertex a pointer to the Vertex instance the out-degree should be updated for
+   * @param pVertex a pointer pointing to the Vertex instance to update the out-degree for
    */
-  void _decreaseOutDegree(Vertex const *const pVertex) {
-    auto const iter = m_outDegrees.find(pVertex);
-    if (iter == std::end(m_outDegrees)) {
-      return;
-    }
-
-    --iter->second;
-  }
+  void _decreaseOutDegree(Vertex const *pVertex);
 
   /**
    * Hook which is getting called every time an Edge is about to get added.
    * This method updates the degrees of the Vertex instances involved.
    *
-   * @param pVertices a std::pair of const pointers to the Vertex instances connected by the Edge which is about to get
-   *                  added
+   * @param pVertices a std::pair of pointers pointing to the Vertex instances connected by the Edge which is about to
+   *                  get added
    */
   void _onEdgeAdded(
-      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override {
-    _increaseOutDegree(pVertices.first);
-    _increaseInDegree(pVertices.second);
-  };
+      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override;
 
   /**
    * Hook which is getting called every time an Edge is about to get deleted.
+   * This method updates the degrees of the Vertex instances involved.
    *
-   * @param pVertices a std::pair of const pointers to the Vertex instances connected by the Edge which is about to get
-   *                  deleted
+   * @param pVertices a std::pair of pointers pointing to the Vertex instances connected by the Edge which is about to
+   *                  get deleted
    */
   void _onEdgeDeleted(
-      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override {
-    _decreaseOutDegree(pVertices.first);
-    _decreaseInDegree(pVertices.second);
-  };
+      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override;
 
   /**
    * Recalculates the in-degrees and out-degrees based on the Edge instances attached to the DiGraph.
@@ -742,106 +693,280 @@ private:
   void _updateDegrees();
 };
 
-//// INLINE DEFINITIONS ////
+// =====================================================================================================================
+//                                                  INLINE DEFINITIONS
+// =====================================================================================================================
 
-inline void Graph::addEdge(std::pair<std::string, std::string> &vertexIDs) {
-  _addEdge(vertexIDs, true);
+// ---------------
+// class GraphBase
+// ---------------
+
+// PUBLIC CLASS METHODS
+
+inline Edge *
+GraphBase::getEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) const {
+  auto temp = std::move(vertices);
+  return getEdge(temp);
 }
 
-inline void DiGraph::addEdge(std::pair<std::string, std::string> &vertexIDs) { _addEdge(vertexIDs, false); }
-
-inline std::size_t GraphBase::getOrder() const {
-  std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
-
-  return m_vertices.size();
+inline bool
+GraphBase::hasEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) const {
+  auto temp = std::move(vertices);
+  return hasEdge(temp);
 }
 
-inline std::size_t GraphBase::getSize() const {
-  std::shared_lock<std::shared_mutex> lck(m_mutexEdge);
-
-  return m_edges.size();
+inline void GraphBase::replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges) {
+  m_edges = std::move(edges);
 }
+
+inline std::size_t GraphBase::getOrder() const { return m_vertices.size(); }
+
+inline std::size_t GraphBase::getSize() const { return m_edges.size(); }
+
+// PROTECTED CLASS METHODS
+
+inline GraphBase::GraphBase(GraphBase const &other)
+    : m_vertices(other.m_vertices), m_edges(other.m_edges), m_adjacencyList(other.m_adjacencyList) {}
+
+inline GraphBase::GraphBase(GraphBase &&other) noexcept : GraphBase() { swap(*this, other); }
+
+inline GraphBase &GraphBase::operator=(GraphBase other) {
+  swap(*this, other);
+
+  return *this;
+}
+
+inline GraphBase &GraphBase::operator=(GraphBase &&other) noexcept {
+  GraphBase tmp(std::move(other));
+
+  swap(*this, tmp);
+  return *this;
+}
+
+inline void swap(GraphBase &lhs, GraphBase &rhs) noexcept {
+  using std::swap;
+
+  swap(lhs.m_vertices, rhs.m_vertices);
+  swap(lhs.m_edges, rhs.m_edges);
+  swap(lhs.m_adjacencyList, rhs.m_adjacencyList);
+}
+
+inline void GraphBase::_onEdgeAdded(
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> && /*pVertices*/) {}
+
+inline void GraphBase::_onEdgeDeleted(
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> && /*pVertices*/) {}
+
+// -----------
+// class Graph
+// -----------
+
+// PUBLIC CLASS METHODS
+
+inline Graph::Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+                    std::vector<std::shared_ptr<Edge>> &&                      edges)
+    : GraphBase(std::move(vertices), std::move(edges), true) {}
+
+inline Graph &Graph::operator=(Graph other) {
+  if (&other != this) {
+    swap(static_cast<GraphBase &>(*this), static_cast<GraphBase &>(other));
+  }
+  return *this;
+}
+
+inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); }
+
+[[maybe_unused]] inline void Graph::addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
+  if (!hasVertex(spVertex->getId())) {
+    addVertex(std::move(spVertex));
+  }
+}
+
+inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex) { _deleteVertex(pVertex, true); }
+
+inline void
+Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds) {
+  _addEdge(vertexIds, true);
+}
+
+inline void
+Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds) {
+  auto temp = std::move(vertexIds);
+  addEdge(temp);
+}
+
+inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge) { _deleteEdge(pEdge, true); }
+
+inline std::unordered_map<std::string, Edge *const>
+Graph::getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
+  return _getSuccessors(pVertex);
+}
+
+// -------------
+// class DiGraph
+// -------------
+
+// PUBLIC CLASS METHODS
+
+inline DiGraph::DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+                        std::vector<std::shared_ptr<Edge>> &&                      edges)
+    : GraphBase(std::move(vertices), std::move(edges), false) {
+  _updateDegrees();
+}
+
+inline DiGraph::DiGraph(DiGraph const &other)
+    : GraphBase(other), m_inDegrees(other.m_inDegrees), m_outDegrees(other.m_outDegrees) {}
+
+inline DiGraph &DiGraph::operator=(DiGraph other) {
+  if (&other != this) {
+    swap(*this, other);
+  }
+  return *this;
+}
+
+inline void swap(DiGraph &lhs, DiGraph &rhs) noexcept {
+  using std::swap;
+
+  swap(static_cast<GraphBase &>(lhs), static_cast<GraphBase &>(rhs));
+  swap(lhs.m_inDegrees, rhs.m_inDegrees);
+  swap(lhs.m_outDegrees, rhs.m_outDegrees);
+}
+
+[[maybe_unused]] inline void DiGraph::addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
+  if (!hasVertex(spVertex->getId())) {
+    addVertex(std::move(spVertex));
+  }
+}
+
+inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex) {
+  _deleteVertex(pVertex, false);
+
+  m_inDegrees.erase(pVertex);
+  m_outDegrees.erase(pVertex);
+}
+
+inline void
+DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds) {
+  _addEdge(vertexIds, false);
+}
+
+inline void
+DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds) {
+  auto temp = std::move(vertexIds);
+  return addEdge(temp);
+}
+
+inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge) { _deleteEdge(pEdge, false); }
+
+inline std::unordered_map<std::string, Edge *const>
+DiGraph::getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
+  return _getSuccessors(pVertex);
+}
+
+inline std::unordered_map<std::string, Edge *const>
+DiGraph::getPredecessors(gsl::not_null<Vertex const *> const pVertex) const {
+  return _getPredecessors(pVertex);
+}
+
+inline auto const &DiGraph::getInDegrees() const { return m_inDegrees; }
+
+inline auto const &DiGraph::getOutDegrees() const { return m_outDegrees; }
+
+// PRIVATE CLASS METHODS
+
+inline void
+DiGraph::_onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+  _increaseOutDegree(pVertices.first);
+  _increaseInDegree(pVertices.second);
+}
+
+inline void DiGraph::_onEdgeDeleted(
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+  _decreaseOutDegree(pVertices.first);
+  _decreaseInDegree(pVertices.second);
+}
+
 } // namespace graph
 
-//// UTILITY FUNCTIONS ////
-struct GraphUtil {
-  /**
-   * Calculates the shortest path between two Vertex instances within a given Graph.
-   *
-   * @param pGraph a pointer to a Graph
-   * @param vertexIDs a std::pair containing pointers to the start and end Vertex
-   * @return A std::deque containing pointers to the Vertex instances representing the shortest path between the
-   *         supplied Vertex instances
-   */
-  template <typename T, typename std::enable_if_t<std::is_base_of<graph::GraphBase, T>::value, bool> = true>
-  static std::deque<gsl::not_null<graph::Vertex const *> const>
-  getShortestPath(gsl::not_null<T const *> const pGraph,
-                  std::pair<gsl::not_null<graph::Vertex const *> const,
-                            gsl::not_null<graph::Vertex const *> const> const vertexIDs) {
-    std::deque<gsl::not_null<graph::Vertex const *> const> result;
-    std::unordered_map<std::string const *, std::size_t> dist;
-    std::unordered_map<graph::Vertex const *, graph::Vertex const *> prev;
+// ---------------
+// class GraphUtil
+// ---------------
 
-    std::vector<graph::Vertex const *> vertices;
+// PUBLIC CLASS METHODS
 
-    for (auto const *const pVertex : pGraph->getVertices()) {
-      vertices.push_back(pVertex);
+template <typename TYPE, typename std::enable_if_t<std::is_base_of<graph::GraphBase, TYPE>::value, bool>>
+auto GraphUtil::getShortestPath(
+    gsl::not_null<TYPE const *> const                                                                       pGraph,
+    std::pair<gsl::not_null<graph::Vertex const *> const, gsl::not_null<graph::Vertex const *> const> const pVertices) {
+  std::deque<graph::Vertex const *const>                           result;
+  std::unordered_map<graph::Vertex const *, std::size_t>           dist;
+  std::unordered_map<graph::Vertex const *, graph::Vertex const *> prev;
 
-      if (pVertex == vertexIDs.first) {
-        dist[&pVertex->getID()] = 0;
-      } else {
-        dist[&pVertex->getID()] = std::numeric_limits<std::size_t>::max() - 1;
-      }
+  std::list<graph::Vertex const *> vertices;
+
+  for (auto const *const pVertex : pGraph->getVertices()) {
+    vertices.push_back(pVertex);
+
+    if (pVertex == pVertices.first) {
+      dist.insert({pVertex, 0});
+    } else {
+      dist.insert({pVertex, std::numeric_limits<std::size_t>::max() - 1});
     }
+  }
 
-    while (!vertices.empty()) {
-      auto pMinDistVertex =
-          *std::min_element(vertices.begin(), vertices.end(), [&](auto const *const pV1, auto const *const pV2) {
-            return dist[&pV1->getID()] < dist[&pV2->getID()];
-          });
+  while (!vertices.empty()) {
+    auto const iterMinDistVertex =
+        std::min_element(vertices.begin(), vertices.end(),
+                         [&](auto const *const pV1, auto const *const pV2) { return dist.at(pV1) < dist.at(pV2); });
+    auto pMinDistVertex = *iterMinDistVertex;
 
-      vertices.erase(std::remove(vertices.begin(), vertices.end(), pMinDistVertex), vertices.end());
+    vertices.erase(iterMinDistVertex);
 
-      if (pMinDistVertex == vertexIDs.second) {
-        if (prev.contains(pMinDistVertex) || pMinDistVertex == vertexIDs.first) {
-          while (true) {
-            result.push_front(pMinDistVertex);
+    if (pMinDistVertex == pVertices.second) {
+      if (prev.contains(pMinDistVertex) || pMinDistVertex == pVertices.first) {
+        while (true) {
+          result.push_front(pMinDistVertex);
 
-            if (!prev.contains(pMinDistVertex)) {
-              break;
-            }
-
-            pMinDistVertex = prev[pMinDistVertex];
+          if (!prev.contains(pMinDistVertex)) {
+            break;
           }
-        }
 
-        return result;
-      }
-
-      for (auto const &neighbor : *getReachableVertices(*pGraph, pMinDistVertex)) {
-        auto const alt = dist[&pMinDistVertex->getID()] + 1;
-        auto const *const pNeighbor = pGraph->getVertex(neighbor.first);
-        if (alt < dist[&pNeighbor->getID()]) {
-          dist[&pNeighbor->getID()] = alt;
-          prev.insert_or_assign(pNeighbor, pMinDistVertex);
+          pMinDistVertex = prev.at(pMinDistVertex);
         }
       }
+
+      return result;
     }
 
-    return result;
-  };
+    for (auto const &neighbor : _getReachableVertices(*pGraph, pMinDistVertex)) {
+      auto const        alt       = dist.at(pMinDistVertex) + 1;
+      auto const *const pNeighbor = pGraph->getVertex(neighbor.first);
+      if (alt < dist.at(pNeighbor)) {
+        dist.at(pNeighbor) = alt;
+        prev.insert_or_assign(pNeighbor, pMinDistVertex);
+      }
+    }
+  }
 
-private:
-  static auto getReachableVertices(graph::Graph const &graph,
-                                   gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
-    return graph.getNeighbors(pVertex);
-  };
+  return result;
+}
 
-  static auto getReachableVertices(graph::DiGraph const &graph,
-                                   gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
-    return graph.getSuccessors(pVertex);
-  };
-};
-//// /UTILITY FUNCTIONS ////
+// PRIVATE CLASS METHODS
+
+[[maybe_unused]] inline auto
+GraphUtil::_getReachableVertices(graph::Graph const &                                    graph,
+                                 gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
+  return graph.getNeighbors(pVertex);
+}
+
+[[maybe_unused]] inline auto
+GraphUtil::_getReachableVertices(graph::DiGraph const &                                  diGraph,
+                                 gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) {
+  return diGraph.getSuccessors(pVertex);
+}
 
 } // namespace lazybastard
+
+#endif // INCLUDED_LAZYBASTARD_GRAPH
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

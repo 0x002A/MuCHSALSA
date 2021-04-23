@@ -19,28 +19,30 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#include "graph/Edge.h"
-#include "Util.h"
-#include "graph/Vertex.h"
+#ifndef INCLUDED_LAZYBASTARD_DIRECTION
+#define INCLUDED_LAZYBASTARD_DIRECTION
 
-namespace lazybastard::graph {
+#pragma once
+
+namespace lazybastard {
 
 // =====================================================================================================================
-//                                                     CLASS METHODS
+//                                                         TYPES
 // =====================================================================================================================
 
-Edge::Edge(std::pair<std::shared_ptr<Vertex const> const, std::shared_ptr<Vertex const> const> &&vertices)
-    : m_id(Edge::getEdgeId(std::make_pair(vertices.first.get(), vertices.second.get()))),
-      m_vertices(std::move(vertices)), m_shadow(false), m_weight(0), m_consensusDirection(Direction::e_NONE) {}
+// ----------------
+// struct Direction
+// ----------------
 
-std::string Edge::getEdgeId(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) {
-  auto id = vertices.first->getId();
-  id.append(",");
-  id.append(vertices.second->getId());
+/**
+ * Scoped enum representing a Direction.
+ */
+struct Direction {
+  enum Enum : char { e_POS = 'a', e_NEG = 'b', e_NONE = 'c' };
+};
 
-  return id;
-}
+} // namespace lazybastard
 
-} // namespace lazybastard::graph
+#endif // INCLUDED_LAZYBASTARD_DIRECTION
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

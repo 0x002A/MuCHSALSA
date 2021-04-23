@@ -1,3 +1,27 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
+#ifndef INCLUDED_LAZYBASTARD_PROKRASTINATOR
+#define INCLUDED_LAZYBASTARD_PROKRASTINATOR
+
 #pragma once
 
 #include <cstddef>
@@ -5,7 +29,6 @@
 #include <gsl/pointers>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -15,12 +38,16 @@
 
 namespace lazybastard {
 
+// =====================================================================================================================
+//                                                        KERNEL
+// =====================================================================================================================
+
 std::optional<graph::EdgeOrder> computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
                                                std::deque<std::string> &ids, gsl::not_null<graph::Edge const *> pEdge,
                                                bool direction, std::size_t score, bool isPrimary);
 
 std::vector<std::tuple<std::deque<std::string>, std::size_t, bool>>
-getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> matches, gsl::not_null<graph::Edge const *> pEdge,
+getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> pMatches, gsl::not_null<graph::Edge const *> pEdge,
                     std::vector<std::string> const &illuminaIDs, Toggle direction, std::size_t wiggleRoom);
 
 bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph::Vertex const *> pSubnode,
@@ -39,8 +66,12 @@ std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph con
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
 void assemblePath(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<matching::MatchMap const *> matches,
-                  gsl::not_null<matching::ID2OverlapMap *> pID2OverlapMap,
+                  gsl::not_null<matching::Id2OverlapMap *>                               pId2OverlapMap,
                   gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
                   gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t idx, OutputWriter &writer);
 
 } // namespace lazybastard
+
+#endif // INCLUDED_LAZYBASTARD_PROKRASTINATOR
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

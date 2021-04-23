@@ -1,5 +1,5 @@
 Checks:
-'*,
+  '*,
 -fuchsia-overloaded-operator,
 -fuchsia-default-arguments-calls,
 -fuchsia-trailing-return,
@@ -10,37 +10,35 @@ Checks:
 -readability-implicit-bool-conversion,
 -hicpp-multiway-paths-covered,
 -readability-function-cognitive-complexity,
+-altera-struct-pack-align,
 '
 
 InheritParentConfig: true
 
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,                value: lower_case }
-  - { key: readability-identifier-naming.ClassCase,                    value: CamelCase  }
-  - { key: readability-identifier-naming.StructCase,                   value: CamelCase  }
-  - { key: readability-identifier-naming.TemplateParameterCase,        value: CamelCase  }
-  - { key: readability-identifier-naming.ValueTemplateParameterCase,   value: CamelCase  }
-  - { key: readability-identifier-naming.TypedefCase,                  value: CamelCase  }
+  - { key: readability-identifier-naming.ClassCase,                    value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,                   value: CamelCase }
+  - { key: readability-identifier-naming.TemplateParameterCase,        value: UPPER_CASE }
+  - { key: readability-identifier-naming.ValueTemplateParameterCase,   value: UPPER_CASE }
+  - { key: readability-identifier-naming.TypedefCase,                  value: lower_case }
   - { key: readability-identifier-naming.TypeAliasCase,                value: lower_case }
-  - { key: readability-identifier-naming.EnumCase,                     value: CamelCase  }
+  - { key: readability-identifier-naming.EnumCase,                     value: CamelCase }
   - { key: readability-identifier-naming.VariableCase,                 value: camelBack }
   - { key: readability-identifier-naming.ParameterCase,                value: camelBack }
   - { key: readability-identifier-naming.PrivateMemberPrefix,          value: 'm_' }
   - { key: readability-identifier-naming.ProtectedMemberPrefix,        value: 'm_' }
-  - { key: readability-identifier-naming.GlobalVariablePrefix,         value: 'g_' }
-  - { key: readability-identifier-naming.StaticVariableCase,           value: CamelCase }
-  - { key: readability-identifier-naming.StaticVariablePrefix,         value: 's_' }
-  - { key: readability-identifier-naming.StaticConstantCase,           value: CamelCase }
-  - { key: readability-identifier-naming.StaticConstantPrefix,         value: 'c' }
+  - { key: readability-identifier-naming.ProtectedMethodPrefix,        value: '_' }
+  - { key: readability-identifier-naming.PrivateMethodPrefix,          value: '_' }
+  - { key: readability-identifier-naming.StaticVariableCase,           value: camelBack }
+  - { key: readability-identifier-naming.StaticConstantCase,           value: camelBack }
   - { key: readability-identifier-naming.GlobalConstantCase,           value: UPPER_CASE }
   - { key: readability-identifier-naming.EnumConstantCase,             value: UPPER_CASE }
   - { key: readability-identifier-naming.EnumConstantPrefix,           value: 'e_' }
   - { key: readability-identifier-naming.FunctionCase,                 value: camelBack }
   - { key: readability-identifier-naming.TypeAliasSuffix,              value: '_t' }
+  - { key: readability-identifier-naming.TypeAliasSuffix,              value: '_t' }
   - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: 1 } # structs are allowed
-  - { key: cert-dcl37-c.AllowedIdentifiers,                  value: __coro_gro;__promise } # coroutines
-  - { key: cert-dcl51-cpp.AllowedIdentifiers,                  value: __coro_gro;__promise } # coroutines
-  - { key: bugprone-reserved-identifier.AllowedIdentifiers,          value: __coro_gro;__promise } # coroutines
 
 FormatStyle: file
 

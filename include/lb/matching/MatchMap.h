@@ -1,3 +1,27 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
+#ifndef INCLUDED_LAZYBASTARD_MATCHMAP
+#define INCLUDED_LAZYBASTARD_MATCHMAP
+
 #pragma once
 
 #include <cstddef>
@@ -10,17 +34,42 @@
 #include <utility>
 
 #include "Lb.fwd.h"
+#include "graph/Vertex.h"
 #include "types/Toggle.h"
 
 namespace lazybastard {
 
-//// UTILITY FUNCTIONS ////
+// =====================================================================================================================
+//                                                   UTILITY FUNCTIONS
+// =====================================================================================================================
+
+// -------------------
+// struct MatchingUtil
+// -------------------
+
+/**
+ * Struct providing a namespace for utility functions regarding the matching.
+ */
 struct MatchingUtil {
-  static bool scaffoldLineIdxCmp(graph::Vertex const *pV1, graph::Vertex const *pV2);
+  /**
+   * Compares the line index of two Vertex instances.
+   *
+   * @param pLhs a pointer pointing to the left hand side Vertex
+   * @param pRhs a pointer pointing to the right hand side Vertex
+   * @return A bool indicating whether the left hand side Vertex has a smaller line index.
+   */
+  static bool scaffoldLineIdxCmp(graph::Vertex const *pLhs, graph::Vertex const *pRhs);
 };
-//// /UTILITY FUNCTIONS ////
 
 namespace matching {
+
+// =====================================================================================================================
+//                                                         TYPES
+// =====================================================================================================================
+
+// ------------------
+// struct VertexMatch
+// ------------------
 
 /**
  * Struct representing a match attached to a Vertex.
@@ -28,25 +77,32 @@ namespace matching {
 struct VertexMatch {
   std::pair<int, int> const nanoporeRange; /*!< Nanopore range */
   std::pair<int, int> const illuminaRange; /*!< Illumina range */
-  double const rRatio;                     /*!< Read ratio */
-  Toggle const direction;                  /*!< Read direction */
-  std::size_t const score;                 /*!< Score (number of matches) */
-  Toggle const isPrimary;                  /*!< Did the match pass the thresholds concerning
-                                              length and match count */
+  double const              rRatio;        /*!< Read ratio */
+  Toggle const              direction;     /*!< Read direction */
+  std::size_t const         score;         /*!< Score (number of matches) */
+  Toggle const              isPrimary;     /*!< Is a primary */
 };
+
+// ----------------
+// struct EdgeMatch
+// ----------------
 
 /**
  * Struct representing a match attached to an Edge.
  */
 struct EdgeMatch {
-  std::pair<int, int> const overlap; /*!< Overlap */
-  Toggle const direction;            /*!< Edge direction */
-  double const score;                /*!< Score */
-  Toggle const isPrimary;            /*!< Did the match pass the thresholds */
+  std::pair<int, int> const overlap;   /*!< Overlap */
+  Toggle const              direction; /*!< Edge direction */
+  double const              score;     /*!< Score */
+  Toggle const              isPrimary; /*!< Is a primary */
 };
 
+// --------------
+// class MatchMap
+// --------------
+
 /**
- * Class representing a map containing Illumina IDs matched with Nanopore IDs.
+ * Class representing the mapping of illumina ids to their matching nanopore ids.
  *
  * Instances of this class are designed to be thread-safe.
  */
@@ -55,116 +111,99 @@ public:
   /**
    * Class constructor creating a new instance.
    *
-   * @param pThreadPool a pointer to the ThreadPool to be used for parallelization
-   * @param pGraph a pointer to the Graph receiving the Vertex instances
+   * @param pThreadPool a pointer pointing to the ThreadPool to be used for parallelization
+   * @param pGraph a pointer pointing to the Graph receiving the Vertex instances
    */
-  MatchMap(gsl::not_null<threading::ThreadPool *> const pThreadPool, gsl::not_null<graph::Graph *> const pGraph)
-      : m_pThreadPool(pThreadPool), m_pGraph(pGraph){};
+  MatchMap(gsl::not_null<threading::ThreadPool *> pThreadPool, gsl::not_null<graph::Graph *> pGraph);
+
   /**
-   * Adds a VertexMatch to the map.
+   * Adds a VertexMatch to the MatchMap.
    *
-   * @param nanoporeID a constant reference to the nanopore ID
-   * @param illuminaID a constant reference to the illumina ID
-   * @param spMatch an rvalue reference to the std::shared_ptr to the VertexMatch to be added to the map (by moving)
+   * @param nanoporeId a const reference to the nanopore id
+   * @param illuminaId a const reference to the illumina id
+   * @param spMatch an rvalue reference to the std::shared_ptr pointing to the VertexMatch to be added to the MatchMap
    */
-  void addVertexMatch(std::string const &nanoporeID, std::string const &illuminaID,
+  void addVertexMatch(std::string const &nanoporeId, std::string const &illuminaId,
                       std::shared_ptr<VertexMatch> &&spMatch);
 
   /**
-   * Getter returning a specific match of the Vertex having the supplied ID.
+   * Getter returning a pointer pointing to a specific VertexMatch of the Vertex having the supplied id.
    * This functions returns nullptr if the requested VertexMatch wasn't found.
    *
-   * @param vertexID a constant reference to the identifier of the Vertex
-   * @param illuminaID a constant reference to the illumina ID associated with the VertexMatch
-   * @return A pointer to the VertexMatch (constant) if found nullptr otherwise
+   * @param vertexId a const reference to a std::string representing the id of the Vertex
+   * @param illuminaId a const reference to the illumina id associated with the VertexMatch
+   * @return A pointer to the VertexMatch (nullptr if not found)
    */
-  [[nodiscard]] VertexMatch const *getVertexMatch(std::string const &vertexID, std::string const &illuminaID) const {
-    auto const vertexIter = m_vertexMatches.find(vertexID);
-    if (vertexIter != std::end(m_vertexMatches)) {
-      auto const illuminaIter = vertexIter->second.find(illuminaID);
-      if (illuminaIter != std::end(vertexIter->second)) {
-        return illuminaIter->second.get();
-      }
-    }
-
-    return nullptr;
-  };
+  [[nodiscard]] VertexMatch const *getVertexMatch(std::string const &vertexId, std::string const &illuminaId) const;
 
   /**
-   * Getter returning all EdgeMatch instances for a specific Edge stored within this map.
+   * Getter returning a pointer pointing to the std::unordered_map containing all VertexMatch instances for a specific
+   * Vertex stored within this MatchMap.
    *
-   * @param vertexID a constant reference to the identifier of the Vertex
+   * @param vertexId a const reference to a std::string representing the id of the Vertex
    * @return A pointer to the std::unordered_map containing all VertexMatch instances associated with the requested
-   *         Vertex
+   *         Vertex (nullptr if not found)
    */
   [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch>> const *
-  getVertexMatches(std::string const &vertexID) const {
-    auto iter = m_vertexMatches.find(vertexID);
-    if (iter != std::end(m_vertexMatches)) {
-      return &(iter->second);
-    }
-
-    return nullptr;
-  };
+  getVertexMatches(std::string const &vertexId) const;
 
   /**
-   * Getter returning all VertexMatch instances stored within this map.
+   * Getter returning all VertexMatch instances stored within this MatchMap.
    *
-   * @return The std::unordered_map containing all VertexMatch instances
+   * @return A const reference to the std::unordered_map containing all VertexMatch instances
    */
-  [[nodiscard]] auto const &getVertexMatches() const { return m_vertexMatches; };
+  [[nodiscard]] auto const &getVertexMatches() const;
 
   /**
-   * Adds an Edge match to the map.
+   * Deletes all VertexMatch instances for a specific Vertex stored within this MatchMap.
    *
-   * @param edgeID an rvalue reference to the identifier of the Edge
-   * @param illuminaID a constant reference the illumina ID
-   * @param spMatch an rvalue reference to the std::shared_pointer to the EdgeMatch to be added to the map (by moving)
+   * @param vertexId a const reference to a std::string representing the id of the Vertex
    */
-  void addEdgeMatch(std::string &&edgeID, std::string const &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch);
+  void deleteVertexMatches(std::string const &vertexId);
 
   /**
-   * Getter returning a specific match of the Edge having the supplied ID.
+   * Adds an EdgeMatch to the MatchMap.
+   *
+   * @param edgeId an rvalue reference to a std::string representing the id of the Edge
+   * @param illuminaId a const reference to a std::string representing the illumina id
+   * @param spMatch an rvalue reference to the std::shared_pointer pointing to the EdgeMatch to be added to the MatchMap
+   */
+  void addEdgeMatch(std::string &&edgeId, std::string const &illuminaId, std::shared_ptr<EdgeMatch> &&spMatch);
+
+  /**
+   * Getter returning a specific EdgeMatch of the Edge having the supplied id.
    * This functions returns nullptr if the requested EdgeMatch wasn't found.
    *
-   * @param edgeID a constant reference to the identifier of the Edge
-   * @param illuminaID a constant reference to the illumina ID associated with the EdgeMatch
-   * @return A pointer to the EdgeMatch (constant) if found nullptr otherwise
+   * @param edgeId a const reference to a std::string representing the id of the Edge
+   * @param illuminaId a const reference to a std::string representing the illumina id
+   * @return A pointer pointing to the EdgeMatch (nullptr if not found)
    */
-  [[nodiscard]] EdgeMatch const *getEdgeMatch(std::string const &edgeID, std::string const &illuminaID) const {
-    auto const edgeIter = m_edgeMatches.find(edgeID);
-    if (edgeIter != std::end(m_edgeMatches)) {
-      auto const illuminaIter = edgeIter->second.find(illuminaID);
-      if (illuminaIter != std::end(edgeIter->second)) {
-        return illuminaIter->second.get();
-      }
-    }
-
-    return nullptr;
-  };
+  [[nodiscard]] EdgeMatch const *getEdgeMatch(std::string const &edgeId, std::string const &illuminaId) const;
 
   /**
-   * Getter returning all EdgeMatch instances for a specific Edge stored within this map.
+   * Getter returning a std::unordered_map containing all EdgeMatch instances for a specific Edge stored within this
+   * MatchMap.
    *
-   * @param edgeID a constant reference to the identifier of the Edge
-   * @return A pointer to the std::unordered_map containing all EdgeMatch instances associated with the requested Edge
+   * @param edgeId a const reference to a std::string representing the id of the Edge
+   * @return A pointer pointing to the std::unordered_map containing all EdgeMatch instances associated with the
+   *         requested Edge
    */
   [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch>> const *
-  getEdgeMatches(std::string const &edgeID) const {
-    auto const iter = m_edgeMatches.find(edgeID);
-    if (iter != std::end(m_edgeMatches)) {
-      return &iter->second;
-    }
-
-    return nullptr;
-  };
+  getEdgeMatches(std::string const &edgeId) const;
 
   /**
-   * Getter returning all EdgeMatch instances stored within this map.
+   * Getter returning all EdgeMatch instances stored within this MatchMap.
    *
-   * @return The std::unordered_map containing all EdgeMatch instances
+   * @return A const reference to the std::unordered_map containing all EdgeMatch instances
    */
-  [[nodiscard]] auto const &getEdgeMatches() const { return m_edgeMatches; };
+  [[maybe_unused]] [[nodiscard]] auto const &getEdgeMatches() const;
+
+  /**
+   * Deletes all EdgeMatch instances for a specific Edge stored within this MatchMap.
+   *
+   * @param edgeId a const reference to a std::string representing the id of the Edge
+   */
+  void deleteEdgeMatches(std::string const &edgeId);
 
   /**
    * Creates or updates Edge instances according to the scaffolds.
@@ -172,27 +211,65 @@ public:
   void calculateEdges();
 
   /**
-   * Processes a scaffold.
+   * Processes a single scaffold.
    *
-   * @param pJob a pointer to the threading::Job containing the parameters
+   * @param pJob a pointer pointing to the Job containing the parameters
    */
   void processScaffold(gsl::not_null<threading::Job const *> pJob);
 
 private:
-  template <typename T1, typename T2> using um = std::unordered_map<T1, T2>;
+  template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
 
-  um<std::string, um<std::string, std::shared_ptr<VertexMatch>>>
-      m_vertexMatches; /*!< Map containing the VertexMatch instances */
-  um<std::string, um<std::string, std::shared_ptr<EdgeMatch>>>
-      m_edgeMatches; /*!< Map containing the EdgeMatch instances */
-  um<std::string,
-     std::map<graph::Vertex *, std::shared_ptr<VertexMatch>, decltype(&lazybastard::MatchingUtil::scaffoldLineIdxCmp)>>
-      m_scaffolds;          /*!< Map containing the scaffolds */
-  std::mutex m_vertexMutex; /*!< std::mutex for securing the parallel use of the map containing VertexMatches */
-  std::mutex m_edgeMutex;   /*!< std::mutex for securing the parallel use of the map containing EdgeMatches */
-  threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
-  graph::Graph *const m_pGraph;               /*!< Pointer to the Graph receiving the Vertex instances */
+  um_t<std::string, um_t<std::string, std::shared_ptr<VertexMatch>>>
+      m_vertexMatches; /*!< std::map containing the VertexMatch instances */
+  um_t<std::string, um_t<std::string, std::shared_ptr<EdgeMatch>>>
+      m_edgeMatches; /*!< std::map containing the EdgeMatch instances */
+  um_t<std::string, std::map<graph::Vertex *, std::shared_ptr<VertexMatch>,
+                             decltype(&lazybastard::MatchingUtil::scaffoldLineIdxCmp)>>
+             m_scaffolds;   /*!< std::map containing the scaffolds */
+  std::mutex m_vertexMutex; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the
+                               VertexMatches */
+  std::mutex
+      m_edgeMutex; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the EdgeMatches */
+  threading::ThreadPool *const m_pThreadPool; /*!< Pointer pointing to the ThreadPool used for parallelization */
+  graph::Graph *const          m_pGraph;      /*!< Pointer pointing to the Graph receiving the Vertex instances */
 };
 
+// =====================================================================================================================
+//                                                  INLINE DEFINITIONS
+// =====================================================================================================================
+
+// --------------
+// class MatchMap
+// --------------
+
+// PUBLIC CLASS METHODS
+inline MatchMap::MatchMap(gsl::not_null<threading::ThreadPool *> const pThreadPool,
+                          gsl::not_null<graph::Graph *> const          pGraph)
+    : m_pThreadPool(pThreadPool), m_pGraph(pGraph) {}
+
+[[nodiscard]] inline auto const &MatchMap::getVertexMatches() const { return m_vertexMatches; }
+
+inline void MatchMap::deleteVertexMatches(std::string const &vertexId) { m_vertexMatches.erase(vertexId); }
+
+[[maybe_unused]] [[nodiscard]] inline auto const &MatchMap::getEdgeMatches() const { return m_edgeMatches; }
+
+inline void MatchMap::deleteEdgeMatches(std::string const &edgeId) { m_edgeMatches.erase(edgeId); }
+
 } // namespace matching
+
+// -------------------
+// struct MatchingUtil
+// -------------------
+
+// PUBLIC CLASS METHODS
+
+inline bool MatchingUtil::scaffoldLineIdxCmp(graph::Vertex const *pLhs, graph::Vertex const *pRhs) {
+  return pLhs->getMetaDatum<std::size_t>(0) < pRhs->getMetaDatum<std::size_t>(0);
+}
+
 } // namespace lazybastard
+
+#endif // INCLUDED_LAZYBASTARD_MATCHMAP
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
