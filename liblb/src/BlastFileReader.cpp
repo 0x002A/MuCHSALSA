@@ -124,7 +124,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
     isPrimary &= matches >= TH_MATCHES;
 
     auto spVertexMatch = lazybastard::util::make_shared_aggregate<lazybastard::matching::VertexMatch>(
-        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary);
+        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary, std::make_pair(0, 0));
     m_pMatchMap->addVertexMatch(nanoporeId, illuminaId, std::move(spVertexMatch));
   }
 

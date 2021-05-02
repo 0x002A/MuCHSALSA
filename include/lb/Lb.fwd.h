@@ -44,6 +44,8 @@ class Vertex;
 
 namespace matching {
 
+struct VertexMatch;
+struct EdgeMatch;
 class MatchMap;
 class Id2OverlapMap;
 
@@ -58,6 +60,7 @@ class ThreadPool;
 
 class OutputWriter;
 struct Toggle;
+class SequenceAccessor;
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 } // namespace lazybastard

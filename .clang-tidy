@@ -11,6 +11,8 @@ Checks:
 -hicpp-multiway-paths-covered,
 -readability-function-cognitive-complexity,
 -altera-struct-pack-align,
+-cppcoreguidelines-pro-type-vararg,
+-hicpp-vararg,
 '
 
 InheritParentConfig: true

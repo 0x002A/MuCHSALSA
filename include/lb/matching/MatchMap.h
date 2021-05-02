@@ -75,12 +75,13 @@ namespace matching {
  * Struct representing a match attached to a Vertex.
  */
 struct VertexMatch {
-  std::pair<int, int> const nanoporeRange; /*!< Nanopore range */
-  std::pair<int, int> const illuminaRange; /*!< Illumina range */
-  double const              rRatio;        /*!< Read ratio */
-  Toggle const              direction;     /*!< Read direction */
-  std::size_t const         score;         /*!< Score (number of matches) */
-  Toggle const              isPrimary;     /*!< Is a primary */
+  std::pair<int, int> const           nanoporeRange; /*!< Nanopore range */
+  std::pair<int, int> const           illuminaRange; /*!< Illumina range */
+  double const                        rRatio;        /*!< Read ratio */
+  Toggle const                        direction;     /*!< Read direction */
+  std::size_t const                   score;         /*!< Score (number of matches) */
+  Toggle const                        isPrimary;     /*!< Is a primary */
+  std::pair<std::size_t, std::size_t> seqPos;        /*!< Sequence offset and length */
 };
 
 // ----------------
@@ -91,10 +92,11 @@ struct VertexMatch {
  * Struct representing a match attached to an Edge.
  */
 struct EdgeMatch {
-  std::pair<int, int> const overlap;   /*!< Overlap */
-  Toggle const              direction; /*!< Edge direction */
-  double const              score;     /*!< Score */
-  Toggle const              isPrimary; /*!< Is a primary */
+  std::pair<int, int> const           overlap;   /*!< Overlap */
+  Toggle const                        direction; /*!< Edge direction */
+  double const                        score;     /*!< Score */
+  Toggle const                        isPrimary; /*!< Is a primary */
+  std::pair<std::size_t, std::size_t> seqPos;    /*!< Sequence offset and length */
 };
 
 // --------------
@@ -226,11 +228,11 @@ private:
       m_edgeMatches; /*!< std::map containing the EdgeMatch instances */
   um_t<std::string, std::map<graph::Vertex *, std::shared_ptr<VertexMatch>,
                              decltype(&lazybastard::MatchingUtil::scaffoldLineIdxCmp)>>
-             m_scaffolds;   /*!< std::map containing the scaffolds */
-  std::mutex m_vertexMutex; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the
-                               VertexMatches */
-  std::mutex
-      m_edgeMutex; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the EdgeMatches */
+             m_scaffolds;          /*!< std::map containing the scaffolds */
+  std::mutex m_mutexVertexMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing
+                               the VertexMatches */
+  std::mutex m_mutexEdgeMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the
+                                    EdgeMatches */
   threading::ThreadPool *const m_pThreadPool; /*!< Pointer pointing to the ThreadPool used for parallelization */
   graph::Graph *const          m_pGraph;      /*!< Pointer pointing to the Graph receiving the Vertex instances */
 };

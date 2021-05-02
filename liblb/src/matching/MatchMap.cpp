@@ -53,7 +53,7 @@ void MatchMap::addVertexMatch(const std::string &nanoporeId, const std::string &
     throw std::runtime_error("Unexpected nullptr.");
   }
 
-  std::scoped_lock<std::mutex> lck(m_vertexMutex);
+  std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
 
   // Map representing the scaffolds
   auto nanoporeIDs =
@@ -97,7 +97,7 @@ void MatchMap::addEdgeMatch(std::string &&edgeId, std::string const &illuminaId,
     throw std::runtime_error("Unexpected nullptr.");
   }
 
-  std::scoped_lock<std::mutex> lck(m_edgeMutex);
+  std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
 
   // Actual map containing the matches
   auto illuminaIDs =
@@ -173,7 +173,8 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
 
         addEdgeMatch(lazybastard::graph::Edge::getEdgeId(std::move(vertexIDs)),
                      std::any_cast<std::string>(pJob->getParam(1)),
-                     lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary));
+                     lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary,
+                                                                         std::make_pair(0, 0)));
       }
     }
   }

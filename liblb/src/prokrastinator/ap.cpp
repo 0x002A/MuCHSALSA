@@ -22,12 +22,14 @@
 #include "Prokrastinator.h"
 
 #include "OutputWriter.h"
+#include "SequenceAccessor.h"
 #include "graph/Graph.h"
 #include "matching/Id2OverlapMap.h"
 #include "matching/MatchMap.h"
 
 void lazybastard::assemblePath(gsl::not_null<graph::Graph const *> const /*pGraph*/,
-                               gsl::not_null<lazybastard::matching::MatchMap const *> const /*matches*/,
+                               gsl::not_null<lazybastard::matching::MatchMap const *> const /*pMatches*/,
+                               gsl::not_null<lazybastard::SequenceAccessor *> const /*pSequenceAccessor*/,
                                gsl::not_null<lazybastard::matching::Id2OverlapMap *> const /*pId2OverlapMap*/,
                                gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> const /*pPath*/,
                                gsl::not_null<lazybastard::graph::DiGraph const *> const /*pDiGraph*/,

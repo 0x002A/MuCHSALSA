@@ -21,7 +21,7 @@ TEST(ThreadingTest, ReturnsCorrectResult) {
 
     // push value
     {
-      std::unique_lock<std::mutex> lock(m);
+      std::scoped_lock<std::mutex> lock(m);
       res.push_back(number * 10);
     }
 

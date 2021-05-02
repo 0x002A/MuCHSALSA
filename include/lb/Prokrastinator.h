@@ -59,13 +59,14 @@ std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *>
 std::vector<std::vector<lazybastard::graph::Vertex *>>
 getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
 
-std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph const *> pGraph,
-                                                  gsl::not_null<graph::Graph const *> pConnectedComponent,
+std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
+                                                  gsl::not_null<graph::Graph const *>  pConnectedComponent,
                                                   gsl::not_null<graph::Vertex const *> pStartNode);
 
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
-void assemblePath(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<matching::MatchMap const *> matches,
+void assemblePath(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<matching::MatchMap const *> pMatches,
+                  gsl::not_null<SequenceAccessor *>                                      pSequenceAccessor,
                   gsl::not_null<matching::Id2OverlapMap *>                               pId2OverlapMap,
                   gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
                   gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t idx, OutputWriter &writer);

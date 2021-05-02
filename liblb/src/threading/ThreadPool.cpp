@@ -63,7 +63,7 @@ ThreadPool::ThreadPool(std::size_t threadCount) : m_threads(std::vector<std::thr
 
 void ThreadPool::addJob(Job &&job) {
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    std::scoped_lock<std::mutex> lock(m_mutex);
     m_jobs.push(std::move(job));
   }
   m_condition.notify_one();

@@ -309,7 +309,7 @@ void DiGraph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   _addVertex(std::move(spVertex));
 
   {
-    std::unique_lock<std::mutex> lck(m_mutexDegrees);
+    std::scoped_lock<std::mutex> lck(m_mutexDegrees);
     m_inDegrees.insert({pVertex, 0});
     m_outDegrees.insert({pVertex, 0});
   }
