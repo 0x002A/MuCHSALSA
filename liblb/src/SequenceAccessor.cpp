@@ -57,15 +57,14 @@ std::string getSequenceFromFile(std::FILE *pFile, std::pair<std::size_t, std::si
   std::fseek(pFile, static_cast<int64_t>(seqPos.first), SEEK_SET);
 
   std::vector<char> buffer;
-  buffer.reserve(seqPos.second + 1);
+  buffer.reserve(seqPos.second);
 
   size_t ret = fread(buffer.data(), sizeof(decltype(buffer)::value_type), seqPos.second, pFile);
   if (ret != seqPos.second) {
     throw std::runtime_error("Failed to read sequence.");
   }
-  buffer[seqPos.second] = '\0';
 
-  std::string sequence(buffer.data());
+  std::string sequence(buffer.data(), seqPos.second);
   sequence.erase(std::remove_if(std::begin(sequence), std::end(sequence), [](auto const c) { return std::isspace(c); }),
                  std::end(sequence));
 
