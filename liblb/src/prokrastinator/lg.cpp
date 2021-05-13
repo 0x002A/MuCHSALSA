@@ -117,7 +117,7 @@ void sortReduction(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraphCy
     std::for_each(std::begin(predecessors), std::end(predecessors), [&](auto const &p) {
       auto const *const pPredecessor = pDiGraphCycle->getVertex(p.first);
       if (verticesWithNonNullInDegree.contains(pPredecessor)) {
-        pDiGraphCycle->deleteEdge(p.second);
+        pDiGraphCycle->deleteEdge(p.second, nullptr);
         p.second->setShadow(true);
       }
     });
@@ -132,48 +132,12 @@ void sortReduction(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraphCy
   }
 }
 
-void sortTopologically(gsl::not_null<std::vector<lazybastard::graph::Vertex const *> *> const pResult,
-                       gsl::not_null<lazybastard::graph::DiGraph *> const                     pDiGraphCycle) {
-  pResult->clear();
-
-  std::unordered_map<lazybastard::graph::Vertex const *, std::size_t> verticesWithNonNullInDegree;
-  std::deque<lazybastard::graph::Vertex const *>                      verticesWithNullInDegree;
-
-  initializeInDegreeMaps(std::inserter(verticesWithNonNullInDegree, std::begin(verticesWithNonNullInDegree)),
-                         std::back_inserter(verticesWithNullInDegree), pDiGraphCycle);
-
-  while (!verticesWithNullInDegree.empty()) {
-    auto const *const pVertex = verticesWithNullInDegree.front();
-    verticesWithNullInDegree.pop_front();
-
-    auto const successors = pDiGraphCycle->getSuccessors(pVertex);
-    for (auto const &[targetId, pEdge] : successors) {
-      LB_UNUSED(pEdge);
-
-      auto const *pSuccessor = pDiGraphCycle->getVertex(targetId);
-
-      verticesWithNonNullInDegree[pSuccessor] -= 1;
-
-      if (verticesWithNonNullInDegree[pSuccessor] == 0) {
-        verticesWithNullInDegree.push_back(pSuccessor);
-        verticesWithNonNullInDegree.erase(pSuccessor);
-      }
-    }
-
-    pResult->push_back(pVertex);
-  }
-}
-
 void findClusterWeights(
     gsl::not_null<std::unordered_map<lazybastard::graph::Edge const *, std::size_t> *> const pResult,
     gsl::not_null<lazybastard::graph::DiGraph *> const                                       pDiGraphCycle) {
   pResult->clear();
 
-  std::vector<lazybastard::graph::Vertex const *> sortedVertices;
-  sortedVertices.reserve(pDiGraphCycle->getOrder());
-
-  sortTopologically(&sortedVertices, pDiGraphCycle);
-  sortedVertices.shrink_to_fit();
+  auto const sortedVertices = pDiGraphCycle->sortTopologically();
 
   std::unordered_map<lazybastard::graph::Vertex const *, std::size_t> mappingVertexToIdx;
   std::unordered_map<std::size_t, lazybastard::graph::Vertex const *> mappingIdxToVertex;
@@ -296,11 +260,7 @@ void findClusterWeights(
 std::vector<lazybastard::graph::Vertex const *> findConservationPath(
     gsl::not_null<lazybastard::graph::DiGraph *> const                                             pDiGraphCycle,
     gsl::not_null<std::unordered_map<lazybastard::graph::Edge const *, std::size_t> const *> const pClusterWeights) {
-  std::vector<lazybastard::graph::Vertex const *> sortedVertices;
-  sortedVertices.reserve(pDiGraphCycle->getOrder());
-
-  sortTopologically(&sortedVertices, pDiGraphCycle);
-  sortedVertices.shrink_to_fit();
+  auto const sortedVertices = pDiGraphCycle->sortTopologically();
 
   std::unordered_map<lazybastard::graph::Vertex const *, std::size_t> mappingVertexToIdx;
   std::unordered_map<std::size_t, lazybastard::graph::Vertex const *> mappingIdxToVertex;
@@ -396,7 +356,7 @@ extractPaths(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraph) {
   auto const edges = diGraphCycle.getEdges();
   for (auto const *const pEdge : edges) {
     if (pEdge->isShadow()) {
-      diGraphCycle.deleteEdge(pEdge);
+      diGraphCycle.deleteEdge(pEdge, nullptr);
     }
   }
 
@@ -441,7 +401,7 @@ extractPaths(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraph) {
 
     for (auto const *const pVertex : longestPath) {
       visited.insert(pVertex);
-      diGraphCycle.deleteVertex(pVertex);
+      diGraphCycle.deleteVertex(pVertex, nullptr);
     }
   }
 

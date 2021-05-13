@@ -146,7 +146,7 @@ public:
   /**
    * Setter setting the sequence offset and length.
    *
-   * @param seqPos an rvlaue reference to the sequence offset and length represented by a std::pair of std::size_t
+   * @param seqPos an rvalue reference to the sequence offset and length represented by a std::pair of std::size_t
    */
   void setSeqPos(std::pair<std::size_t, std::size_t> &&seqPos);
 

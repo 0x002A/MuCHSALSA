@@ -35,6 +35,7 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -149,6 +150,13 @@ public:
    * @return A std::vector containing pointers to all Vertex instances
    */
   std::vector<Vertex *> getVertices() const;
+
+  /**
+   * Returns a std::unordered_set containing pointers to all Vertex instances assigned to this Graph.
+   *
+   * @return A std::unordered_set containing pointers to all Vertex instances
+   */
+  std::unordered_set<Vertex *> getVerticesAsUnorderedSet() const;
 
   /**
    * Checks whether an Edge between Vertex instances exists or not.
@@ -276,18 +284,20 @@ protected:
    *
    * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
+   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges);
+  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges,
+                     lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
    * This method is **thread-safe**.
    *
-   * @param vertexIds a const reference to a std::pair containing pointers pointing to the Vertex instances to be
+   * @param pVertices a const reference to a std::pair containing pointers pointing to the Vertex instances to be
    *                  connected by the Edge
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
    */
-  void _addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds,
+  void _addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices,
                 bool isBidirectional);
 
   /**
@@ -296,13 +306,14 @@ protected:
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
+   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void _deleteEdge(gsl::not_null<Edge const *> pEdge, bool isBidirectional);
+  void _deleteEdge(gsl::not_null<Edge const *> pEdge, bool isBidirectional, lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexId a pointer pointing to the Vertex to return the successors for
+   * @param pVertex a pointer pointing to the Vertex to return the successors for
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
@@ -311,7 +322,7 @@ protected:
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
-   * @param vertexId a pointer pointing to the Vertex to return the predecessors for
+   * @param pVertex a pointer pointing to the Vertex to return the predecessors for
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
@@ -321,21 +332,21 @@ protected:
    * Hook which is getting called every time an Edge is about to get added.
    * This method can be overridden by deriving classes.
    *
-   * @param pVertices a std::pair of pointers to the Vertex instances connected by the Edge which is
+   * @param pVertices a const reference std::pair of pointers to the Vertex instances connected by the Edge which is
    *                  about to get added
    */
   virtual void
-  _onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
+  _onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices);
 
   /**
    * Hook which is getting called every time an Edge is about to get deleted.
    * This method can be overridden by deriving classes.
    *
-   * @param pVertices a std::pair of pointers to the Vertex instances connected by the Edge which is
+   * @param pVertices a const reference std::pair of pointers to the Vertex instances connected by the Edge which is
    *                  about to get deleted
    */
   virtual void
-  _onEdgeDeleted(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
+  _onEdgeDeleted(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices);
 
 private:
   template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
@@ -353,8 +364,9 @@ private:
    * @param spEdge an rvalue reference to the std::shared_ptr pointing to the Edge instance to be added to the Graph
    *               (by moving)
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
+   * @return A bool stating whether the Edge has been inserted or not
    */
-  void _addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional);
+  bool _addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional);
 };
 
 // -----------
@@ -430,41 +442,43 @@ public:
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
    *
-   * @param pVertexId a pointer pointing to the Vertex to be deleted
+   * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
+   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Adds an Edge to this Graph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIds a const reference to a std::pair containing pointers pointing to the Vertex instances to be
+   * @param pVertices a const reference to a std::pair containing pointers pointing to the Vertex instances to be
    *                  connected by the Edge
    */
-  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds);
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices);
 
   /**
    * Adds an Edge to this Graph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIds an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
+   * @param pVertices an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
    *                  connected by the Edge
    */
-  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds);
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
 
   /**
    * Deletes an Edge from the Graph.
    * The memory will be cleaned up and all references will become invalid.
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
+   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteEdge(gsl::not_null<Edge const *> pEdge);
+  void deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Getter returning the neighbors of a particular Vertex instance.
    *
-   * @param vertexId a pointer pointing to the Vertex to return the neighbors for
+   * @param pVertex a pointer pointing to the Vertex to return the neighbors for
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
@@ -562,40 +576,41 @@ public:
    * will become invalid.
    *
    * @param pVertex a pointer pointing to the Vertex to be deleted
-   * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
+   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Adds an Edge to this DiGraph. Already existing Edge instances are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIds a reference to a std::pair containing pointers pointing to the Vertex instances to be connected by
-   *                  the Edge
+   * @param pVertices a const reference to a std::pair containing pointers pointing to the Vertex instances to be
+   *                  connected by the Edge
    */
-  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds);
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices);
 
   /**
    * Adds an Edge to this DiGraph. Already existing edges are omitted.
    * This function is **thread-safe**.
    *
-   * @param vertexIds an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
+   * @param pVertices an rvalue reference to a std::pair containing pointers pointing to the Vertex instances to be
    *                  connected by the Edge
    */
-  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds);
+  void addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices);
 
   /**
    * Deletes an Edge from the DiGraph.
    * The memory will be cleaned up and all references will become invalid.
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
+   * @param pMatchMap a pointer to a MatchMap for clean up (defaulted to nullptr)
    */
-  void deleteEdge(gsl::not_null<Edge const *> pEdge);
+  void deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
    *
-   * @param vertexId a pointer pointing to the Vertex to return the successors for
+   * @param pVertex a pointer pointing to the Vertex to return the successors for
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
@@ -604,7 +619,7 @@ public:
   /**
    * Getter returning the predecessors of a particular Vertex instance.
    *
-   * @param vertexId a pointer pointing to the Vertex to return the predecessors for
+   * @param pVertex a pointer pointing to the Vertex to return the predecessors for
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
@@ -634,6 +649,15 @@ public:
    *         out-degrees
    */
   auto const &getOutDegrees() const;
+
+  /**
+   * Returns a std::vector containing pointers pointing to the Vertex instances of this Graph in topologically sorted
+   * order.
+   *
+   * @return A std::vector containing pointers pointing to the Vertex instances of this Graph in topologically sorted
+   *         order
+   */
+  std::vector<lazybastard::graph::Vertex const *> sortTopologically() const;
 
 private:
   std::unordered_map<Vertex const *, std::size_t> m_inDegrees;  /*!< std::unordered_map containing the in-degrees */
@@ -672,21 +696,21 @@ private:
    * Hook which is getting called every time an Edge is about to get added.
    * This method updates the degrees of the Vertex instances involved.
    *
-   * @param pVertices a std::pair of pointers pointing to the Vertex instances connected by the Edge which is about to
-   *                  get added
+   * @param pVertices a const reference std::pair of pointers pointing to the Vertex instances connected by the Edge
+   *                  which is about to get added
    */
   void _onEdgeAdded(
-      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override;
+      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) override;
 
   /**
    * Hook which is getting called every time an Edge is about to get deleted.
    * This method updates the degrees of the Vertex instances involved.
    *
-   * @param pVertices a std::pair of pointers pointing to the Vertex instances connected by the Edge which is about to
-   *                  get deleted
+   * @param pVertices a const reference std::pair of pointers pointing to the Vertex instances connected by the Edge
+   *                  which is about to get deleted
    */
   void _onEdgeDeleted(
-      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) override;
+      std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) override;
 
   /**
    * Recalculates the in-degrees and out-degrees based on the Edge instances attached to the DiGraph.
@@ -753,10 +777,10 @@ inline void swap(GraphBase &lhs, GraphBase &rhs) noexcept {
 }
 
 inline void GraphBase::_onEdgeAdded(
-    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> && /*pVertices*/) {}
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const & /*pVertices*/) {}
 
 inline void GraphBase::_onEdgeDeleted(
-    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> && /*pVertices*/) {}
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const & /*pVertices*/) {}
 
 // -----------
 // class Graph
@@ -783,20 +807,24 @@ inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(st
   }
 }
 
-inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex) { _deleteVertex(pVertex, true); }
-
-inline void
-Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds) {
-  _addEdge(vertexIds, true);
+inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {
+  _deleteVertex(pVertex, true, pMatchMap);
 }
 
 inline void
-Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds) {
-  auto temp = std::move(vertexIds);
+Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) {
+  _addEdge(pVertices, true);
+}
+
+inline void
+Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+  auto temp = std::move(pVertices);
   addEdge(temp);
 }
 
-inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge) { _deleteEdge(pEdge, true); }
+inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap) {
+  _deleteEdge(pEdge, true, pMatchMap);
+}
 
 inline std::unordered_map<std::string, Edge *const>
 Graph::getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
@@ -839,25 +867,27 @@ inline void swap(DiGraph &lhs, DiGraph &rhs) noexcept {
   }
 }
 
-inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex) {
-  _deleteVertex(pVertex, false);
+inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {
+  _deleteVertex(pVertex, false, pMatchMap);
 
   m_inDegrees.erase(pVertex);
   m_outDegrees.erase(pVertex);
 }
 
 inline void
-DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds) {
-  _addEdge(vertexIds, false);
+DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) {
+  _addEdge(pVertices, false);
 }
 
 inline void
-DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&vertexIds) {
-  auto temp = std::move(vertexIds);
+DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+  auto temp = std::move(pVertices);
   return addEdge(temp);
 }
 
-inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge) { _deleteEdge(pEdge, false); }
+inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge, lazybastard::matching::MatchMap *pMatchMap) {
+  _deleteEdge(pEdge, false, pMatchMap);
+}
 
 inline std::unordered_map<std::string, Edge *const>
 DiGraph::getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
@@ -875,14 +905,14 @@ inline auto const &DiGraph::getOutDegrees() const { return m_outDegrees; }
 
 // PRIVATE CLASS METHODS
 
-inline void
-DiGraph::_onEdgeAdded(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+inline void DiGraph::_onEdgeAdded(
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) {
   _increaseOutDegree(pVertices.first);
   _increaseInDegree(pVertices.second);
 }
 
 inline void DiGraph::_onEdgeDeleted(
-    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> &&pVertices) {
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) {
   _decreaseOutDegree(pVertices.first);
   _decreaseInDegree(pVertices.second);
 }

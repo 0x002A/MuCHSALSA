@@ -31,6 +31,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include "Lb.fwd.h"
@@ -60,16 +61,19 @@ std::vector<std::vector<lazybastard::graph::Vertex *>>
 getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
 
 std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
+                                                  gsl::not_null<matching::MatchMap *>  pMatchMap,
                                                   gsl::not_null<graph::Graph const *>  pConnectedComponent,
                                                   gsl::not_null<graph::Vertex const *> pStartNode);
 
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
-void assemblePath(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<matching::MatchMap const *> pMatches,
+void assemblePath(gsl::not_null<matching::MatchMap const *> pMatchMap,
+                  gsl::not_null<std::unordered_map<graph::Vertex const *, std::vector<matching::ContainElement>> const
+                                    *> /*pContainElements*/,
                   gsl::not_null<SequenceAccessor *>                                      pSequenceAccessor,
                   gsl::not_null<matching::Id2OverlapMap *>                               pId2OverlapMap,
                   gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
-                  gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t idx, OutputWriter &writer);
+                  gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t asmIdx, OutputWriter &writer);
 
 } // namespace lazybastard
 

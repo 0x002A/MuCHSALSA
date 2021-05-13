@@ -115,7 +115,7 @@ TEST(GraphTest, EdgeDeletionTest) {
 
   auto *pSecondEdge = graph.getEdge(std::make_pair(secondEdge.first, secondEdge.second));
   ASSERT_NE(pSecondEdge, nullptr);
-  graph.deleteEdge(pSecondEdge);
+  graph.deleteEdge(pSecondEdge, nullptr);
   ASSERT_EQ(graph.getOrder(), 3);
   ASSERT_EQ(graph.getSize(), 2);
 
@@ -124,7 +124,7 @@ TEST(GraphTest, EdgeDeletionTest) {
 
   pSecondEdge = diGraph.getEdge(std::make_pair(secondEdge.first, secondEdge.second));
   ASSERT_NE(pSecondEdge, nullptr);
-  diGraph.deleteEdge(pSecondEdge);
+  diGraph.deleteEdge(pSecondEdge, nullptr);
   ASSERT_EQ(diGraph.getOrder(), 3);
   ASSERT_EQ(diGraph.getSize(), 2);
 
@@ -159,13 +159,13 @@ TEST(GraphTest, VertexDeletionTest) {
   diGraph.addEdge(std::make_pair(spVertex2.get(), spVertex3.get()));
   ASSERT_EQ(diGraph.getSize(), 3);
 
-  graph.deleteVertex(spVertex2.get());
+  graph.deleteVertex(spVertex2.get(), nullptr);
   ASSERT_EQ(graph.getOrder(), 2);
   ASSERT_EQ(graph.getSize(), 1);
 
   ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex1.get(), spVertex3.get())));
 
-  diGraph.deleteVertex(spVertex2.get());
+  diGraph.deleteVertex(spVertex2.get(), nullptr);
   ASSERT_EQ(diGraph.getOrder(), 2);
   ASSERT_EQ(diGraph.getSize(), 1);
 
@@ -351,6 +351,7 @@ TEST(GraphTest, DegreeTest) {
   diGraph.addEdge(firstEdge);
   diGraph.addEdge(secondEdge);
   diGraph.addEdge(thirdEdge);
+  diGraph.addEdge(thirdEdge); // Test double insertion
   ASSERT_EQ(diGraph.getSize(), 3);
 
   auto inDegrees = diGraph.getInDegrees();
@@ -365,7 +366,7 @@ TEST(GraphTest, DegreeTest) {
   ASSERT_EQ(outDegrees.at(spVertex2.get()), 1);
   ASSERT_EQ(outDegrees.at(spVertex3.get()), 0);
 
-  diGraph.deleteVertex(spVertex2.get());
+  diGraph.deleteVertex(spVertex2.get(), nullptr);
 
   inDegrees = diGraph.getInDegrees();
   ASSERT_EQ(inDegrees.size(), 2);
@@ -379,7 +380,7 @@ TEST(GraphTest, DegreeTest) {
 
   auto *pSecondEdge = diGraph.getEdge(std::make_pair(secondEdge.first, secondEdge.second));
   ASSERT_NE(pSecondEdge, nullptr);
-  diGraph.deleteEdge(pSecondEdge);
+  diGraph.deleteEdge(pSecondEdge, nullptr);
 
   inDegrees = diGraph.getInDegrees();
   ASSERT_EQ(inDegrees.size(), 2);
@@ -390,4 +391,36 @@ TEST(GraphTest, DegreeTest) {
   ASSERT_EQ(outDegrees.size(), 2);
   ASSERT_EQ(outDegrees.at(spVertex1.get()), 0);
   ASSERT_EQ(outDegrees.at(spVertex3.get()), 0);
+}
+
+TEST(GraphTest, TopologicalSortTest) {
+  auto diGraph = lazybastard::graph::DiGraph();
+
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
+  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>("5", 0);
+
+  diGraph.addVertex(spVertex1->getSharedPtr());
+  diGraph.addVertex(spVertex2->getSharedPtr());
+  diGraph.addVertex(spVertex3->getSharedPtr());
+  diGraph.addVertex(spVertex4->getSharedPtr());
+  diGraph.addVertex(spVertex5->getSharedPtr());
+
+  diGraph.addEdge(std::make_pair(spVertex1.get(), spVertex4.get()));
+  diGraph.addEdge(std::make_pair(spVertex1.get(), spVertex3.get()));
+  diGraph.addEdge(std::make_pair(spVertex2.get(), spVertex1.get()));
+  diGraph.addEdge(std::make_pair(spVertex3.get(), spVertex4.get()));
+  diGraph.addEdge(std::make_pair(spVertex5.get(), spVertex2.get()));
+
+  auto const sortedGraph = diGraph.sortTopologically();
+
+  ASSERT_EQ(sortedGraph.size(), 5);
+
+  ASSERT_EQ(sortedGraph[0], spVertex5.get());
+  ASSERT_EQ(sortedGraph[1], spVertex2.get());
+  ASSERT_EQ(sortedGraph[2], spVertex1.get());
+  ASSERT_EQ(sortedGraph[3], spVertex3.get());
+  ASSERT_EQ(sortedGraph[4], spVertex4.get());
 }

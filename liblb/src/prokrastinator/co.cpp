@@ -35,7 +35,7 @@ std::pair<double, double> computeOverhangs(gsl::not_null<lazybastard::matching::
                                            gsl::not_null<lazybastard::graph::Edge const *> const        pEdge,
                                            std::string const &                                          illuminaId) {
   auto const pVertexMatch = gsl::make_not_null(pMatches->getVertexMatch(pVertex->getId(), illuminaId));
-  auto const pEdgeMatch   = gsl::make_not_null(pMatches->getEdgeMatch(pEdge->getId(), illuminaId));
+  auto const pEdgeMatch   = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId));
 
   auto nanoCorrectionLeft = static_cast<double>(pEdgeMatch->overlap.first - pVertexMatch->illuminaRange.first) //
                             / pVertexMatch->rRatio;

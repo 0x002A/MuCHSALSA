@@ -90,7 +90,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
   std::vector<std::string> tokens;
 
   std::istringstream iss(std::any_cast<std::string>(pJob->getParam(1)), std::ios_base::in);
-  std::string token;
+  std::string        token;
   while (std::getline(iss, token, '\t')) {
     tokens.push_back(token);
   }
@@ -100,7 +100,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
   }
 
   auto const illuminaRange = std::make_pair(std::stoi(tokens[POS_IRS]), std::stoi(tokens[POS_IRE]) - 1);
-  auto const matches = static_cast<std::size_t>(std::stoi(tokens[POS_NOM]));
+  auto const matches       = static_cast<std::size_t>(std::stoi(tokens[POS_NOM]));
 
   auto const nanoporeLength = std::stoi(tokens[POS_NLE]);
 
@@ -124,8 +124,9 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
     isPrimary &= matches >= TH_MATCHES;
 
     auto spVertexMatch = lazybastard::util::make_shared_aggregate<lazybastard::matching::VertexMatch>(
-        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary, std::make_pair(0, 0));
-    m_pMatchMap->addVertexMatch(nanoporeId, illuminaId, std::move(spVertexMatch));
+        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary,
+        std::any_cast<std::size_t>(pJob->getParam(2)), std::make_pair(0, 0));
+    m_pMatchMap->addVertexMatch(nanoporeId, illuminaId, spVertexMatch);
   }
 
   std::any_cast<threading::WaitGroup *const>(pJob->getParam(0))->done();

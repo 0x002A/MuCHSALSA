@@ -48,25 +48,26 @@ namespace lazybastard::matching {
 // --------------
 
 void MatchMap::addVertexMatch(const std::string &nanoporeId, const std::string &illuminaId,
-                              std::shared_ptr<VertexMatch> &&spMatch) {
+                              std::shared_ptr<VertexMatch> const &spMatch) {
   if (!spMatch) {
     throw std::runtime_error("Unexpected nullptr.");
   }
 
   std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
 
-  // Map representing the scaffolds
-  auto nanoporeIDs =
-      m_scaffolds
-          .insert(std::make_pair(illuminaId,
-                                 decltype(m_scaffolds)::mapped_type(lazybastard::MatchingUtil::scaffoldLineIdxCmp)))
-          .first;
-  nanoporeIDs->second.insert(std::make_pair(m_pGraph->getVertex(nanoporeId), spMatch));
-
   // Actual map containing the matches
-  auto illuminaIDs =
-      m_vertexMatches.insert(std::make_pair(nanoporeId, um_t<std::string, std::shared_ptr<VertexMatch>>())).first;
-  illuminaIDs->second.insert(std::make_pair(illuminaId, std::move(spMatch)));
+  auto const iterIlluminaIDs =
+      m_vertexMatches.emplace(nanoporeId, um_t<std::string, std::shared_ptr<VertexMatch> const>()).first;
+  auto const isNoDoubleHit = iterIlluminaIDs->second.emplace(illuminaId, spMatch).second;
+
+  if (isNoDoubleHit) {
+    // Map representing the scaffolds
+    auto iterNanoporeIds =
+        m_scaffolds
+            .emplace(illuminaId, decltype(m_scaffolds)::mapped_type(lazybastard::MatchingUtil::scaffoldLineIdxCmp))
+            .first;
+    iterNanoporeIds->second.emplace(m_pGraph->getVertex(nanoporeId), spMatch);
+  }
 }
 
 [[nodiscard]] VertexMatch const *MatchMap::getVertexMatch(std::string const &vertexId,
@@ -82,7 +83,7 @@ void MatchMap::addVertexMatch(const std::string &nanoporeId, const std::string &
   return nullptr;
 }
 
-[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch>> const *
+[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch> const> const *
 MatchMap::getVertexMatches(std::string const &vertexId) const {
   auto iter = m_vertexMatches.find(vertexId);
   if (iter != std::end(m_vertexMatches)) {
@@ -92,7 +93,8 @@ MatchMap::getVertexMatches(std::string const &vertexId) const {
   return nullptr;
 }
 
-void MatchMap::addEdgeMatch(std::string &&edgeId, std::string const &illuminaId, std::shared_ptr<EdgeMatch> &&spMatch) {
+void MatchMap::addEdgeMatch(lazybastard::graph::Edge const *const pEdge, std::string const &illuminaId,
+                            std::shared_ptr<EdgeMatch> const &spMatch) {
   if (!spMatch) {
     throw std::runtime_error("Unexpected nullptr.");
   }
@@ -100,13 +102,13 @@ void MatchMap::addEdgeMatch(std::string &&edgeId, std::string const &illuminaId,
   std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
 
   // Actual map containing the matches
-  auto illuminaIDs =
-      m_edgeMatches.insert(std::make_pair(std::move(edgeId), um_t<std::string, std::shared_ptr<EdgeMatch>>())).first;
-  illuminaIDs->second.insert(std::make_pair(illuminaId, std::move(spMatch)));
+  auto illuminaIDs = m_edgeMatches.emplace(pEdge, um_t<std::string, std::shared_ptr<EdgeMatch> const>()).first;
+  illuminaIDs->second.emplace(illuminaId, spMatch);
 }
 
-[[nodiscard]] EdgeMatch const *MatchMap::getEdgeMatch(std::string const &edgeId, std::string const &illuminaId) const {
-  auto const edgeIter = m_edgeMatches.find(edgeId);
+[[nodiscard]] EdgeMatch const *MatchMap::getEdgeMatch(lazybastard::graph::Edge const *const pEdge,
+                                                      std::string const &                   illuminaId) const {
+  auto const edgeIter = m_edgeMatches.find(pEdge);
   if (edgeIter != std::end(m_edgeMatches)) {
     auto const illuminaIter = edgeIter->second.find(illuminaId);
     if (illuminaIter != std::end(edgeIter->second)) {
@@ -117,9 +119,9 @@ void MatchMap::addEdgeMatch(std::string &&edgeId, std::string const &illuminaId,
   return nullptr;
 }
 
-[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch>> const *
-MatchMap::getEdgeMatches(std::string const &edgeId) const {
-  auto const iter = m_edgeMatches.find(edgeId);
+[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch> const> const *
+MatchMap::getEdgeMatches(lazybastard::graph::Edge const *const pEdge) const {
+  auto const iter = m_edgeMatches.find(pEdge);
   if (iter != std::end(m_edgeMatches)) {
     return &iter->second;
   }
@@ -168,11 +170,10 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
         auto const innerScore   = static_cast<double>(innerMatch->score) * commonLength / innerLength;
         auto const sumScore     = outerScore + innerScore;
 
-        auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
-        m_pGraph->addEdge(vertexIDs);
+        auto pVertices = std::make_pair(innerIter->first, outerIter->first);
+        m_pGraph->addEdge(pVertices);
 
-        addEdgeMatch(lazybastard::graph::Edge::getEdgeId(std::move(vertexIDs)),
-                     std::any_cast<std::string>(pJob->getParam(1)),
+        addEdgeMatch(m_pGraph->getEdge(std::move(pVertices)), std::any_cast<std::string>(pJob->getParam(1)),
                      lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary,
                                                                          std::make_pair(0, 0)));
       }

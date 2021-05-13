@@ -26,11 +26,13 @@
 #include "Util.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
+#include "matching/MatchMap.h"
 #include "types/Direction.h"
 #include "types/Toggle.h"
 
 std::unique_ptr<lazybastard::graph::DiGraph>
 lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const               pGraph,
+                               gsl::not_null<matching::MatchMap *> const               pMatchMap,
                                gsl::not_null<graph::Graph const *> const               pConnectedComponent,
                                gsl::not_null<lazybastard::graph::Vertex const *> const pStartNode) {
   std::stack<std::tuple<graph::Vertex const *, Toggle>> stack;
@@ -82,15 +84,19 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const        
 
         auto *pNewEdge = diGraph->getEdge(std::make_pair(pStart, pEnd));
         if (!pNewEdge) {
-          diGraph->addMissingVertex(pGraph->getVertexAsSharedPtr(pStart->getId()));
-          diGraph->addMissingVertex(pGraph->getVertexAsSharedPtr(pEnd->getId()));
-          diGraph->addEdge(std::make_pair(pStart, pEnd));
-          pNewEdge = diGraph->getEdge(std::make_pair(pStart, pEnd));
+          auto verticesNewEdge = std::make_pair(pStart, pEnd);
+
+          diGraph->addEdge(verticesNewEdge);
+          pNewEdge = diGraph->getEdge(verticesNewEdge);
 
           pNewEdge->setShadow(pEdge->isShadow());
 
           if (!pEdge->isShadow()) {
             pNewEdge->setWeight(pNeighborEdge->getWeight());
+          }
+
+          for (auto const &match : *pMatchMap->getEdgeMatches(pGraph->getEdge(verticesNewEdge))) {
+            pMatchMap->addEdgeMatch(pNewEdge, match.first, match.second);
           }
         }
 

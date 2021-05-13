@@ -25,6 +25,7 @@
 
 #include "Util.h"
 #include "graph/Edge.h"
+#include "matching/MatchMap.h"
 
 namespace lazybastard::graph {
 
@@ -82,9 +83,15 @@ std::vector<Vertex *> GraphBase::getVertices() const {
   std::vector<Vertex *> vertices;
 
   std::transform(m_vertices.begin(), m_vertices.end(), std::back_inserter(vertices),
-                 [](const std::unordered_map<std::string, std::shared_ptr<Vertex>>::value_type &pair) {
-                   return pair.second.get();
-                 });
+                 [](const auto &pair) { return pair.second.get(); });
+  return vertices;
+}
+
+std::unordered_set<Vertex *> GraphBase::getVerticesAsUnorderedSet() const {
+  std::unordered_set<Vertex *> vertices;
+
+  std::transform(m_vertices.begin(), m_vertices.end(), std::inserter(vertices, std::begin(vertices)),
+                 [](const auto &pair) { return pair.second.get(); });
   return vertices;
 }
 
@@ -143,14 +150,9 @@ void GraphBase::_addVertex(std::shared_ptr<Vertex> &&spVertex) {
   m_vertices.emplace(spVertex->getId(), std::move(spVertex));
 }
 
-void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool hasBidirectionalEdges) {
-  auto const iterSuccessors = m_adjacencyList.find(pVertex->getId());
-
-  if (iterSuccessors == std::end(m_adjacencyList)) {
-    return;
-  }
-
-  using successor_t          = decltype(iterSuccessors->second)::value_type;
+void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool hasBidirectionalEdges,
+                              lazybastard::matching::MatchMap *pMatchMap) {
+  using successor_t          = decltype(m_adjacencyList)::mapped_type::value_type;
   auto const eraseSuccessors = hasBidirectionalEdges //
                                    ? std::function{[&](successor_t const &s) {
                                        auto const iterPredecessor = m_adjacencyList.find(s.first);
@@ -159,16 +161,32 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
                                        }
 
                                        auto const pEdge = gsl::make_not_null(s.second);
-                                       _onEdgeDeleted(pEdge->getVertices());
+
+                                       auto vertices = pEdge->getVertices();
                                        m_edges.erase(pEdge->getId());
+                                       _onEdgeDeleted(std::move(vertices));
+
+                                       if (pMatchMap) {
+                                         pMatchMap->deleteEdgeMatches(pEdge);
+                                       }
                                      }}
                                    : std::function{[&](successor_t const &s) {
                                        auto const pEdge = gsl::make_not_null(s.second);
-                                       _onEdgeDeleted(pEdge->getVertices());
+
+                                       auto vertices = pEdge->getVertices();
                                        m_edges.erase(pEdge->getId());
+                                       _onEdgeDeleted(std::move(vertices));
+
+                                       if (pMatchMap) {
+                                         pMatchMap->deleteEdgeMatches(pEdge);
+                                       }
                                      }};
-  std::for_each(std::begin(iterSuccessors->second), std::end(iterSuccessors->second), eraseSuccessors);
-  m_adjacencyList.erase(iterSuccessors);
+
+  auto const iterSuccessors = m_adjacencyList.find(pVertex->getId());
+  if (iterSuccessors != std::end(m_adjacencyList)) {
+    std::for_each(std::begin(iterSuccessors->second), std::end(iterSuccessors->second), eraseSuccessors);
+    m_adjacencyList.erase(iterSuccessors);
+  }
 
   if (!hasBidirectionalEdges) {
     for (auto &[targetId, connectedVertices] : m_adjacencyList) {
@@ -177,45 +195,59 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
       auto const iterPredecessor = connectedVertices.find(pVertex->getId());
       if (iterPredecessor != std::end(connectedVertices)) {
         auto const pEdge = gsl::make_not_null(iterPredecessor->second);
-        _onEdgeDeleted(pEdge->getVertices());
+
+        if (pMatchMap) {
+          pMatchMap->deleteEdgeMatches(pEdge);
+        }
+
+        auto vertices = pEdge->getVertices();
         m_edges.erase(pEdge->getId());
+        _onEdgeDeleted(std::move(vertices));
+
         connectedVertices.erase(iterPredecessor);
       }
     }
   }
 
+  if (pMatchMap) {
+    pMatchMap->deleteVertexMatches(pVertex->getId());
+  }
   m_vertices.erase(pVertex->getId());
 }
 
 void GraphBase::_addEdge(
-    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &vertexIds,
+    std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices,
     bool                                                                                       isBidirectional) {
   std::unique_lock<std::shared_mutex> lck(m_mutexEdge);
 
-  auto pV1 = vertexIds.first->getSharedPtr();
-  auto pV2 = vertexIds.second->getSharedPtr();
+  auto spV1 = pVertices.first->getSharedPtr();
+  auto spV2 = pVertices.second->getSharedPtr();
 
-  if (!pV1 || !pV2) {
+  if (!hasVertex(spV1->getId()) || !hasVertex(spV2->getId())) {
     // Edges between unknown vertices are omitted
     return;
   }
 
-  auto const pVertices = std::make_pair(pV1.get(), pV2.get());
+  auto spEdge = std::make_shared<Edge>(std::make_pair(std::move(spV1), std::move(spV2)));
 
-  auto spEdge = std::make_shared<Edge>(std::make_pair(std::move(pV1), std::move(pV2)));
-  _addEdgeInternal(std::move(spEdge), isBidirectional);
-
-  _onEdgeAdded(pVertices);
+  if (_addEdgeInternal(std::move(spEdge), isBidirectional)) {
+    _onEdgeAdded(pVertices);
+  }
 }
 
-void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidirectional) {
+void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidirectional,
+                            lazybastard::matching::MatchMap *pMatchMap) {
   auto const findAndDeleteEdge = [&](std::string const &source, std::string const &target) {
     auto const outerIter = m_adjacencyList.find(source);
 
     if (outerIter != std::end(m_adjacencyList)) {
       auto const innerIter = outerIter->second.find(target);
       if (innerIter != std::end(outerIter->second)) {
-        outerIter->second.erase(innerIter->first);
+        auto const isErased = outerIter->second.erase(innerIter->first);
+
+        if (isErased) {
+          _onEdgeDeleted(std::make_pair(getVertex(source), getVertex(target)));
+        }
       }
     }
   };
@@ -226,9 +258,10 @@ void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidi
     findAndDeleteEdge(vertices.second->getId(), vertices.first->getId());
   }
 
+  if (pMatchMap) {
+    pMatchMap->deleteEdgeMatches(pEdge);
+  }
   m_edges.erase(pEdge->getId());
-
-  _onEdgeDeleted(vertices);
 }
 
 std::unordered_map<std::string, Edge *const>
@@ -262,22 +295,26 @@ GraphBase::_getPredecessors(gsl::not_null<Vertex const *> const pVertex) const {
 
 // PRIVATE CLASS METHODS
 
-void GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional) {
+bool GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional) {
   auto const emplaceEdge = [&](std::string const &source, std::string const &target, Edge *pEdge) {
-    auto const iterAdjacencyList =
+    auto const insertAdjacencyList =
         m_adjacencyList.emplace(source, std::unordered_map<std::string, Edge *const>()).first;
-    iterAdjacencyList->second.emplace(target, pEdge);
+    auto const inserted = insertAdjacencyList->second.emplace(target, pEdge).second;
+
+    return inserted;
   };
 
   auto const  pVertices = spEdge->getVertices();
   auto const  iterEdges = m_edges.emplace(spEdge->getId(), std::move(spEdge)).first;
   auto *const pEdge     = iterEdges != std::end(m_edges) ? iterEdges->second.get() : nullptr;
 
-  emplaceEdge(pVertices.first->getId(), pVertices.second->getId(), pEdge);
+  auto const inserted = emplaceEdge(pVertices.first->getId(), pVertices.second->getId(), pEdge);
 
   if (isBidirectional) {
     emplaceEdge(pVertices.second->getId(), pVertices.first->getId(), pEdge);
   }
+
+  return inserted;
 }
 
 // -----------
@@ -324,6 +361,44 @@ std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<lazybastard::graph::Ve
                  [](auto *const pEdge) { return pEdge->getSharedPtr(); });
 
   return std::make_unique<DiGraph>(getVertexMap(vertices), std::move(e));
+}
+
+std::vector<lazybastard::graph::Vertex const *> DiGraph::sortTopologically() const {
+  std::vector<lazybastard::graph::Vertex const *> result;
+
+  std::unordered_map<lazybastard::graph::Vertex const *, std::size_t> verticesWithNonNullInDegree;
+  std::deque<lazybastard::graph::Vertex const *>                      verticesWithNullInDegree;
+
+  for (auto const &[pVertex, inDegree] : getInDegrees()) {
+    if (inDegree > 0) {
+      verticesWithNonNullInDegree[pVertex] = inDegree;
+    } else {
+      verticesWithNullInDegree.push_back(pVertex);
+    }
+  }
+
+  while (!verticesWithNullInDegree.empty()) {
+    auto const *const pVertex = verticesWithNullInDegree.back();
+    verticesWithNullInDegree.pop_back();
+
+    auto const successors = getSuccessors(pVertex);
+    for (auto const &[targetId, pEdge] : successors) {
+      LB_UNUSED(pEdge);
+
+      auto const *pSuccessor = getVertex(targetId);
+
+      verticesWithNonNullInDegree[pSuccessor] -= 1;
+
+      if (verticesWithNonNullInDegree[pSuccessor] == 0) {
+        verticesWithNullInDegree.push_back(pSuccessor);
+        verticesWithNonNullInDegree.erase(pSuccessor);
+      }
+    }
+
+    result.push_back(pVertex);
+  }
+
+  return result;
 }
 
 // PRIVATE CLASS METHODS

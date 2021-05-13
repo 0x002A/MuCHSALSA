@@ -70,6 +70,7 @@ using lazybastard::graph::EdgeOrder;
 using lazybastard::graph::Graph;
 using lazybastard::graph::Vertex;
 
+using lazybastard::matching::ContainElement;
 using lazybastard::matching::Id2OverlapMap;
 using lazybastard::matching::MatchMap;
 using lazybastard::matching::VertexMatch;
@@ -86,23 +87,6 @@ using lazybastard::util::make_not_null_and_const;
 
 constexpr static auto BASE_WEIGHT_MULTIPLICATOR = 1.1;
 constexpr static auto MAX_WEIGHT_MULTIPLICATOR  = 0.8;
-
-// =====================================================================================================================
-//                                                         TYPES
-// =====================================================================================================================
-
-// ---------------------
-// struct ContainElement
-// ---------------------
-
-struct ContainElement {
-  std::unordered_map<std::string const *, VertexMatch const *> const matches;
-  Vertex const *const                                                nano;
-  std::size_t const                                                  nanoporeLength;
-  std::size_t const                                                  score;
-  bool const                                                         direction;
-  bool const                                                         isPrimary;
-};
 
 // =====================================================================================================================
 //                                                   JOB DECLARATIONS
@@ -141,7 +125,7 @@ auto main(int const argc, char const *argv[]) -> int {
   }
 
   // Keep one free for the main program
-  auto const threadCount = app.getThreadCount() - 1;
+  auto const threadCount = app.getThreadCount();
   auto       threadPool  = ThreadPool(threadCount);
 
   // Read BLAST file
@@ -214,7 +198,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
     std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
 
-    std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> containElements;
+    std::unordered_map<Vertex const *, std::vector<ContainElement>> containElements;
     auto contractionJob = [](Job const *const pJob) { contract(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
       LB_UNUSED(pEdge);
@@ -226,10 +210,8 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::for_each(std::begin(deletableVertices), std::end(deletableVertices), [&](auto const *const pTarget) {
-      matchMap.deleteVertexMatches(pTarget->getId());
-      graph.deleteVertex(pTarget);
-    });
+    std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
+                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget, &matchMap); });
     deletableVertices.clear();
     edges = graph.getEdges();
 
@@ -244,10 +226,8 @@ auto main(int const argc, char const *argv[]) -> int {
 
     std::cout << "Edges to become deleted: " << deletableEdges.size() << std::endl;
 
-    std::for_each(std::begin(deletableEdges), std::end(deletableEdges), [&](auto const *const pTarget) {
-      matchMap.deleteEdgeMatches(pTarget->getId());
-      graph.deleteEdge(pTarget);
-    });
+    std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
+                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
     deletableEdges.clear();
 
     std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
@@ -273,26 +253,20 @@ auto main(int const argc, char const *argv[]) -> int {
 
     std::cout << "Edges to become deleted: " << deletableEdges.size() << std::endl;
 
-    std::for_each(std::begin(deletableEdges), std::end(deletableEdges), [&](auto const *const pTarget) {
-      matchMap.deleteEdgeMatches(pTarget->getId());
-      graph.deleteEdge(pTarget);
-    });
+    std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
+                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
     deletableEdges.clear();
     edges = graph.getEdges();
 
     std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl
               << "Starting assembly" << std::endl;
 
-    SequenceAccessor sequenceAccessor(&threadPool, &graph, &matchMap, app.getNanoporeFilePath(),
-                                      app.getUnitigsFilePath());
+    SequenceAccessor sequenceAccessor(&threadPool, app.getNanoporeFilePath(), app.getUnitigsFilePath());
     sequenceAccessor.buildIndex();
 
     //// OUTPUT FILES ////
-    std::ofstream ofQuery(app.getOutputFilePath() + "/temp.query.fa", std::ios::binary);
-    std::ofstream ofPaf(app.getOutputFilePath() + "/temp.align.paf", std::ios::binary);
-    std::ofstream ofTarget(app.getOutputFilePath() + "/temp.target.fa", std::ios::binary);
-
-    OutputWriter outputWriter(ofQuery, ofPaf, ofTarget);
+    OutputWriter outputWriter(app.getOutputFilePath() + "/temp.query.fa", app.getOutputFilePath() + "/temp.align.paf",
+                              app.getOutputFilePath() + "/temp.target.fa");
     //// /OUTPUT FILES ////
 
     std::size_t assemblyIdx         = 0;
@@ -301,8 +275,8 @@ auto main(int const argc, char const *argv[]) -> int {
     for (auto const &connectedComponent : connectedComponents) {
 
       wg.add(1);
-      auto job = Job(assemblyJob, &wg, &graph, &matchMap, &sequenceAccessor, &connectedComponent, assemblyIdx,
-                     std::ref(outputWriter));
+      auto job = Job(assemblyJob, &wg, &graph, &matchMap, &containElements, &sequenceAccessor, &connectedComponent,
+                     assemblyIdx, std::ref(outputWriter));
       threadPool.addJob(std::move(job));
 
       ++assemblyIdx;
@@ -327,7 +301,7 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
 
   auto const        pMatchMap    = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(1)));
   auto const        pEdge        = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(2)));
-  auto const *const pEdgeMatches = pMatchMap->getEdgeMatches(pEdge->getId());
+  auto const *const pEdgeMatches = pMatchMap->getEdgeMatches(pEdge);
 
   if (!pEdgeMatches) {
     std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
@@ -506,23 +480,24 @@ void contract(gsl::not_null<Job const *> const pJob) {
   }
 
   auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(4)));
-  std::unordered_map<std::string const *, VertexMatch const *> matches;
+  std::unordered_map<std::string, VertexMatch const *> matches;
   std::for_each(std::begin(pOrder->ids), std::end(pOrder->ids), [&](auto const id) {
     auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getId(), id);
     if (pVertexMatches != nullptr) {
-      matches.insert({&id, pVertexMatches});
+      matches.insert({id, pVertexMatches});
     }
   });
 
   std::lock_guard<std::mutex> guard(
       std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
   auto const pContainElements = gsl::make_not_null(
-      std::any_cast<std::unordered_map<Vertex const *, std::unique_ptr<ContainElement const> const> *>(
-          pJob->getParam(2)));
-  pContainElements->insert(std::make_pair(
-      pOrder->endVertex, std::make_unique<ContainElement>(ContainElement{
-                             std::move(matches), pOrder->startVertex, pOrder->startVertex->getNanoporeLength(),
-                             pOrder->score, pOrder->direction, pOrder->isPrimary})));
+      std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(2)));
+  auto const iterContainElements =
+      pContainElements->insert(std::make_pair(pOrder->endVertex, std::vector<ContainElement>()));
+
+  iterContainElements.first->second.push_back(ContainElement{std::move(matches), pOrder->startVertex->getId(),
+                                                             pOrder->startVertex->getNanoporeLength(), pOrder->score,
+                                                             pOrder->direction, pOrder->isPrimary});
 
   std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
@@ -597,13 +572,13 @@ void decycle(gsl::not_null<Job const *> const pJob) {
         auto const *const pDeletableEdge = pGraph->getEdge(std::make_pair(
             *std::next(shortestPath.begin(), minWeightIdx), *std::next(shortestPath.begin(), minWeightIdx + 1)));
 
-        std::scoped_lock<std::mutex> lck(
+        std::lock_guard<std::mutex> lck(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
         pDeletableEdges->insert(pDeletableEdge);
       }
 
       {
-        std::scoped_lock<std::mutex> lck(
+        std::lock_guard<std::mutex> lck(
             std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
         pDeletableEdges->insert(pEdge);
       }
@@ -616,25 +591,27 @@ void decycle(gsl::not_null<Job const *> const pJob) {
 void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
   auto const pConnectedComponent =
-      make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(4)));
+      make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(5)));
   auto const pSubGraph        = pGraph->getSubgraph(*pConnectedComponent);
   auto const subGraphVertices = pSubGraph->getVertices();
   auto const maxNplVertexIter = std::max_element(
       std::begin(subGraphVertices), std::end(subGraphVertices),
       [](Vertex const *v1, Vertex const *v2) { return v1->getNanoporeLength() < v2->getNanoporeLength(); });
   auto *const pMaxNplVertex = maxNplVertexIter == pSubGraph->getVertices().end() ? nullptr : *maxNplVertexIter;
-  auto const  pMatchMap     = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(2)));
+  auto const  pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNplVertex != nullptr) {
-    auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pSubGraph.get(), pMaxNplVertex);
+    auto const pDiGraph = lazybastard::getDirectionGraph(pGraph, pMatchMap, pSubGraph.get(), pMaxNplVertex);
     auto const paths    = lazybastard::linearizeGraph(pDiGraph.get());
 
     Id2OverlapMap id2OverlapMap;
-    auto const    assemblyIdx = std::any_cast<std::size_t>(pJob->getParam(5));
+    auto const    assemblyIdx = std::any_cast<std::size_t>(pJob->getParam(6));
     std::for_each(paths.begin(), paths.end(), [&](auto const &path) {
-      lazybastard::assemblePath(pGraph, pMatchMap, std::any_cast<SequenceAccessor *>(pJob->getParam(3)), &id2OverlapMap,
-                                &path, pDiGraph.get(), assemblyIdx,
-                                std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(6)).get());
+      lazybastard::assemblePath(
+          pMatchMap,
+          std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(3)),
+          std::any_cast<SequenceAccessor *>(pJob->getParam(4)), &id2OverlapMap, &path, pDiGraph.get(), assemblyIdx,
+          std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(7)).get());
     });
   }
 

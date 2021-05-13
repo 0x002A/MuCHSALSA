@@ -23,7 +23,8 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <span>
 #include <unordered_map>
 #include <utility>
@@ -56,27 +57,27 @@ namespace {
 std::string getSequenceFromFile(std::FILE *pFile, std::pair<std::size_t, std::size_t> const &seqPos) {
   std::fseek(pFile, static_cast<int64_t>(seqPos.first), SEEK_SET);
 
-  std::vector<char> buffer;
-  buffer.reserve(seqPos.second);
+  std::vector<char> buffer(seqPos.second + sizeof(char), '\0');
 
   size_t ret = fread(buffer.data(), sizeof(decltype(buffer)::value_type), seqPos.second, pFile);
   if (ret != seqPos.second) {
     throw std::runtime_error("Failed to read sequence.");
   }
 
-  std::string sequence(buffer.data(), seqPos.second);
+  std::string sequence(buffer.data());
   sequence.erase(std::remove_if(std::begin(sequence), std::end(sequence), [](auto const c) { return std::isspace(c); }),
                  std::end(sequence));
 
   return sequence;
 }
 
-bool isFastQ(std::string const &filename) {
+bool isFastQ(std::string_view filename) {
   auto fileExtension = filename.substr(filename.find_last_of('.') + 1);
-  std::transform(fileExtension.begin(), fileExtension.end(), fileExtension.begin(),
-                 static_cast<int (*)(int)>(&std::tolower));
 
-  return fileExtension == "fastq";
+  std::vector<char> buffer(fileExtension.size() + 1, '\0');
+  std::transform(fileExtension.begin(), fileExtension.end(), buffer.begin(), static_cast<int (*)(int)>(&std::tolower));
+
+  return std::strcmp(fileExtension.data(), "fastq") == 0;
 }
 
 void cleanSequenceId(std::string &sequenceId) {
@@ -96,10 +97,9 @@ void cleanSequenceId(std::string &sequenceId) {
 // class SequenceAccessor
 // ----------------------
 
-SequenceAccessor::SequenceAccessor(gsl::not_null<threading::ThreadPool *> pThreadPool,
-                                   gsl::not_null<graph::Graph *> pGraph, gsl::not_null<matching::MatchMap *> pMatchMap,
-                                   std::string const &fpNanopore, std::string const &fpIllumina)
-    : m_pThreadPool(pThreadPool), m_pGraph(pGraph), m_pMatchMap(pMatchMap),
+SequenceAccessor::SequenceAccessor(gsl::not_null<threading::ThreadPool *> pThreadPool, std::string_view fpNanopore,
+                                   std::string_view fpIllumina)
+    : m_pThreadPool(pThreadPool),
       m_pNanoporeSequenceFile(decltype(m_pNanoporeSequenceFile)(
           fopen(fpNanopore.data(), "rbe"), [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })),
       m_pIlluminaSequenceFile(decltype(m_pIlluminaSequenceFile)(
@@ -125,24 +125,16 @@ void SequenceAccessor::buildIndex() {
   wg.wait();
 }
 
-[[maybe_unused]] std::string SequenceAccessor::getNanoporeSequence(gsl::not_null<graph::Vertex const *> const pVertex) {
+[[maybe_unused]] std::string SequenceAccessor::getNanoporeSequence(std::string const &nanoporeId) {
   std::scoped_lock<std::mutex> lck(m_mutexNanoporeSequenceFile);
 
-  return getSequenceFromFile(m_pNanoporeSequenceFile.get(), pVertex->getSeqPos());
+  return getSequenceFromFile(m_pNanoporeSequenceFile.get(), m_idxNanopore[nanoporeId]);
 }
 
-[[maybe_unused]] std::string
-SequenceAccessor::getIlluminaSequence(gsl::not_null<matching::VertexMatch const *> const pVertexMatch) {
+[[maybe_unused]] std::string SequenceAccessor::getIlluminaSequence(std::string const &illuminaId) {
   std::scoped_lock<std::mutex> lck(m_mutexIlluminaSequenceFile);
 
-  return getSequenceFromFile(m_pIlluminaSequenceFile.get(), pVertexMatch->seqPos);
-}
-
-[[maybe_unused]] std::string
-SequenceAccessor::getIlluminaSequence(gsl::not_null<matching::EdgeMatch const *> const pEdgeMatch) {
-  std::scoped_lock<std::mutex> lck(m_mutexIlluminaSequenceFile);
-
-  return getSequenceFromFile(m_pIlluminaSequenceFile.get(), pEdgeMatch->seqPos);
+  return getSequenceFromFile(m_pIlluminaSequenceFile.get(), m_idxIllumina[illuminaId]);
 }
 
 void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> pJob) {
@@ -174,10 +166,7 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
       auto offsetEnd = std::ftell(m_pNanoporeSequenceFile.get());
 
       if (ret == -1 || *pLine == identifierSplitline) {
-        auto *const pVertex = m_pGraph->getVertex(sequenceId);
-        if (pVertex) {
-          pVertex->setSeqPos(std::make_pair(offsetStart, lengthCurrentSequence));
-        }
+        m_idxNanopore.emplace(sequenceId, std::make_pair(offsetStart, lengthCurrentSequence));
 
         offsetStart = offsetEnd;
         break;
@@ -195,31 +184,6 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
 }
 
 void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> pJob) {
-  std::unordered_map<std::string, std::vector<matching::VertexMatch *>> mappingIlluminaId2VertexMatches;
-  for (auto const &[nanoporeId, vertexMatches] : m_pMatchMap->getVertexMatches()) {
-    LB_UNUSED(nanoporeId);
-
-    std::for_each(std::begin(vertexMatches), std::end(vertexMatches), [&](auto const &vertexMatch) {
-      auto iterVertexMatches =
-          mappingIlluminaId2VertexMatches
-              .insert({vertexMatch.first, decltype(mappingIlluminaId2VertexMatches)::mapped_type()})
-              .first;
-      iterVertexMatches->second.push_back(vertexMatch.second.get());
-    });
-  }
-
-  std::unordered_map<std::string, std::vector<matching::EdgeMatch *>> mappingIlluminaId2EdgeMatches;
-  for (auto const &[nanoporeId, edgeMatches] : m_pMatchMap->getEdgeMatches()) {
-    LB_UNUSED(nanoporeId);
-
-    std::for_each(std::begin(edgeMatches), std::end(edgeMatches), [&](auto const &edgeMatch) {
-      auto iterEdgeMatches = mappingIlluminaId2EdgeMatches
-                                 .insert({edgeMatch.first, decltype(mappingIlluminaId2EdgeMatches)::mapped_type()})
-                                 .first;
-      iterEdgeMatches->second.push_back(edgeMatch.second.get());
-    });
-  }
-
   char *      pLine       = nullptr;
   std::size_t bufferSize  = 0;
   auto        ret         = getline(&pLine, &bufferSize, m_pIlluminaSequenceFile.get());
@@ -245,19 +209,7 @@ void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> p
       auto offsetEnd = std::ftell(m_pIlluminaSequenceFile.get());
 
       if (ret == -1 || *pLine == FASTA_IDENTIFIER_DESCLINE) {
-        if (mappingIlluminaId2VertexMatches.contains(sequenceId)) {
-          auto const &vertexMatches = mappingIlluminaId2VertexMatches[sequenceId];
-          std::for_each(std::begin(vertexMatches), std::end(vertexMatches), [&](auto *const pVertexMatch) {
-            pVertexMatch->seqPos = std::make_pair(offsetStart, lengthCurrentSequence);
-          });
-        }
-
-        if (mappingIlluminaId2EdgeMatches.contains(sequenceId)) {
-          auto const &edgeMatches = mappingIlluminaId2EdgeMatches[sequenceId];
-          std::for_each(std::begin(edgeMatches), std::end(edgeMatches), [&](auto *const pEdgeMatch) {
-            pEdgeMatch->seqPos = std::make_pair(offsetStart, lengthCurrentSequence);
-          });
-        }
+        m_idxIllumina.emplace(sequenceId, std::make_pair(offsetStart, lengthCurrentSequence));
 
         offsetStart = offsetEnd;
         break;

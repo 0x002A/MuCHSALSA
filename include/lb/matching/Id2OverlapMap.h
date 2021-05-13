@@ -27,8 +27,8 @@
 #include <cstddef>
 #include <functional>
 #include <string>
-#include <tuple>
 #include <unordered_map>
+#include <utility>
 
 namespace lazybastard::matching {
 
@@ -90,10 +90,45 @@ public:
    */
   Id2OverlapMap &operator=(Id2OverlapMap const &) = delete;
 
+  /**
+   * Assigment operator.
+   *
+   * @param key
+   * @return
+   */
+  std::pair<int, int> &operator[](detail::key_t const &key);
+
+  /**
+   * Access operator.
+   *
+   * @param key
+   * @return
+   */
+  std::pair<int, int> const &at(detail::key_t const &key) const;
+
+  /**
+   * Access operator.
+   *
+   * @param key
+   * @return
+   */
+  std::pair<int, int> &at(detail::key_t const &key);
+
+  std::size_t getSize() const;
+
 private:
-  std::unordered_map<detail::key_t, std::tuple<std::size_t, std::size_t>, detail::KeyHash, detail::KeyEqual>
+  std::unordered_map<detail::key_t, std::pair<int, int>, detail::KeyHash, detail::KeyEqual>
       m_map; /*!< std::unordered_map storing the mapping */
 };
+
+inline std::pair<int, int> &Id2OverlapMap::operator[](detail::key_t const &key) { return m_map[key]; }
+
+inline std::pair<int, int> &Id2OverlapMap::at(detail::key_t const &key) { return m_map.at(key); }
+
+inline std::pair<int, int> const &Id2OverlapMap::at(detail::key_t const &key) const { return m_map.at(key); }
+
+inline std::size_t Id2OverlapMap::getSize() const { return m_map.size(); }
+
 } // namespace lazybastard::matching
 
 #endif // INCLUDED_LAZYBASTARD_ID2OVERLAPMAP

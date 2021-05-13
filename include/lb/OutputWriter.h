@@ -24,8 +24,9 @@
 
 #pragma once
 
-#include <iosfwd>
+#include <memory>
 #include <mutex>
+#include <string_view>
 
 namespace lazybastard {
 
@@ -38,26 +39,55 @@ namespace lazybastard {
 // -------------------
 
 /**
- * Class offering **thread-safe** writing to output streams.
+ * Class offering **thread-safe** writing to output files.
  */
 class OutputWriter {
 public:
   /**
    * Class constructor creating a new instance.
    *
-   * @param osQuery a reference to the query output stream
-   * @param osPaf a reference to the paf output stream
-   * @param osTarget a reference to the target output stream
+   * @param fpQuery a std::string_view representing the filepath to the query output file
+   * @param fpPaf a std::string_view representing the filepath to the paf output file
+   * @param fpTarget a std::string_view representing the filepath to the target output file
    */
-  OutputWriter(std::ostream &osQuery, std::ostream &osPaf, std::ostream &osTarget);
+  OutputWriter(std::string_view fpQuery, std::string_view fpPaf, std::string_view fpTarget);
+
+  /**
+   * Writes data to the query output file.
+   * This function is **thread-safe**.
+   *
+   * @param data a std::string_view representing the data to write
+   */
+  void writeQuery(std::string_view data);
+
+  /**
+   * Writes data to the paf output file.
+   * This function is **thread-safe**.
+   *
+   * @param data a std::string_view representing the data to write
+   */
+  void writePaf(std::string_view data);
+
+  /**
+   * Writes data to the target output file.
+   * This function is **thread-safe**.
+   *
+   * @param data a std::string_view representing the data to write
+   */
+  void writeTarget(std::string_view data);
 
 private:
+  std::unique_ptr<std::FILE, void (*)(std::FILE *)> m_pQueryFile;  /*!< Pointer pointing to the FILE handle required
+                                                                    * for accessing the query file
+                                                                    */
+  std::unique_ptr<std::FILE, void (*)(std::FILE *)> m_pPafFile;    /*!< Pointer pointing to the FILE handle required
+                                                                    * for accessing the paf file
+                                                                    */
+  std::unique_ptr<std::FILE, void (*)(std::FILE *)> m_pTargetFile; /*!< Pointer pointing to the FILE handle required
+                                                                    * for accessing the target file
+                                                                    */
   //@{
-  //** Reference to a specific output stream */
-  std::ostream &m_osQuery, &m_osPaf, &m_osTarget;
-  //@}
-  //@{
-  //** Mutex for securing the corresponding output stream */
+  //** std::mutex for securing the corresponding file handle */
   std::mutex m_mutexQuery, m_mutexPaf, m_mutexTarget;
   //@}
 };

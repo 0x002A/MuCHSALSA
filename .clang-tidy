@@ -13,6 +13,7 @@ Checks:
 -altera-struct-pack-align,
 -cppcoreguidelines-pro-type-vararg,
 -hicpp-vararg,
+-misc-no-recursion,
 '
 
 InheritParentConfig: true

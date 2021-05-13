@@ -21,7 +21,7 @@
 
 #include "OutputWriter.h"
 
-#include <ostream>
+#include <gsl/pointers>
 #include <stdexcept>
 
 namespace lazybastard {
@@ -34,11 +34,31 @@ namespace lazybastard {
 // class OutputWriter
 // ------------------
 
-OutputWriter::OutputWriter(std::ostream &osQuery, std::ostream &osPaf, std::ostream &osTarget)
-    : m_osQuery(osQuery), m_osPaf(osPaf), m_osTarget(osTarget) {
-  if (!m_osQuery.good() || !m_osPaf.good() || !m_osTarget.good()) {
-    throw std::runtime_error("Can't write to output files! Aborting!");
+OutputWriter::OutputWriter(std::string_view fpQuery, std::string_view fpPaf, std::string_view fpTarget)
+    : m_pQueryFile(decltype(m_pQueryFile)(fopen(fpQuery.data(), "we"),
+                                          [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })),
+      m_pPafFile(
+          decltype(m_pPafFile)(fopen(fpPaf.data(), "we"), [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })),
+      m_pTargetFile(decltype(m_pTargetFile)(fopen(fpTarget.data(), "we"),
+                                            [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })) {
+  if (!m_pQueryFile || !m_pPafFile || !m_pTargetFile) {
+    throw std::runtime_error("Can't open output file(s).");
   }
+}
+
+void OutputWriter::writeQuery(std::string_view data) {
+  std::lock_guard<std::mutex> lck(m_mutexQuery);
+  std::fwrite(data.data(), sizeof(data[0]), data.size(), m_pQueryFile.get());
+}
+
+void OutputWriter::writePaf(std::string_view data) {
+  std::lock_guard<std::mutex> lck(m_mutexPaf);
+  std::fwrite(data.data(), sizeof(data[0]), data.size(), m_pPafFile.get());
+}
+
+void OutputWriter::writeTarget(std::string_view data) {
+  std::lock_guard<std::mutex> lck(m_mutexTarget);
+  std::fwrite(data.data(), sizeof(data[0]), data.size(), m_pTargetFile.get());
 }
 
 } // namespace lazybastard

@@ -19,51 +19,6 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#ifndef INCLUDED_LAZYBASTARD_LB_FWD
-#define INCLUDED_LAZYBASTARD_LB_FWD
+#include "Prokrastinator.h"
 
-#pragma once
-
-namespace lazybastard {
-
-// =====================================================================================================================
-//                                                 FORWARD DECLARATIONS
-// =====================================================================================================================
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-namespace graph {
-
-class DiGraph;
-class Edge;
-struct EdgeOrder;
-class Graph;
-class GraphBase;
-class Vertex;
-
-} // namespace graph
-
-namespace matching {
-
-struct VertexMatch;
-struct EdgeMatch;
-struct ContainElement;
-class MatchMap;
-class Id2OverlapMap;
-
-} // namespace matching
-
-namespace threading {
-
-class Job;
-class ThreadPool;
-
-} // namespace threading
-
-class OutputWriter;
-struct Toggle;
-class SequenceAccessor;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-} // namespace lazybastard
-
-#endif // INCLUDED_LAZYBASTARD_LB_FWD
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
