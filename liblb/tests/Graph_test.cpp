@@ -22,6 +22,8 @@ TEST(GraphTest, BasicTest) {
   ASSERT_EQ(graph.getOrder(), 2);
 
   graph.addEdge(vertexIDs);
+  graph.addEdge(std::make_pair(vertexIDs.second, vertexIDs.first));
+  ASSERT_EQ(graph.getSize(), 1);
   ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::move(vertexIDs)), "1,2");
 
   auto expected    = std::make_pair(spVertex1.get(), spVertex2.get());

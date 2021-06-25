@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <condition_variable>
 #include <cstddef>
 #include <mutex>
@@ -96,10 +95,10 @@ public:
   void wait();
 
 private:
-  std::atomic<bool>        m_waitLock{false}; /*!< bool marking the WaitGroup as waiting and locking the add function */
-  std::atomic<std::size_t> m_jobCount{0};     /*!< Number of Job instances assigned */
-  std::mutex               m_mutex;           /*!< std::mutex used for locking */
-  std::condition_variable  m_cv;              /*!< std::conditional_variable used to notify threads */
+  bool                    m_waitLock{false}; /*!< bool marking the WaitGroup as waiting and locking the add function */
+  std::size_t             m_jobCount{0};     /*!< Number of Job instances assigned */
+  std::mutex              m_mutex;           /*!< std::mutex used for locking */
+  std::condition_variable m_cv;              /*!< std::conditional_variable used to notify threads */
 };
 
 } // namespace lazybastard::threading

@@ -77,7 +77,7 @@ bool isFastQ(std::string_view filename) {
   std::vector<char> buffer(fileExtension.size() + 1, '\0');
   std::transform(fileExtension.begin(), fileExtension.end(), buffer.begin(), static_cast<int (*)(int)>(&std::tolower));
 
-  return std::strcmp(fileExtension.data(), "fastq") == 0;
+  return std::strcmp(fileExtension.data(), "fa") != 0 && std::strcmp(fileExtension.data(), "fasta") != 0;
 }
 
 void cleanSequenceId(std::string &sequenceId) {
@@ -173,6 +173,11 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
       }
 
       lengthCurrentSequence += ret;
+    }
+
+    while (ret != -1 && *pLine != identifierDescline) {
+      ret         = getline(&pLine, &bufferSize, m_pNanoporeSequenceFile.get());
+      offsetStart = std::ftell(m_pNanoporeSequenceFile.get());
     }
   }
 

@@ -42,7 +42,7 @@ public:
     }
 
     std::vector<lazybastard::graph::Vertex const *> path({pVertex});
-    auto const *pRoot = iter->second;
+    auto const *                                    pRoot = iter->second;
     while (pRoot != path.back()) {
       path.push_back(pRoot);
       pRoot = m_parents.find(pRoot)->second;
@@ -67,7 +67,7 @@ public:
 
 private:
   std::unordered_map<lazybastard::graph::Vertex const *, lazybastard::graph::Vertex const *> m_parents;
-  std::unordered_map<lazybastard::graph::Vertex const *, std::size_t> m_weights;
+  std::unordered_map<lazybastard::graph::Vertex const *, std::size_t>                        m_weights;
 };
 
 std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Edge>>
@@ -82,7 +82,7 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
             [](auto const *pEdge1, auto const *pEdge2) { return pEdge1->getWeight() > pEdge2->getWeight(); });
 
   std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Edge>> result;
-  auto uf = UnionFind();
+  auto                                                                       uf = UnionFind();
   for (auto *pEdge : edges) {
     auto const vertices = pEdge->getVertices();
     if (uf[vertices.first] != uf[vertices.second]) {

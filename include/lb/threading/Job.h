@@ -140,27 +140,25 @@ private:
 
 // PUBLIC CLASS METHODS
 
-template<class... TYPES>
-Job::Job(std::function<void(gsl::not_null<Job const *> const)> fn, TYPES... params)
-        : m_fn(std::move(fn)) {
-    _addParam(params...);
+template <class... TYPES> Job::Job(std::function<void(gsl::not_null<Job const *> const)> fn, TYPES... params)
+    : m_fn(std::move(fn)) {
+  _addParam(params...);
 }
 
-    inline Job::operator bool() const { return m_fn.operator bool(); }
+inline Job::operator bool() const { return m_fn.operator bool(); }
 
-    inline void Job::operator()() const { return m_fn(this); }
+inline void Job::operator()() const { return m_fn(this); }
 
-    [[nodiscard]] inline std::any Job::getParam(std::size_t idx) const { return m_params[idx]; }
+[[nodiscard]] inline std::any Job::getParam(std::size_t idx) const { return m_params[idx]; }
 
 // PRIVATE CLASS METHODS
 
-    template<class TYPE, class... TYPES>
-    void Job::_addParam(TYPE val, TYPES... values) {
-        m_params.push_back(val);
-        _addParam(values...);
-    }
+template <class TYPE, class... TYPES> void Job::_addParam(TYPE val, TYPES... values) {
+  m_params.push_back(val);
+  _addParam(values...);
+}
 
-    inline void Job::_addParam() {};
+inline void Job::_addParam(){};
 
 } // namespace lazybastard::threading
 

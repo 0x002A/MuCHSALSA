@@ -23,6 +23,8 @@
 
 #include <any>
 #include <stdexcept>
+#include <unordered_set>
+#include <vector>
 
 #include "Util.h"
 #include "graph/Edge.h"
@@ -56,17 +58,24 @@ void MatchMap::addVertexMatch(const std::string &nanoporeId, const std::string &
   std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
 
   // Actual map containing the matches
-  auto const iterIlluminaIDs =
-      m_vertexMatches.emplace(nanoporeId, um_t<std::string, std::shared_ptr<VertexMatch> const>()).first;
-  auto const isNoDoubleHit = iterIlluminaIDs->second.emplace(illuminaId, spMatch).second;
+  auto &illuminaIds = m_vertexMatches[nanoporeId];
 
-  if (isNoDoubleHit) {
-    // Map representing the scaffolds
-    auto iterNanoporeIds =
-        m_scaffolds
-            .emplace(illuminaId, decltype(m_scaffolds)::mapped_type(lazybastard::MatchingUtil::scaffoldLineIdxCmp))
-            .first;
-    iterNanoporeIds->second.emplace(m_pGraph->getVertex(nanoporeId), spMatch);
+  auto insertMatch = false;
+  if (illuminaIds.contains(illuminaId)) {
+    auto const lineNumber = illuminaIds[illuminaId]->lineNumber;
+
+    if (lineNumber > spMatch->lineNumber) {
+      insertMatch = true;
+    }
+  } else {
+    insertMatch = true;
+  }
+
+  if (insertMatch) {
+    illuminaIds[illuminaId] = spMatch;
+    auto &scaffold          = m_scaffolds[illuminaId];
+
+    scaffold[m_pGraph->getVertex(nanoporeId)] = spMatch;
   }
 }
 
@@ -83,7 +92,7 @@ void MatchMap::addVertexMatch(const std::string &nanoporeId, const std::string &
   return nullptr;
 }
 
-[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch> const> const *
+[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch>> const *
 MatchMap::getVertexMatches(std::string const &vertexId) const {
   auto iter = m_vertexMatches.find(vertexId);
   if (iter != std::end(m_vertexMatches)) {
@@ -102,8 +111,22 @@ void MatchMap::addEdgeMatch(lazybastard::graph::Edge const *const pEdge, std::st
   std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
 
   // Actual map containing the matches
-  auto illuminaIDs = m_edgeMatches.emplace(pEdge, um_t<std::string, std::shared_ptr<EdgeMatch> const>()).first;
-  illuminaIDs->second.emplace(illuminaId, spMatch);
+  auto &illuminaIds = m_edgeMatches[pEdge];
+
+  auto insertMatch = false;
+  if (illuminaIds.contains(illuminaId)) {
+    auto const lineNumber = illuminaIds[illuminaId]->lineNumber;
+
+    if (lineNumber > spMatch->lineNumber) {
+      insertMatch = true;
+    }
+  } else {
+    insertMatch = true;
+  }
+
+  if (insertMatch) {
+    illuminaIds[illuminaId] = spMatch;
+  }
 }
 
 [[nodiscard]] EdgeMatch const *MatchMap::getEdgeMatch(lazybastard::graph::Edge const *const pEdge,
@@ -119,7 +142,7 @@ void MatchMap::addEdgeMatch(lazybastard::graph::Edge const *const pEdge, std::st
   return nullptr;
 }
 
-[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch> const> const *
+[[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch>> const *
 MatchMap::getEdgeMatches(lazybastard::graph::Edge const *const pEdge) const {
   auto const iter = m_edgeMatches.find(pEdge);
   if (iter != std::end(m_edgeMatches)) {
@@ -141,26 +164,28 @@ void MatchMap::calculateEdges() {
   }
 
   wg.wait();
-
-  // Clear line numbers
-  for (auto *const pVertex : m_pGraph->getVertices()) {
-    pVertex->clearMetaData();
-  }
 }
 
 void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob) {
   auto scaffold = std::any_cast<decltype(m_scaffolds)::mapped_type>(pJob->getParam(2));
 
-  for (auto outerIter = std::begin(scaffold); outerIter != std::end(scaffold); ++outerIter) {
-    auto const *const outerMatch = outerIter->second.get();
-    for (auto innerIter = std::begin(scaffold); innerIter != outerIter; ++innerIter) {
-      auto const *const innerMatch = innerIter->second.get();
+  std::vector<std::pair<std::size_t, lazybastard::graph::Vertex *>> idx;
+  for (auto iter = std::begin(scaffold); iter != std::end(scaffold); ++iter) {
+    idx.emplace_back(iter->second->lineNumber, iter->first);
+  }
+
+  std::sort(std::begin(idx), std::end(idx), [](auto const &lhs, auto const &rhs) { return lhs.first < rhs.first; });
+
+  for (auto outerIter = std::next(std::begin(idx)); outerIter != std::end(idx); ++outerIter) {
+    auto const *const outerMatch = scaffold[outerIter->second].get();
+    for (auto innerIter = std::begin(idx); innerIter != outerIter; ++innerIter) {
+      auto const *const innerMatch = scaffold[innerIter->second].get();
       auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
 
       if (overlap.first <= overlap.second && overlap.second - overlap.first > static_cast<int>(TH_OVERLAP)) {
         auto const direction = outerMatch->direction == innerMatch->direction;
-        auto const isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
+        auto const isPrimary = outerMatch->isPrimary && innerMatch->isPrimary;
         auto const outerLength =
             static_cast<double>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
         auto const innerLength =
@@ -170,12 +195,21 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
         auto const innerScore   = static_cast<double>(innerMatch->score) * commonLength / innerLength;
         auto const sumScore     = outerScore + innerScore;
 
-        auto pVertices = std::make_pair(innerIter->first, outerIter->first);
+        auto pVertices = [=]() {
+          auto const lineIdxInnerVertex = innerIter->second->getMetaDatum<std::size_t>(0);
+          auto const lineIdxOuterVertex = outerIter->second->getMetaDatum<std::size_t>(0);
+
+          if (lineIdxOuterVertex < lineIdxInnerVertex) {
+            return std::make_pair(outerIter->second, innerIter->second);
+          }
+
+          return std::make_pair(innerIter->second, outerIter->second);
+        }();
         m_pGraph->addEdge(pVertices);
 
         addEdgeMatch(m_pGraph->getEdge(std::move(pVertices)), std::any_cast<std::string>(pJob->getParam(1)),
                      lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary,
-                                                                         std::make_pair(0, 0)));
+                                                                         outerMatch->lineNumber, std::make_pair(0, 0)));
       }
     }
   }

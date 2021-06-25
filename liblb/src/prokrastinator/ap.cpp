@@ -121,19 +121,34 @@ std::vector<lazybastard::graph::Vertex *> ramseyR2(lazybastard::graph::Graph con
   auto *const firstVertex  = vertices[0];
   std::for_each(std::next(std::begin(vertices)), std::end(vertices),
                 [=, &graph, &neighbors, &nonNeighbors](auto *const pVertex) {
+                  // std::cout << pVertex->getId() << ";";
                   if (graph.hasEdge(std::make_pair(firstVertex, pVertex))) {
                     neighbors.push_back(pVertex);
                   } else {
                     nonNeighbors.push_back(pVertex);
                   }
                 });
+  // std::cout << std::endl;
+
+  /*
+  std::cout << firstVertex->getId() << std::endl;
+  for (auto const * const pVertex : neighbors) {
+    std::cout << pVertex->getId() << ";";
+  }
+  std::cout << std::endl;
+
+  for (auto const * const pVertex : nonNeighbors) {
+    std::cout << pVertex->getId() << ";";
+  }
+  std::cout << std::endl;
+  */
 
   auto       cliqueNeighbors    = ramseyR2(graph, neighbors);
   auto const cliqueNonNeighbors = ramseyR2(graph, nonNeighbors);
 
   cliqueNeighbors.push_back(firstVertex);
 
-  return cliqueNeighbors.size() > cliqueNonNeighbors.size() ? cliqueNeighbors : cliqueNonNeighbors;
+  return cliqueNeighbors.size() >= cliqueNonNeighbors.size() ? cliqueNeighbors : cliqueNonNeighbors;
 }
 
 std::vector<std::vector<lazybastard::graph::Vertex *>> getAnchorCliques(lazybastard::graph::Graph const &graph) {
@@ -160,8 +175,7 @@ std::vector<std::vector<lazybastard::graph::Vertex *>> getAnchorCliques(lazybast
 }
 
 void getClusterAnchors(
-    gsl::not_null<std::unordered_map<std::size_t, std::unordered_map<std::string, std::size_t>> *> const
-                                                           pClusterModifier,
+    gsl::not_null<std::vector<std::unordered_map<std::string, std::size_t>> *> const pClusterModifier,
     gsl::not_null<lazybastard::matching::MatchMap const *> pMatchMap, std::string const &illuminaIdBase,
     std::vector<std::size_t> const &                                           edgeIdx,
     gsl::not_null<std::vector<lazybastard::graph::Edge const *> const *> const pEdges,
@@ -183,18 +197,18 @@ void getClusterAnchors(
                                           std::min(overlapEdge1.second, overlapEdge2.second));
 
       if (overlap.first <= overlap.second) {
-        g.addEdge(std::make_pair(g.getVertex(std::to_string(idxEdge1)), g.getVertex(std::to_string(idxEdge2))));
+        g.addEdge(std::make_pair(g.getVertex(std::to_string(idxEdge2)), g.getVertex(std::to_string(idxEdge1))));
       }
     }
   }
 
   auto const anchorCliques = getAnchorCliques(g);
-  for (auto iter = std::begin(anchorCliques); iter != std::end(anchorCliques); ++iter) {
-    auto const idx         = static_cast<std::size_t>(std::distance(std::begin(anchorCliques), iter));
+
+  for (std::size_t idx = 0; idx < anchorCliques.size(); ++idx) {
     auto const correctedId = std::make_tuple(illuminaIdBase, idx);
 
     std::optional<std::pair<int, int>> commonOverlap;
-    for (auto const *const pVertex : *iter) {
+    for (auto const *const pVertex : anchorCliques.at(idx)) {
       (*pClusterModifier)[std::stoul(pVertex->getId())][illuminaIdBase] = idx;
 
       if (!commonOverlap) {
@@ -233,17 +247,19 @@ std::tuple<std::string, int, int> updateConsensusBase(std::optional<std::string_
     return std::make_tuple(std::string(newSequence), newBorders.first, newBorders.second);
   }
 
-  auto updatedSequence = std::string(oldSequence.value());
+  std::string updatedSequence;
   if (newBorders.first < oldBorders.first) {
     auto const borderRight = oldBorders.first - newBorders.first;
 
     updatedSequence.append([=]() { return strSlice(newSequence, 0, borderRight); }());
-    updatedSequence.append(newSequence);
+    updatedSequence.append(oldSequence.value());
   } else if (newBorders.second > oldBorders.second) {
-    updatedSequence.append(newSequence);
+    updatedSequence.append(oldSequence.value());
 
     auto const borderLeft = -(newBorders.second - oldBorders.second);
     updatedSequence.append(strSlice(newSequence, borderLeft, static_cast<int>(newSequence.size())));
+  } else {
+    updatedSequence = oldSequence.value();
   }
 
   return std::make_tuple(std::move(updatedSequence), std::min(oldBorders.first, newBorders.first),
@@ -314,7 +330,7 @@ visitOrdered(gsl::not_null<std::unordered_map<lazybastard::graph::Vertex const *
         auto const lengthRight = overlapRight.second - overlapRight.first + 1;
 
         if (hasAnchorLeft and !hasAnchorRight) {
-          auto const posRight   = std::get<1>((*pTap)[pAnchorLeft]);
+          auto const posRight   = std::get<1>(pTap->at(pAnchorLeft));
           (*pTap)[pAnchorRight] = std::make_tuple(posRight + offset + 1, posRight + offset + lengthRight);
 
           if (offset > 0) {
@@ -325,10 +341,10 @@ visitOrdered(gsl::not_null<std::unordered_map<lazybastard::graph::Vertex const *
 
           std::tie(sequence, borderLeft, borderRight) = updateConsensusBase(
               sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorRight),
-              std::make_pair(std::get<0>((*pTap)[pAnchorRight]), std::get<1>((*pTap)[pAnchorRight])));
+              std::make_pair(std::get<0>(pTap->at(pAnchorRight)), std::get<1>(pTap->at(pAnchorRight))));
         } else if (!hasAnchorLeft and hasAnchorRight) {
-          auto const posRight  = std::get<0>((*pTap)[pAnchorRight]);
-          (*pTap)[pAnchorLeft] = std::make_tuple(posRight + offset + 1, posRight + offset + lengthRight);
+          auto const posRight  = std::get<0>(pTap->at(pAnchorRight));
+          (*pTap)[pAnchorLeft] = std::make_tuple(posRight - offset - 2 - lengthLeft, posRight - offset - 1);
 
           if (offset > 0) {
             std::tie(sequence, borderLeft, borderRight) =
@@ -336,9 +352,9 @@ visitOrdered(gsl::not_null<std::unordered_map<lazybastard::graph::Vertex const *
                                     std::make_pair(posRight - offset, posRight));
           }
 
-          std::tie(sequence, borderLeft, borderRight) =
-              updateConsensusBase(sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorLeft),
-                                  std::make_pair(std::get<0>((*pTap)[pAnchorLeft]), std::get<1>((*pTap)[pAnchorLeft])));
+          std::tie(sequence, borderLeft, borderRight) = updateConsensusBase(
+              sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorLeft),
+              std::make_pair(std::get<0>(pTap->at(pAnchorLeft)), std::get<1>(pTap->at(pAnchorLeft))));
         } else if (!hasAnchorLeft and !hasAnchorRight) {
           (*pTap)[pAnchorLeft]  = std::make_tuple(0, lengthLeft - 1);
           (*pTap)[pAnchorRight] = std::make_tuple(lengthLeft + offset, lengthLeft + offset + lengthRight - 1);
@@ -349,12 +365,12 @@ visitOrdered(gsl::not_null<std::unordered_map<lazybastard::graph::Vertex const *
                                     std::make_pair(lengthLeft, lengthLeft + offset - 1));
           }
 
-          std::tie(sequence, borderLeft, borderRight) =
-              updateConsensusBase(sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorLeft),
-                                  std::make_pair(std::get<0>((*pTap)[pAnchorLeft]), std::get<1>((*pTap)[pAnchorLeft])));
+          std::tie(sequence, borderLeft, borderRight) = updateConsensusBase(
+              sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorLeft),
+              std::make_pair(std::get<0>(pTap->at(pAnchorLeft)), std::get<1>(pTap->at(pAnchorLeft))));
           std::tie(sequence, borderLeft, borderRight) = updateConsensusBase(
               sequence, std::make_pair(borderLeft, borderRight), anchorSequences.at(pAnchorRight),
-              std::make_pair(std::get<0>((*pTap)[pAnchorRight]), std::get<1>((*pTap)[pAnchorRight])));
+              std::make_pair(std::get<0>(pTap->at(pAnchorRight)), std::get<1>(pTap->at(pAnchorRight))));
         }
 
         queueEdges.erase(std::begin(queueEdges));
@@ -394,8 +410,8 @@ std::string getReverseComplement(std::string const &sequence) {
 std::string getIlluminaSequence(lazybastard::SequenceAccessor &sequenceAccessor, std::string const &illuminaId,
                                 int illuminaOverlapLeft, int illuminaOverlapRight,
                                 lazybastard::Toggle const direction) {
-  auto illuminaSequence = std::string(strSlice(sequenceAccessor.getIlluminaSequence(illuminaId), illuminaOverlapLeft,
-                                               illuminaOverlapRight - illuminaOverlapLeft + 1));
+  auto illuminaSequence = std::string(
+      strSlice(sequenceAccessor.getIlluminaSequence(illuminaId), illuminaOverlapLeft, illuminaOverlapRight + 1));
 
   if (!direction) {
     return getReverseComplement(illuminaSequence);
@@ -406,8 +422,8 @@ std::string getIlluminaSequence(lazybastard::SequenceAccessor &sequenceAccessor,
 
 std::string getNanoporeSequence(lazybastard::SequenceAccessor &sequenceAccessor, std::string const &nanoporeId,
                                 int nanoporeRegionLeft, int nanoporeRegionRight, lazybastard::Toggle const direction) {
-  auto nanoporeSequence = std::string(strSlice(sequenceAccessor.getNanoporeSequence(nanoporeId), nanoporeRegionLeft,
-                                               nanoporeRegionRight - nanoporeRegionLeft + 1));
+  auto nanoporeSequence = std::string(
+      strSlice(sequenceAccessor.getNanoporeSequence(nanoporeId), nanoporeRegionLeft, nanoporeRegionRight + 1));
 
   if (!direction) {
     return getReverseComplement(nanoporeSequence);
@@ -506,7 +522,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
                           std::pair<int, int> const &overlapLeft, std::pair<int, int> const &overlapRight,
                           lazybastard::Toggle const direction) {
   auto const *const matchLeft  = matchMap.getVertexMatch(nanoporeId, illuminaIdLeft);
-  auto const *const matchRight = matchMap.getVertexMatch(nanoporeId, illuminaIdLeft);
+  auto const *const matchRight = matchMap.getVertexMatch(nanoporeId, illuminaIdRight);
 
   auto const &illuminaRangeLeft  = matchLeft->illuminaRange;
   auto const &illuminaRangeRight = matchRight->illuminaRange;
@@ -528,7 +544,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
           getCorrectedNanoporeRange(matchMap, nanoporeId, illuminaIdRight, overlapRight);
 
       if (correctedNanoporeLeft.first < correctedNanoporeRight.second) {
-        return std::make_tuple(std::lround(correctedNanoporeLeft.first - correctedNanoporeRight.second), std::nullopt);
+        return std::make_tuple(std::floor(correctedNanoporeLeft.first - correctedNanoporeRight.second), std::nullopt);
       }
 
       double availableLeft  = 0;
@@ -542,7 +558,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
       }
 
       if (availableLeft > errorOffset) {
-        correctionLeft = static_cast<int>(std::round(errorOffset * rRatioLeft));
+        correctionLeft = static_cast<int>(std::floor(errorOffset * rRatioLeft));
         errorOffset    = 0;
       } else {
         errorOffset -= availableLeft;
@@ -557,7 +573,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
       }
 
       if (availableRight > errorOffset) {
-        correctionRight = static_cast<int>(std::round(errorOffset * rRatioRight));
+        correctionRight = static_cast<int>(std::floor(errorOffset * rRatioRight));
       }
     }
 
@@ -590,7 +606,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
     auto const correctedNanoporeRight = getCorrectedNanoporeRange(matchMap, nanoporeId, illuminaIdRight, overlapRight);
 
     if (correctedNanoporeLeft.second > correctedNanoporeRight.first) {
-      return std::make_tuple(std::lround(correctedNanoporeRight.first - correctedNanoporeLeft.second), std::nullopt);
+      return std::make_tuple(std::floor(correctedNanoporeRight.first - correctedNanoporeLeft.second), std::nullopt);
     }
 
     double availableLeft  = 0;
@@ -604,7 +620,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
     }
 
     if (availableLeft > errorOffset) {
-      correctionLeft = static_cast<int>(std::round(errorOffset * rRatioLeft));
+      correctionLeft = static_cast<int>(std::floor(errorOffset * rRatioLeft));
       errorOffset    = 0;
     } else {
       errorOffset -= availableLeft;
@@ -619,7 +635,7 @@ getSequenceBetweenAnchors(lazybastard::matching::MatchMap const &matchMap,
     }
 
     if (availableRight > errorOffset) {
-      correctionRight = static_cast<int>(std::round(errorOffset * rRatioRight));
+      correctionRight = static_cast<int>(std::floor(errorOffset * rRatioRight));
     }
   }
 
@@ -763,7 +779,7 @@ void lazybastard::assemblePath(
                      return pMinKinks && pMaxScore && candidate.kinks == *pMinKinks && candidate.score == *pMaxScore;
                    });
     }
-    candidates = nextCandidates;
+    candidates = std::move(nextCandidates);
   }
 
   std::size_t const *pMinKinks = nullptr;
@@ -775,16 +791,14 @@ void lazybastard::assemblePath(
   });
 
   std::unordered_map<std::string, std::vector<std::size_t>> clusters;
-  for (auto iter = std::begin(bestCandidate.edges); iter != std::end(bestCandidate.edges); ++iter) {
-    auto const idx = static_cast<std::size_t>(std::distance(std::begin(bestCandidate.edges), iter));
-
+  for (std::size_t idx = 0; idx < bestCandidate.edges.size(); ++idx) {
     for (auto const &match : bestCandidate.orders[idx]->ids) {
-      auto const iterCluster = clusters.emplace(match, decltype(clusters)::mapped_type());
-      iterCluster.first->second.push_back(idx);
+      auto &cluster = clusters[match];
+      cluster.push_back(idx);
     }
   }
 
-  std::unordered_map<std::size_t, std::unordered_map<std::string, std::size_t>> clusterModifier;
+  std::vector<std::unordered_map<std::string, std::size_t>> clusterModifier(bestCandidate.edges.size());
   std::for_each(std::begin(clusters), std::end(clusters), [&](auto const &cluster) {
     getClusterAnchors(&clusterModifier, pMatchMap, cluster.first, cluster.second, &bestCandidate.edges, pId2OverlapMap);
   });
@@ -794,12 +808,9 @@ void lazybastard::assemblePath(
                                                   vertexInfo(bestCandidate.edges.size() + 1);
   std::vector<lazybastard::graph::Vertex const *> vertices(bestCandidate.edges.size() + 1);
   std::unordered_map<std::string, std::size_t>    matchModifiers;
-  for (auto iter = std::begin(bestCandidate.edges); iter != std::end(bestCandidate.edges); ++iter) {
-    auto const idx = static_cast<std::size_t>(std::distance(std::begin(bestCandidate.edges), iter));
-
+  for (std::size_t idx = 0; idx < bestCandidate.edges.size(); ++idx) {
     for (auto const &modifier : bestCandidate.modifiers[idx]) {
-      auto const iterInsertModifier = matchModifiers.insert({modifier, 0});
-      iterInsertModifier.first->second += 1;
+      ++matchModifiers[modifier];
     }
 
     auto              ids        = bestCandidate.orders[idx]->ids;
@@ -808,7 +819,7 @@ void lazybastard::assemblePath(
       std::reverse(std::begin(ids), std::end(ids));
     }
 
-    auto const verticesOfEdge = (*iter)->getVertices();
+    auto const verticesOfEdge = bestCandidate.edges[idx]->getVertices();
 
     for (auto const &id : ids) {
       auto matches = std::make_tuple(std::make_tuple(id, clusterModifier[idx][id]),
@@ -830,43 +841,50 @@ void lazybastard::assemblePath(
   std::unordered_map<lazybastard::graph::Vertex const *, std::vector<std::string>>                      preSequences;
   std::unordered_map<lazybastard::graph::Vertex const *, std::vector<std::string>>                      postSequences;
 
-  for (auto iter = std::begin(vertices); iter != std::end(vertices); ++iter) {
-    auto const idx = static_cast<std::size_t>(std::distance(std::begin(vertices), iter));
-
+  for (std::size_t idx = 0; idx < vertices.size(); ++idx) {
     std::sort(std::begin(vertexInfo[idx]), std::end(vertexInfo[idx]), [=](auto const &lhs, auto const &rhs) {
       if (lhs.first == rhs.first) {
-        if (!pMatchMap->getVertexMatch((*iter)->getId(), std::get<0>(std::get<0>(lhs.second)))->direction) {
-          return (*pId2OverlapMap)[std::get<0>(rhs.second)] < (*pId2OverlapMap)[std::get<0>(lhs.second)];
+        if (!pMatchMap->getVertexMatch(vertices.at(idx)->getId(), std::get<0>(std::get<0>(lhs.second)))->direction) {
+          return pId2OverlapMap->at(std::get<0>(rhs.second)) < pId2OverlapMap->at(std::get<0>(lhs.second));
         }
 
-        return (*pId2OverlapMap)[std::get<0>(lhs.second)] < (*pId2OverlapMap)[std::get<0>(rhs.second)];
+        return pId2OverlapMap->at(std::get<0>(lhs.second)) < pId2OverlapMap->at(std::get<0>(rhs.second));
       }
 
       return lhs.first < rhs.first;
     });
 
     auto &vertexInfoOfInterest = vertexInfo[idx];
-    if ((*iter)->getVertexDirection() == Direction::e_NEG) {
+    if (vertices.at(idx)->getVertexDirection() == Direction::e_NEG) {
       std::reverse(std::begin(vertexInfoOfInterest), std::end(vertexInfoOfInterest));
     }
+
+    // std::pair<std::pair<int, int>, std::tuple<std::tuple<std::string, std::size_t>, std::size_t>
+    std::string values;
+    for (auto const &value : vertexInfo[idx]) {
+      values.append(std::to_string(value.first.first) + "," + std::to_string(value.first.second) + ",");
+      values.append(std::get<0>(std::get<0>(value.second)) + "," +
+                    std::to_string(std::get<1>(std::get<0>(value.second))));
+      values.append(";");
+    }
+    // std::cout << vertices.at(idx)->getId() << ";" << (vertices.at(idx)->getVertexDirection() == Direction::e_NEG ?
+    // "-1" : "1") << ";" << values << std::endl;
 
     vertexInfoOfInterest = vertexInfo[idx];
     if (vertexInfoOfInterest.empty()) {
       continue;
     }
 
-    auto &lastMatch = vertexInfoOfInterest.front().second;
-    auto &lastNr    = vertexInfoOfInterest.front().first;
+    auto lastNr    = vertexInfoOfInterest.front().first;
+    auto lastMatch = vertexInfoOfInterest.front().second;
     for (auto const &[nr, match] : vertexInfoOfInterest) {
 
       auto idMatch = tupleTuple2Id(match);
       if (!adg.hasVertex(idMatch)) {
         adg.addVertex(std::make_shared<lazybastard::graph::Vertex>(idMatch, 0));
-        anchorSequences.emplace(adg.getVertex(idMatch),
-                                getAnchorSequence(*pMatchMap, *pSequenceAccessor, (*iter)->getId(),
-                                                  std::get<0>(std::get<0>(match)),
-                                                  (*pId2OverlapMap)[std::get<0>(match)],
-                                                  (*iter)->getVertexDirection() == Direction::e_POS));
+        anchorSequences[adg.getVertex(idMatch)] = getAnchorSequence(
+            *pMatchMap, *pSequenceAccessor, vertices.at(idx)->getId(), std::get<0>(std::get<0>(match)),
+            pId2OverlapMap->at(std::get<0>(match)), vertices.at(idx)->getVertexDirection() == Direction::e_POS);
       }
 
       if (match == lastMatch) {
@@ -876,24 +894,24 @@ void lazybastard::assemblePath(
       auto idLastMatch = tupleTuple2Id(lastMatch);
       if (!adg.hasVertex(idLastMatch)) {
         adg.addVertex(std::make_shared<lazybastard::graph::Vertex>(idLastMatch, 0));
-        anchorSequences.emplace(adg.getVertex(idLastMatch),
-                                getAnchorSequence(*pMatchMap, *pSequenceAccessor, (*iter)->getId(),
-                                                  std::get<0>(std::get<0>(lastMatch)),
-                                                  (*pId2OverlapMap)[std::get<0>(lastMatch)],
-                                                  (*iter)->getVertexDirection() == Direction::e_POS));
+        anchorSequences[adg.getVertex(idLastMatch)] = getAnchorSequence(
+            *pMatchMap, *pSequenceAccessor, vertices.at(idx)->getId(), std::get<0>(std::get<0>(lastMatch)),
+            pId2OverlapMap->at(std::get<0>(lastMatch)), vertices.at(idx)->getVertexDirection() == Direction::e_POS);
       }
 
       auto flip = false;
       if ((lastNr.second > nr.second && lastNr.first < nr.first) ||
           (lastNr.second < nr.second && lastNr.first > nr.first)) {
-        auto const cnLeft = getCorrectedNanoporeRange(*pMatchMap, (*iter)->getId(), std::get<0>(std::get<0>(lastMatch)),
-                                                      (*pId2OverlapMap)[std::get<0>(lastMatch)]);
-        auto const cnRight = getCorrectedNanoporeRange(*pMatchMap, (*iter)->getId(), std::get<0>(std::get<0>(match)),
-                                                       (*pId2OverlapMap)[std::get<0>(match)]);
+        auto const cnLeft =
+            getCorrectedNanoporeRange(*pMatchMap, vertices.at(idx)->getId(), std::get<0>(std::get<0>(lastMatch)),
+                                      pId2OverlapMap->at(std::get<0>(lastMatch)));
+        auto const cnRight =
+            getCorrectedNanoporeRange(*pMatchMap, vertices.at(idx)->getId(), std::get<0>(std::get<0>(match)),
+                                      pId2OverlapMap->at(std::get<0>(match)));
 
-        flip = ((*iter)->getVertexDirection() == Direction::e_POS &&
+        flip = (vertices.at(idx)->getVertexDirection() == Direction::e_POS &&
                 (cnLeft.first > cnRight.first || (cnLeft.first == cnRight.first && cnLeft.second > cnRight.second))) ||
-               ((*iter)->getVertexDirection() == Direction::e_NEG &&
+               (vertices.at(idx)->getVertexDirection() == Direction::e_NEG &&
                 (cnLeft.first < cnRight.first || (cnLeft.first == cnRight.first && cnLeft.second < cnRight.second)));
       }
 
@@ -906,8 +924,7 @@ void lazybastard::assemblePath(
 
       adg.addEdge(edge);
 
-      auto iterNanopores = nanopores.emplace(adg.getEdge(std::move(edge)), decltype(nanopores)::mapped_type());
-      iterNanopores.first->second.push_back(*iter);
+      nanopores[adg.getEdge(std::move(edge))].push_back(vertices.at(idx));
 
       lastMatch = match;
       lastNr    = nr;
@@ -917,18 +934,16 @@ void lazybastard::assemblePath(
     auto const secondId = std::get<1>(vertexInfoOfInterest.back());
 
     auto const *const pFirstVertex = adg.getVertex(tupleTuple2Id(vertexInfoOfInterest.front().second));
-    auto              iterPreSeq   = preSequences.emplace(pFirstVertex, decltype(preSequences)::mapped_type());
-    iterPreSeq.first->second.push_back(
-        getSequenceLeftOfAnchor(*pMatchMap, *pSequenceAccessor, (*iter)->getId(), (*iter)->getNanoporeLength(),
-                                std::get<0>(std::get<0>(firstId)), (*pId2OverlapMap)[std::get<0>(firstId)],
-                                (*iter)->getVertexDirection() == Direction::e_POS));
+    preSequences[pFirstVertex].push_back(getSequenceLeftOfAnchor(
+        *pMatchMap, *pSequenceAccessor, vertices.at(idx)->getId(), vertices.at(idx)->getNanoporeLength(),
+        std::get<0>(std::get<0>(firstId)), pId2OverlapMap->at(std::get<0>(firstId)),
+        vertices.at(idx)->getVertexDirection() == Direction::e_POS));
 
     auto const *const pSecondVertex = adg.getVertex(tupleTuple2Id(vertexInfoOfInterest.back().second));
-    auto              iterPostSeq   = postSequences.emplace(pSecondVertex, decltype(postSequences)::mapped_type());
-    iterPostSeq.first->second.push_back(
-        getSequenceRightOfAnchor(*pMatchMap, *pSequenceAccessor, (*iter)->getId(), (*iter)->getNanoporeLength(),
-                                 std::get<0>(std::get<0>(secondId)), (*pId2OverlapMap)[std::get<0>(secondId)],
-                                 (*iter)->getVertexDirection() == Direction::e_POS));
+    postSequences[pSecondVertex].push_back(getSequenceRightOfAnchor(
+        *pMatchMap, *pSequenceAccessor, vertices.at(idx)->getId(), vertices.at(idx)->getNanoporeLength(),
+        std::get<0>(std::get<0>(secondId)), pId2OverlapMap->at(std::get<0>(secondId)),
+        vertices.at(idx)->getVertexDirection() == Direction::e_POS));
   }
 
   std::unordered_map<lazybastard::graph::Edge const *, int>                      distances;
@@ -937,8 +952,8 @@ void lazybastard::assemblePath(
     auto const verticesOfEdge = pEdge->getVertices();
     alignAnchorRegion(&sequences, &distances, adg, *pMatchMap, *pSequenceAccessor, nanopores, *verticesOfEdge.first,
                       *verticesOfEdge.second,
-                      (*pId2OverlapMap)[std::get<0>(id2TupleTuple(verticesOfEdge.first->getId()))],
-                      (*pId2OverlapMap)[std::get<0>(id2TupleTuple(verticesOfEdge.second->getId()))]);
+                      pId2OverlapMap->at(std::get<0>(id2TupleTuple(verticesOfEdge.first->getId()))),
+                      pId2OverlapMap->at(std::get<0>(id2TupleTuple(verticesOfEdge.second->getId()))));
   }
 
   auto const sortedAdg = adg.sortTopologically();
@@ -947,11 +962,9 @@ void lazybastard::assemblePath(
   std::vector<lazybastard::graph::Vertex const *>                     order;
   order.reserve(sortedAdg.size());
 
-  for (auto iter = std::begin(sortedAdg); iter != std::end(sortedAdg); ++iter) {
-    auto const idx = static_cast<std::size_t>(std::distance(std::begin(sortedAdg), iter));
-
-    mappingVertex2OrderIdx[*iter] = idx;
-    order.push_back(*iter);
+  for (std::size_t idx = 0; idx < sortedAdg.size(); ++idx) {
+    mappingVertex2OrderIdx[sortedAdg.at(idx)] = idx;
+    order.push_back(sortedAdg.at(idx));
   }
 
   std::unordered_map<lazybastard::graph::Vertex const *, bool>                 visitedVertices;
@@ -967,10 +980,10 @@ void lazybastard::assemblePath(
   auto const adgVertices = adg.getVertices();
   if (adgVertices.size() == 1) {
     auto const *const pAnchor = adgVertices.front();
-    auto const        overlap = (*pId2OverlapMap)[std::get<0>(id2TupleTuple(pAnchor->getId()))];
+    auto const        overlap = pId2OverlapMap->at(std::get<0>(id2TupleTuple(pAnchor->getId())));
 
     tap[pAnchor]   = std::make_tuple(0, overlap.second - overlap.first);
-    globalSequence = anchorSequences[pAnchor];
+    globalSequence = anchorSequences.at(pAnchor);
     globalPos1     = 0;
     globalPos2     = overlap.second - overlap.first;
   }
@@ -978,7 +991,7 @@ void lazybastard::assemblePath(
   std::vector<std::tuple<std::optional<std::string>, int, int, decltype(tap)>> additionalPaths;
   std::vector<bool>                                                            isPathAdded;
   for (auto iter = std::next(std::begin(order)); iter != std::end(order); ++iter) {
-    auto const *const pVertex = (*iter);
+    auto const *const pVertex = *iter;
 
     if (visitedVertices.contains(pVertex)) {
       continue;
@@ -993,10 +1006,10 @@ void lazybastard::assemblePath(
                      anchorSequences, *pId2OverlapMap, *pVertex);
 
     if (localTap.empty()) {
-      auto const overlap = (*pId2OverlapMap)[std::get<0>(id2TupleTuple(pVertex->getId()))];
+      auto const overlap = pId2OverlapMap->at(std::get<0>(id2TupleTuple(pVertex->getId())));
 
       localTap[pVertex] = std::make_tuple(0, overlap.second - overlap.first);
-      localSequence     = anchorSequences[pVertex];
+      localSequence     = anchorSequences.at(pVertex);
       localPos1         = 0;
       localPos2         = overlap.second - overlap.first;
     }
@@ -1009,21 +1022,20 @@ void lazybastard::assemblePath(
   while (loop) {
     loop = false;
 
-    for (auto iter = std::begin(additionalPaths); iter != std::end(additionalPaths); ++iter) {
-      auto       isFound = false;
-      auto const idx     = static_cast<std::size_t>(std::distance(std::begin(additionalPaths), iter));
+    for (std::size_t idx = 0; idx < additionalPaths.size(); ++idx) {
+      auto isFound = false;
 
       if (isPathAdded[idx]) {
         continue;
       }
 
-      auto localSequence = std::get<0>(*iter);
-      auto localPos1     = std::get<1>(*iter);
-      auto localPos2     = std::get<2>(*iter);
+      auto localSequence = std::get<0>(additionalPaths.at(idx));
+      auto localPos1     = std::get<1>(additionalPaths.at(idx));
+      auto localPos2     = std::get<2>(additionalPaths.at(idx));
 
       int groupOffset = 0;
 
-      auto const &localTap = std::get<3>(*iter);
+      auto const &localTap = std::get<3>(additionalPaths.at(idx));
       for (auto const &[pMatch, overlap] : localTap) {
         isFound = false;
 
@@ -1032,13 +1044,13 @@ void lazybastard::assemblePath(
 
           if (tap.contains(pTargetVertex)) {
             groupOffset =
-                std::get<0>(tap[pTargetVertex]) - distances[pEdge] - std::get<1>(localTap.at(pTargetVertex)) - 1;
+                std::get<0>(tap.at(pTargetVertex)) - distances.at(pEdge) - std::get<1>(localTap.at(pMatch)) - 1;
 
-            if (!sequences[pEdge].empty()) {
+            if (!sequences.at(pEdge).empty()) {
               std::tie(localSequence, localPos1, localPos2) =
-                  updateConsensusBase(localSequence, std::make_pair(localPos1, localPos2), sequences[pEdge].front(),
-                                      std::make_pair(std::get<1>(localTap.at(pTargetVertex)) + 1,
-                                                     std::get<1>(localTap.at(pTargetVertex)) + distances[pEdge]));
+                  updateConsensusBase(localSequence, std::make_pair(localPos1, localPos2), sequences.at(pEdge).front(),
+                                      std::make_pair(std::get<1>(localTap.at(pMatch)) + 1,
+                                                     std::get<1>(localTap.at(pMatch)) + distances.at(pEdge)));
             }
 
             isFound = true;
@@ -1055,13 +1067,13 @@ void lazybastard::assemblePath(
 
           if (tap.contains(pTargetVertex)) {
             groupOffset =
-                std::get<1>(tap[pTargetVertex]) + distances[pEdge] - std::get<0>(localTap.at(pTargetVertex)) + 1;
+                std::get<1>(tap.at(pTargetVertex)) + distances.at(pEdge) + 1 - std::get<0>(localTap.at(pMatch)) + 1;
 
-            if (!sequences[pEdge].empty()) {
+            if (!sequences.at(pEdge).empty()) {
               std::tie(localSequence, localPos1, localPos2) =
-                  updateConsensusBase(localSequence, std::make_pair(localPos1, localPos2), sequences[pEdge].front(),
-                                      std::make_pair(std::get<0>(localTap.at(pTargetVertex)) - distances[pEdge],
-                                                     std::get<0>(localTap.at(pTargetVertex)) - 1));
+                  updateConsensusBase(localSequence, std::make_pair(localPos1, localPos2), sequences.at(pEdge).front(),
+                                      std::make_pair(std::get<0>(localTap.at(pMatch)) - distances.at(pEdge),
+                                                     std::get<0>(localTap.at(pMatch)) - 1));
             }
 
             isFound = true;
@@ -1096,20 +1108,20 @@ void lazybastard::assemblePath(
       auto const iterMaxSeq =
           std::max_element(std::begin(preSequences[pVertex]), std::end(preSequences[pVertex]),
                            [](auto const &lhs, auto const &rhs) { return lhs.size() < rhs.size(); });
-      auto const lenMaxSeq = static_cast<int>((*iterMaxSeq).size());
-      std::tie(globalSequence, globalPos1, globalPos2) =
-          updateConsensusBase(globalSequence, std::make_pair(globalPos1, globalPos2), *iterMaxSeq,
-                              std::make_pair(std::get<0>(tap[pVertex]) - lenMaxSeq, std::get<0>(tap[pVertex]) - 1));
+      auto const lenMaxSeq                             = static_cast<int>((*iterMaxSeq).size());
+      std::tie(globalSequence, globalPos1, globalPos2) = updateConsensusBase(
+          globalSequence, std::make_pair(globalPos1, globalPos2), *iterMaxSeq,
+          std::make_pair(std::get<0>(tap.at(pVertex)) - lenMaxSeq, std::get<0>(tap.at(pVertex)) - 1));
     }
 
     if (postSequences.contains(pVertex)) {
       auto const iterMaxSeq =
           std::max_element(std::begin(postSequences[pVertex]), std::end(postSequences[pVertex]),
                            [](auto const &lhs, auto const &rhs) { return lhs.size() < rhs.size(); });
-      auto const lenMaxSeq = static_cast<int>((*iterMaxSeq).size());
-      std::tie(globalSequence, globalPos1, globalPos2) =
-          updateConsensusBase(globalSequence, std::make_pair(globalPos1, globalPos2), *iterMaxSeq,
-                              std::make_pair(std::get<1>(tap[pVertex]) + 1, std::get<1>(tap[pVertex]) + lenMaxSeq));
+      auto const lenMaxSeq                             = static_cast<int>((*iterMaxSeq).size());
+      std::tie(globalSequence, globalPos1, globalPos2) = updateConsensusBase(
+          globalSequence, std::make_pair(globalPos1, globalPos2), *iterMaxSeq,
+          std::make_pair(std::get<1>(tap.at(pVertex)) + 1, std::get<1>(tap.at(pVertex)) + lenMaxSeq));
     }
   }
 
@@ -1133,7 +1145,7 @@ void lazybastard::assemblePath(
   std::size_t queryIdx = 0;
   for (auto const *const pEdge : adg.getEdges()) {
 
-    for (auto const &sequence : sequences[pEdge]) {
+    for (auto const &sequence : sequences.at(pEdge)) {
       if (sequence.empty()) {
         continue;
       }
@@ -1160,8 +1172,8 @@ void lazybastard::assemblePath(
         int const sequenceLength = static_cast<int>(sequence.size());
 
         auto const anchors = pEdge->getVertices();
-        auto const lb      = std::get<1>(tap[anchors.first]) + 1 + globalLeftMostPosition;
-        auto const rb      = lb + sequenceLength - 1;
+        auto const lb      = std::get<1>(tap.at(anchors.first)) + 1 + globalLeftMostPosition;
+        auto const rb      = std::get<0>(tap.at(anchors.second)) - 1 + globalLeftMostPosition;
 
         std::string paf = querySequenceName.substr(1);
         paf.append("\t");
@@ -1218,7 +1230,7 @@ void lazybastard::assemblePath(
         writer.writePaf([&]() {
           int const sequenceLength = static_cast<int>(sequence.size());
 
-          auto const rb = std::get<0>(tap[pVertex]) - 1 + globalLeftMostPosition;
+          auto const rb = std::get<0>(tap.at(pVertex)) - 1 + globalLeftMostPosition;
           auto const lb = rb - sequenceLength + 1;
 
           std::string paf = querySequenceName.substr(1);
@@ -1275,7 +1287,7 @@ void lazybastard::assemblePath(
         writer.writePaf([&]() {
           int const sequenceLength = static_cast<int>(sequence.size());
 
-          auto const lb = std::get<1>(tap[pVertex]) + 1 + globalLeftMostPosition;
+          auto const lb = std::get<1>(tap.at(pVertex)) + 1 + globalLeftMostPosition;
           auto const rb = lb + sequenceLength - 1;
 
           std::string paf = querySequenceName.substr(1);
@@ -1306,19 +1318,17 @@ void lazybastard::assemblePath(
     }
   }
 
-  for (auto iter = std::begin(vertices); iter != std::end(vertices); ++iter) {
-    auto const idx = static_cast<std::size_t>(std::distance(std::begin(vertices), iter));
-
+  for (std::size_t idx = 0; idx < vertices.size(); ++idx) {
     std::unordered_map<std::string, std::tuple<std::tuple<std::string, std::size_t>, std::size_t>> mappingId2Anchor;
-    for (auto const &info : vertexInfo[idx]) {
-      mappingId2Anchor.emplace(std::get<0>(std::get<0>(info.second)), info.second);
+    for (auto const &info : vertexInfo.at(idx)) {
+      mappingId2Anchor[std::get<0>(std::get<0>(info.second))] = info.second;
     }
 
-    if (!(*pContainElements).contains(*iter)) {
+    if (!pContainElements->contains(vertices.at(idx))) {
       continue;
     }
 
-    for (auto const &containElement : (*pContainElements).at(*iter)) {
+    for (auto const &containElement : pContainElements->at(vertices.at(idx))) {
       std::vector<std::tuple<std::pair<int, int>, std::string>> containInfo;
       containInfo.reserve(containElement.matches.size());
 
@@ -1334,7 +1344,7 @@ void lazybastard::assemblePath(
 
       std::sort(std::begin(containInfo), std::end(containInfo));
 
-      auto const direction = containElement.direction * ((*iter)->getVertexDirection() == Direction::e_POS);
+      auto const direction = containElement.direction * (vertices.at(idx)->getVertexDirection() == Direction::e_POS);
       if (!direction) {
         std::reverse(std::begin(containInfo), std::end(containInfo));
       }
@@ -1343,11 +1353,11 @@ void lazybastard::assemblePath(
       globalRanges.reserve(containInfo.size());
 
       for (auto const &info : containInfo) {
-        auto const tapId  = mappingId2Anchor[std::get<1>(info)];
-        auto const tapDir = pMatchMap->getVertexMatch((*iter)->getId(), std::get<1>(info))->direction *
-                            ((*iter)->getVertexDirection() == Direction::e_POS);
+        auto const tapId  = mappingId2Anchor.at(std::get<1>(info));
+        auto const tapDir = pMatchMap->getVertexMatch(vertices.at(idx)->getId(), std::get<1>(info))->direction *
+                            (vertices.at(idx)->getVertexDirection() == Direction::e_POS);
         auto const illuminaRef =
-            tapDir ? (*pId2OverlapMap)[std::get<0>(tapId)].second : (*pId2OverlapMap)[std::get<0>(tapId)].first;
+            tapDir ? pId2OverlapMap->at(std::get<0>(tapId)).second : pId2OverlapMap->at(std::get<0>(tapId)).first;
 
         auto const totalRef = std::get<1>(tap.at(adg.getVertex(tupleTuple2Id(tapId)))) + globalLeftMostPosition;
 
@@ -1364,20 +1374,23 @@ void lazybastard::assemblePath(
       }
 
       std::vector<std::tuple<std::string, int, int, const char *>> sequences2Write;
-      for (auto iterGlobalRanges = std::next(std::begin(globalRanges)); iterGlobalRanges != std::end(globalRanges);
-           ++iterGlobalRanges) {
-        auto const idxGlobalRange = static_cast<std::size_t>(std::distance(std::begin(globalRanges), iterGlobalRanges));
-        auto const &illuminaId    = std::get<1>(containInfo[idxGlobalRange]);
-        auto const &match         = containElement.matches.at(illuminaId);
+      for (std::size_t idxGlobalRange = 0; idxGlobalRange < globalRanges.size(); ++idxGlobalRange) {
+        auto const &illuminaId = std::get<1>(containInfo[idxGlobalRange]);
+        auto const &match      = containElement.matches.at(illuminaId);
         sequences2Write.emplace_back(getIlluminaSequence(*pSequenceAccessor, illuminaId, match->illuminaRange.first,
                                                          match->illuminaRange.second, match->direction * direction),
-                                     std::get<0>(*iterGlobalRanges), std::get<1>(*iterGlobalRanges), "Illumina_Match");
+                                     std::get<0>(globalRanges.at(idxGlobalRange)),
+                                     std::get<1>(globalRanges[idxGlobalRange]), "Illumina_Match");
+
+        if (idxGlobalRange == 0) {
+          continue;
+        }
 
         auto const preNanopore = containElement.matches.at(std::get<1>(containInfo[idxGlobalRange - 1]))->nanoporeRange;
         sequences2Write.emplace_back(getNanoporeSequence(*pSequenceAccessor, containElement.nano,
                                                          preNanopore.second + 1, preNanopore.first - 1, direction),
-                                     std::get<1>(*std::prev(iterGlobalRanges)) + 1, std::get<0>(*iterGlobalRanges) - 1,
-                                     "Nano_Match");
+                                     std::get<1>(globalRanges.at(idxGlobalRange - 1)) + 1,
+                                     std::get<0>(globalRanges.at(idxGlobalRange)) - 1, "Nano_Middle");
       }
 
       for (auto const &sequence : sequences2Write) {
@@ -1406,7 +1419,7 @@ void lazybastard::assemblePath(
         }());
 
         writer.writePaf([&]() {
-          int const sequenceLength = static_cast<int>(std::get<0>(sequence).size());
+          auto const sequenceLength = std::get<0>(sequence).size();
 
           auto const lb = std::get<1>(sequence);
           auto const rb = std::get<2>(sequence);

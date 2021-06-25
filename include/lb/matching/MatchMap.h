@@ -26,7 +26,6 @@
 
 #include <cstddef>
 #include <gsl/pointers>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -93,11 +92,12 @@ struct VertexMatch {
  * Struct representing a match attached to an Edge.
  */
 struct EdgeMatch {
-  std::pair<int, int> const           overlap;   /*!< Overlap */
-  Toggle const                        direction; /*!< Edge direction */
-  double const                        score;     /*!< Score */
-  Toggle const                        isPrimary; /*!< Is a primary */
-  std::pair<std::size_t, std::size_t> seqPos;    /*!< Sequence offset and length */
+  std::pair<int, int> const           overlap;    /*!< Overlap */
+  Toggle const                        direction;  /*!< Edge direction */
+  double const                        score;      /*!< Score */
+  Toggle const                        isPrimary;  /*!< Is a primary */
+  std::size_t                         lineNumber; /*!< Position in BLAST file */
+  std::pair<std::size_t, std::size_t> seqPos;     /*!< Sequence offset and length */
 };
 
 // ---------------------
@@ -160,7 +160,7 @@ public:
    * @return A pointer to the std::unordered_map containing all VertexMatch instances associated with the requested
    *         Vertex (nullptr if not found)
    */
-  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch> const> const *
+  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<VertexMatch>> const *
   getVertexMatches(std::string const &vertexId) const;
 
   /**
@@ -206,7 +206,7 @@ public:
    * @return A pointer pointing to the std::unordered_map containing all EdgeMatch instances associated with the
    *         requested Edge
    */
-  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch> const> const *
+  [[nodiscard]] std::unordered_map<std::string, std::shared_ptr<EdgeMatch>> const *
   getEdgeMatches(lazybastard::graph::Edge const *pEdge) const;
 
   /**
@@ -238,13 +238,12 @@ public:
 private:
   template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
 
-  um_t<std::string, um_t<std::string, std::shared_ptr<VertexMatch> const>>
-      m_vertexMatches; /*!< std::map containing the VertexMatch instances */
-  um_t<lazybastard::graph::Edge const *, um_t<std::string, std::shared_ptr<EdgeMatch> const>>
-      m_edgeMatches; /*!< std::map containing the EdgeMatch instances */
-  um_t<std::string, std::map<graph::Vertex *, std::shared_ptr<VertexMatch>,
-                             decltype(&lazybastard::MatchingUtil::scaffoldLineIdxCmp)>>
-             m_scaffolds;          /*!< std::map containing the scaffolds */
+  um_t<std::string, um_t<std::string, std::shared_ptr<VertexMatch>>>
+      m_vertexMatches; /*!< std::unordered_map containing the VertexMatch instances */
+  um_t<lazybastard::graph::Edge const *, um_t<std::string, std::shared_ptr<EdgeMatch>>>
+      m_edgeMatches; /*!< std::unordered_map containing the EdgeMatch instances */
+  um_t<std::string, um_t<graph::Vertex *, std::shared_ptr<VertexMatch>>>
+             m_scaffolds;          /*!< std::unordered_map containing the scaffolds */
   std::mutex m_mutexVertexMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing
                                the VertexMatches */
   std::mutex m_mutexEdgeMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the

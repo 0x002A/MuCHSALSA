@@ -431,13 +431,6 @@ public:
   void addVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
-   * Adds a std::shared_ptr pointing to Vertex to this Graph if the Vertex is not already attached to the Graph.
-   *
-   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the Graph
-   */
-  [[maybe_unused]] void addMissingVertex(std::shared_ptr<Vertex> &&spVertex);
-
-  /**
    * Deletes a Vertex from the Graph.
    * If the Vertex is not assigned to another Graph the memory will be cleaned up and all references
    * will become invalid.
@@ -562,13 +555,6 @@ public:
    * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the DiGraph
    */
   void addVertex(std::shared_ptr<Vertex> &&spVertex);
-
-  /**
-   * Adds a std::shared_ptr to Vertex to this DiGraph if the Vertex is not already attached to the DiGraph.
-   *
-   * @param spVertex an rvalue reference to the std::shared_ptr pointing to the Vertex to be added to the DiGraph
-   */
-  [[maybe_unused]] void addMissingVertex(std::shared_ptr<Vertex> &&spVertex);
 
   /**
    * Deletes a Vertex from the DiGraph.
@@ -801,12 +787,6 @@ inline Graph &Graph::operator=(Graph other) {
 
 inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); }
 
-[[maybe_unused]] inline void Graph::addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
-  if (!hasVertex(spVertex->getId())) {
-    addVertex(std::move(spVertex));
-  }
-}
-
 inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {
   _deleteVertex(pVertex, true, pMatchMap);
 }
@@ -859,12 +839,6 @@ inline void swap(DiGraph &lhs, DiGraph &rhs) noexcept {
   swap(static_cast<GraphBase &>(lhs), static_cast<GraphBase &>(rhs));
   swap(lhs.m_inDegrees, rhs.m_inDegrees);
   swap(lhs.m_outDegrees, rhs.m_outDegrees);
-}
-
-[[maybe_unused]] inline void DiGraph::addMissingVertex(std::shared_ptr<Vertex> &&spVertex) {
-  if (!hasVertex(spVertex->getId())) {
-    addVertex(std::move(spVertex));
-  }
 }
 
 inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {

@@ -51,10 +51,10 @@ Application::Application(gsl::span<char const *> const &args) : m_threadCount(st
 }
 
 auto Application::checkIntegrity() const -> bool {
-  std::filesystem::path contigsPath = m_contigsFilePath;
-  std::filesystem::path unitigsPath = m_unitigsFilePath;
+  std::filesystem::path contigsPath  = m_contigsFilePath;
+  std::filesystem::path unitigsPath  = m_unitigsFilePath;
   std::filesystem::path nanoporePath = m_nanoporeFilePath;
-  std::filesystem::path outputPath = m_outputPath;
+  std::filesystem::path outputPath   = m_outputPath;
 
   auto const exists = std::filesystem::exists(contigsPath) && std::filesystem::exists(unitigsPath) &&
                       std::filesystem::exists(nanoporePath) && std::filesystem::exists(outputPath);

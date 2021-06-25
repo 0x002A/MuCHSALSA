@@ -34,27 +34,40 @@ namespace lazybastard::threading {
 // ---------------
 
 void WaitGroup::add(std::size_t newJobs) {
-  if (m_waitLock) {
-    throw std::logic_error("Adding jobs to an already waiting wait group is illegal behaviour.");
+  {
+    std::lock_guard<std::mutex> lck(m_mutex);
+
+    if (m_waitLock) {
+      throw std::logic_error("Adding jobs to an already waiting wait group is illegal behaviour.");
+    }
+
+    m_jobCount += newJobs;
   }
 
-  m_jobCount += newJobs;
   m_cv.notify_one();
 }
 
 void WaitGroup::done() {
-  if (m_jobCount.load() > 0) {
-    m_jobCount -= 1;
+  {
+    std::lock_guard<std::mutex> lck(m_mutex);
+
+    if (m_jobCount > 0) {
+      m_jobCount -= 1;
+    }
   }
+
   m_cv.notify_one();
 }
 
 void WaitGroup::wait() {
-  // prevent future calls to add
-  m_waitLock = true;
+  {
+    std::lock_guard<std::mutex> lck(m_mutex);
+
+    m_waitLock = true;
+  }
 
   std::unique_lock<std::mutex> lck(m_mutex);
-  m_cv.wait(lck, [this] { return m_jobCount.load() == 0; });
+  m_cv.wait(lck, [this] { return m_jobCount == 0; });
   m_waitLock = false;
 }
 

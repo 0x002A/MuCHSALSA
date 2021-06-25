@@ -304,14 +304,15 @@ bool GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirect
     return inserted;
   };
 
-  auto const  pVertices = spEdge->getVertices();
-  auto const  iterEdges = m_edges.emplace(spEdge->getId(), std::move(spEdge)).first;
-  auto *const pEdge     = iterEdges != std::end(m_edges) ? iterEdges->second.get() : nullptr;
-
-  auto const inserted = emplaceEdge(pVertices.first->getId(), pVertices.second->getId(), pEdge);
+  auto const pVertices = spEdge->getVertices();
+  auto const inserted  = emplaceEdge(pVertices.first->getId(), pVertices.second->getId(), spEdge.get());
 
   if (isBidirectional) {
-    emplaceEdge(pVertices.second->getId(), pVertices.first->getId(), pEdge);
+    emplaceEdge(pVertices.second->getId(), pVertices.first->getId(), spEdge.get());
+  }
+
+  if (inserted) {
+    m_edges.emplace(spEdge->getId(), std::move(spEdge));
   }
 
   return inserted;

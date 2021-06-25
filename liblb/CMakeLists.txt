@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.17.0)
-
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -33,5 +31,7 @@ target_link_libraries(${TARGET}
         PRIVATE project_options
         project_warnings)
 
-set(TEST_SRC_DIR "${CMAKE_SOURCE_DIR}/lib${TARGET}")
-include(../cmake/Testing.cmake)
+if(ENABLE_TESTING)
+  message("Building tests")
+  add_subdirectory(tests)
+endif()

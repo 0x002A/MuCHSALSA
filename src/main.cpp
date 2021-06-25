@@ -124,7 +124,6 @@ auto main(int const argc, char const *argv[]) -> int {
     return -1;
   }
 
-  // Keep one free for the main program
   auto const threadCount = app.getThreadCount();
   auto       threadPool  = ThreadPool(threadCount);
 
@@ -171,6 +170,10 @@ auto main(int const argc, char const *argv[]) -> int {
     std::cout << "Number of contraction edges: " << contractionEdges.size() << std::endl;
 
     std::unordered_map<Vertex const *, Vertex const *> contractionTargets;
+    for (auto const *const pVertex : graph.getVertices()) {
+      contractionTargets.insert({pVertex, pVertex});
+    };
+
     auto contractionTargetsJob = [](Job const *const pJob) { findContractionTargets(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
       LB_UNUSED(pEdge);
@@ -196,6 +199,7 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
+    std::cout << "Number of contraction roots: " << contractionRoots.size() << std::endl;
     std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
 
     std::unordered_map<Vertex const *, std::vector<ContainElement>> containElements;
@@ -203,9 +207,12 @@ auto main(int const argc, char const *argv[]) -> int {
     for (auto const &[pEdge, pOrder] : contractionEdges) {
       LB_UNUSED(pEdge);
 
+      if (!contractionRoots.contains(pOrder->endVertex)) {
+        continue;
+      }
+
       wg.add(1);
-      auto job = lazybastard::threading::Job(contractionJob, &wg, pOrder, &containElements, &contractionRoots,
-                                             &matchMap, std::ref(mutex));
+      auto job = lazybastard::threading::Job(contractionJob, &wg, pOrder, &containElements, &matchMap, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -317,8 +324,8 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(3));
-  auto       plusPaths  = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, plusIDs, true, wiggleRoom);
   auto       minusPaths = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, minusIDs, false, wiggleRoom);
+  auto       plusPaths  = lazybastard::getMaxPairwisePaths(pMatchMap, pEdge, plusIDs, true, wiggleRoom);
 
   auto hasPrimary =
       std::any_of(plusPaths.begin(), plusPaths.end(), [](auto const &plusPath) { return std::get<2>(plusPath); });
@@ -432,11 +439,12 @@ void findContractionTargets(gsl::not_null<Job const *> const pJob) {
   {
     std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(3)).get());
 
-    auto const        iter       = pContractionTargets->find(pOrder->endVertex);
-    auto const *const contractTo = iter == pContractionTargets->end() ? pOrder->endVertex : iter->second;
+    auto const *const contractTo = (*pContractionTargets)[pOrder->endVertex];
 
-    if (pContractionTargets->find(pOrder->startVertex) == pContractionTargets->end()) {
-      pContractionTargets->insert({pOrder->startVertex, contractTo});
+    if ((*pContractionTargets)[pOrder->startVertex] == pOrder->startVertex ||
+        (*pContractionTargets)[pOrder->startVertex]->getMetaDatum<std::size_t>(0) >
+            contractTo->getMetaDatum<std::size_t>(0)) {
+      (*pContractionTargets)[pOrder->startVertex] = contractTo;
     }
   }
 
@@ -459,8 +467,7 @@ void findDeletableVertices(gsl::not_null<const Job *> pJob) {
     std::lock_guard<std::mutex> guard(
         std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
 
-    auto const        iter       = pContractionTargets->find(pOrder->startVertex);
-    auto const *const contractTo = iter == pContractionTargets->end() ? pOrder->startVertex : iter->second;
+    auto const *const contractTo = (*pContractionTargets)[pOrder->startVertex];
 
     pContractionRoots->insert(contractTo);
     pContractionRoots->erase(pOrder->startVertex);
@@ -470,16 +477,9 @@ void findDeletableVertices(gsl::not_null<const Job *> pJob) {
 }
 
 void contract(gsl::not_null<Job const *> const pJob) {
-  auto const pOrder            = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
-  auto const pContractionRoots = gsl::make_not_null(std::any_cast<std::set<Vertex const *const> *>(pJob->getParam(3)));
-  auto const iter              = pContractionRoots->find(pOrder->endVertex);
+  auto const pOrder    = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
+  auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(3)));
 
-  if (iter == pContractionRoots->end()) {
-    std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
-    return;
-  }
-
-  auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(4)));
   std::unordered_map<std::string, VertexMatch const *> matches;
   std::for_each(std::begin(pOrder->ids), std::end(pOrder->ids), [&](auto const id) {
     auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getId(), id);
@@ -489,7 +489,7 @@ void contract(gsl::not_null<Job const *> const pJob) {
   });
 
   std::lock_guard<std::mutex> guard(
-      std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(5)).get()); // NOLINT
+      std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get()); // NOLINT
   auto const pContainElements = gsl::make_not_null(
       std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(2)));
   auto const iterContainElements =

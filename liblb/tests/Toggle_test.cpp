@@ -3,7 +3,7 @@
 #include "types/Toggle.h"
 
 TEST(ToggleTest, BasicTest) {
-  lazybastard::Toggle const tTrue = true;
+  lazybastard::Toggle const tTrue  = true;
   lazybastard::Toggle const tFalse = false;
 
   lazybastard::Toggle tShouldBeTrue = false;

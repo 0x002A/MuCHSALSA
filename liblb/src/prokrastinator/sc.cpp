@@ -28,9 +28,9 @@
 bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> const     pGraph,
                               gsl::not_null<lazybastard::graph::Vertex const *> const    pSubnode,
                               gsl::not_null<lazybastard::graph::Vertex const *> const    pNode,
-                              gsl::not_null<lazybastard::graph::Vertex const *> const pTarget,
+                              gsl::not_null<lazybastard::graph::Vertex const *> const    pTarget,
                               gsl::not_null<lazybastard::graph::EdgeOrder const *> const pOrder,
-                              std::size_t wiggleRoom) {
+                              std::size_t                                                wiggleRoom) {
   auto const checkOnEdge  = util::make_not_null_and_const(pGraph->getEdge(std::make_pair(pNode, pTarget)));
   auto const checkForEdge = util::make_not_null_and_const(pGraph->getEdge(std::make_pair(pSubnode, pTarget)));
   for (auto const &checkOnOrder : checkOnEdge->getEdgeOrders()) {
@@ -38,7 +38,7 @@ bool lazybastard::sanityCheck(gsl::not_null<lazybastard::graph::Graph const *> c
       auto isSane = pOrder->direction * checkOnOrder.direction == checkForOrder.direction;
 
       auto const isContainedCheckFor = checkForOrder.isContained;
-      auto const isContainedCheckOn = checkOnOrder.isContained;
+      auto const isContainedCheckOn  = checkOnOrder.isContained;
 
       if (isContainedCheckFor && isContainedCheckOn) {
         isSane &= (checkForOrder.startVertex == pTarget || checkForOrder.endVertex == pTarget) &&
