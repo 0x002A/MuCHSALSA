@@ -40,6 +40,7 @@
 #include <vector>
 
 #include <lb/BlastFileReader.h>
+#include <lb/Debug.h>
 #include <lb/OutputWriter.h>
 #include <lb/Prokrastinator.h>
 #include <lb/SequenceAccessor.h>
@@ -142,7 +143,7 @@ auto main(int const argc, char const *argv[]) -> int {
   try {
     matchMap.calculateEdges();
 
-    std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
+    TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
 
     WaitGroup wg;
 
@@ -167,7 +168,7 @@ auto main(int const argc, char const *argv[]) -> int {
     });
     wg.wait();
 
-    std::cout << "Number of contraction edges: " << contractionEdges.size() << std::endl;
+    TRACE("Number of contraction edges: %lu\n", contractionEdges.size());
 
     std::unordered_map<Vertex const *, Vertex const *> contractionTargets;
     for (auto const *const pVertex : graph.getVertices()) {
@@ -184,7 +185,7 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::cout << "Number of contraction target: " << contractionTargets.size() << std::endl;
+    TRACE("Number of contraction target: %lu\n", contractionTargets.size());
 
     std::set<Vertex const *const> deletableVertices;
     std::set<Vertex const *const> contractionRoots;
@@ -199,8 +200,8 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::cout << "Number of contraction roots: " << contractionRoots.size() << std::endl;
-    std::cout << "Vertices to become deleted: " << deletableVertices.size() << std::endl;
+    TRACE("Number of contraction roots: %lu\n", contractionRoots.size());
+    TRACE("Vertices to become deleted: %lu\n", deletableVertices.size());
 
     std::unordered_map<Vertex const *, std::vector<ContainElement>> containElements;
     auto contractionJob = [](Job const *const pJob) { contract(pJob); };
@@ -231,13 +232,13 @@ auto main(int const argc, char const *argv[]) -> int {
     });
     wg.wait();
 
-    std::cout << "Edges to become deleted: " << deletableEdges.size() << std::endl;
+    TRACE("Edges to become deleted: %lu\n", deletableEdges.size());
 
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
                   [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
     deletableEdges.clear();
 
-    std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl;
+    TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
 
     edges                    = graph.getEdges();
     auto computeBitweightJob = [](Job const *const pJob) { computeBitweight(pJob); };
@@ -258,15 +259,15 @@ auto main(int const argc, char const *argv[]) -> int {
     });
     wg.wait();
 
-    std::cout << "Edges to become deleted: " << deletableEdges.size() << std::endl;
+    TRACE("Edges to become deleted: %lu\n", deletableEdges.size());
 
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
                   [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
     deletableEdges.clear();
     edges = graph.getEdges();
 
-    std::cout << "Order: " << graph.getOrder() << " Size: " << graph.getSize() << std::endl
-              << "Starting assembly" << std::endl;
+    TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
+    TRACE("Starting assembly\n");
 
     SequenceAccessor sequenceAccessor(&threadPool, app.getNanoporeFilePath(), app.getUnitigsFilePath());
     sequenceAccessor.buildIndex();
@@ -290,7 +291,7 @@ auto main(int const argc, char const *argv[]) -> int {
     }
     wg.wait();
 
-    std::cout << "Finished assembly " << std::endl;
+    std::cout << "Finished assembly\n";
   } catch (std::exception const &e) {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
