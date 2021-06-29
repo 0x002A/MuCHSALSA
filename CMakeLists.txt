@@ -63,9 +63,16 @@ add_subdirectory("lib${LIBNAME}")
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
 add_executable(${TARGET} ${SOURCES})
 
-target_include_directories(${TARGET} PUBLIC "include")
+option(ENABLE_BUILD_FAT_EXE "Enable linking dependencies statically" OFF)
+if (ENABLE_BUILD_FAT_EXE)
+  target_link_options(${TARGET} PRIVATE -static)
+endif ()
+
+target_include_directories(${TARGET} PRIVATE "include")
 target_link_libraries(
         ${TARGET}
-        PUBLIC ${LIBNAME}
+        PRIVATE ${LIBNAME}
+        PRIVATE c++
+        PRIVATE c++abi
         PRIVATE project_options
-        project_warnings)
+        PRIVATE project_warnings)
