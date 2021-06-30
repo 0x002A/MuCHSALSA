@@ -39,6 +39,7 @@
 #include <utility>
 #include <vector>
 
+#include <lb/BlastFileAccessor.h>
 #include <lb/BlastFileReader.h>
 #include <lb/Debug.h>
 #include <lb/OutputWriter.h>
@@ -61,6 +62,8 @@
 //                                                  USING DECLARATIONS
 // =====================================================================================================================
 
+using lazybastard::BlastFileAccessor;
+using lazybastard::BlastFileReader;
 using lazybastard::Direction;
 using lazybastard::GraphUtil;
 using lazybastard::OutputWriter;
@@ -116,31 +119,25 @@ void assemblePaths(gsl::not_null<Job const *> pJob);
 // =====================================================================================================================
 
 auto main(int const argc, char const *argv[]) -> int {
-  gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
-  Application                   app(args);
-
-  if (!app.checkIntegrity()) {
-    std::cerr << "Paths are pointing to invalid/unusable locations" << std::endl;
-
-    return -1;
-  }
-
-  auto const threadCount = app.getThreadCount();
-  auto       threadPool  = ThreadPool(threadCount);
-
-  // Read BLAST file
-  auto graph    = Graph();
-  auto matchMap = MatchMap(&threadPool, &graph);
-  if (std::ifstream inputStream{app.getContigsFilePath(), std::ios::binary | std::ios::in}) {
-    auto blastReader = lazybastard::BlastFileReader(&threadPool, inputStream, &graph, &matchMap);
-    blastReader.read();
-  } else {
-    std::cerr << "Can't open BLAST file for reading" << std::endl;
-
-    return -1;
-  }
-
   try {
+    gsl::span<char const *> const args = {argv, static_cast<std::size_t>(argc)};
+    Application                   app(args);
+
+    if (!app.checkIntegrity()) {
+      std::cerr << "Paths are pointing to invalid/unusable locations" << std::endl;
+
+      return -1;
+    }
+
+    auto const threadCount = app.getThreadCount();
+    auto       threadPool  = ThreadPool(threadCount);
+
+    // Read BLAST file
+    auto bfAccessor      = BlastFileAccessor(app.getContigsFilePath());
+    auto graph           = Graph();
+    auto matchMap        = MatchMap(&threadPool, &graph);
+    auto blastFileReader = BlastFileReader(&threadPool, &bfAccessor, &graph, &matchMap);
+    blastFileReader.read();
     matchMap.calculateEdges();
 
     TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());

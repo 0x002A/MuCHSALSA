@@ -59,6 +59,8 @@ class ThreadPool;
 
 } // namespace threading
 
+class BlastFileAccessor;
+class BlastFileReader;
 class OutputWriter;
 struct Toggle;
 class SequenceAccessor;

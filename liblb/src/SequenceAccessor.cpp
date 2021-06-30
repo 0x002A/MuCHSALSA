@@ -97,6 +97,8 @@ void cleanSequenceId(std::string &sequenceId) {
 // class SequenceAccessor
 // ----------------------
 
+// PUBLIC CLASS METHODS
+
 SequenceAccessor::SequenceAccessor(gsl::not_null<threading::ThreadPool *> pThreadPool, std::string_view fpNanopore,
                                    std::string_view fpIllumina)
     : m_pThreadPool(pThreadPool),
@@ -136,6 +138,8 @@ void SequenceAccessor::buildIndex() {
 
   return getSequenceFromFile(m_pIlluminaSequenceFile.get(), m_idxIllumina[illuminaId]);
 }
+
+// PRIVATE CLASS METHODS
 
 void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> pJob) {
   auto const identifierDescline  = m_nanoporeFileIsFastQ ? FASTQ_IDENTIFIER_DESCLINE : FASTA_IDENTIFIER_DESCLINE;
@@ -182,7 +186,7 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
   }
 
   if (pLine) {
-    free(pLine); // NOLINT
+    std::free(pLine); // NOLINT
   }
 
   std::any_cast<threading::WaitGroup *>(pJob->getParam(0))->done();
@@ -225,7 +229,7 @@ void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> p
   }
 
   if (pLine) {
-    free(pLine); // NOLINT
+    std::free(pLine); // NOLINT
   }
 
   std::any_cast<threading::WaitGroup *>(pJob->getParam(0))->done();

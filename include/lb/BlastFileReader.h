@@ -25,7 +25,6 @@
 #pragma once
 
 #include <gsl/pointers>
-#include <iosfwd>
 
 #include "Lb.fwd.h"
 
@@ -50,12 +49,13 @@ public:
    * Class constructor creating a new instance.
    *
    * @param pThreadPool a pointer to the ThreadPool to be used for parallelization
-   * @param inputStream the input stream of the file
+   * @param pBlastFileAccessor a pointer to the BlastFileAccessor to be used for accessing the BLAST file
    * @param pGraph a pointer to the Graph receiving the Vertex instances
    * @param pMatchMap a pointer to the MatchMap
    */
-  BlastFileReader(gsl::not_null<threading::ThreadPool *> pThreadPool, std::ifstream &inputStream,
-                  gsl::not_null<graph::Graph *> pGraph, gsl::not_null<matching::MatchMap *> pMatchMap);
+  BlastFileReader(gsl::not_null<threading::ThreadPool *> pThreadPool,
+                  gsl::not_null<BlastFileAccessor *> pBlastFileAccessor, gsl::not_null<graph::Graph *> pGraph,
+                  gsl::not_null<matching::MatchMap *> pMatchMap);
 
   /**
    * Destructor.
@@ -96,9 +96,10 @@ public:
 
 private:
   threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
-  std::ifstream &              m_inputStream; /*!< Input stream of the file */
-  graph::Graph *const          m_pGraph;      /*!< Pointer to the Graph receiving the Vertex instances */
-  matching::MatchMap *const    m_pMatchMap;   /*!< Pointer to the MatchMap */
+  BlastFileAccessor
+      *const m_pBlastFileAccessor;    /*!< Pointer to the BlastFileAccessor to be used for accessing the BLAST file */
+  graph::Graph *const       m_pGraph; /*!< Pointer to the Graph receiving the Vertex instances */
+  matching::MatchMap *const m_pMatchMap; /*!< Pointer to the MatchMap */
 };
 
 // =====================================================================================================================
@@ -112,9 +113,10 @@ private:
 // PUBLIC CLASS METHODS
 
 inline BlastFileReader::BlastFileReader(gsl::not_null<threading::ThreadPool *> const pThreadPool,
-                                        std::ifstream &inputStream, gsl::not_null<graph::Graph *> const pGraph,
-                                        gsl::not_null<matching::MatchMap *> const pMatchMap)
-    : m_pThreadPool(pThreadPool), m_inputStream(inputStream), m_pGraph(pGraph), m_pMatchMap(pMatchMap) {}
+                                        gsl::not_null<BlastFileAccessor *>           pBlastFileAccessor,
+                                        gsl::not_null<graph::Graph *> const          pGraph,
+                                        gsl::not_null<matching::MatchMap *> const    pMatchMap)
+    : m_pThreadPool(pThreadPool), m_pBlastFileAccessor(pBlastFileAccessor), m_pGraph(pGraph), m_pMatchMap(pMatchMap) {}
 
 } // namespace lazybastard
 
