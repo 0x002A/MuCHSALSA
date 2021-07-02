@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <deque>
 #include <gsl/pointers>
 #include <iterator>
 #include <list>
@@ -34,12 +33,14 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "Lb.fwd.h"
+#include "Util.h"
 #include "graph/Vertex.h"
 
 namespace lazybastard {
@@ -61,7 +62,7 @@ struct GraphUtil {
    *
    * @param pGraph a pointer pointing to a Graph or DiGraph
    * @param pVertices a std::pair containing pointers pointing to the start and end Vertex
-   * @return A std::deque containing pointers pointing to the Vertex instances representing the shortest path between
+   * @return A std::vector containing pointers pointing to the Vertex instances representing the shortest path between
    *         the supplied Vertex instances
    */
   template <typename TYPE, typename std::enable_if_t<std::is_base_of<graph::GraphBase, TYPE>::value, bool> = true>
@@ -873,57 +874,53 @@ template <typename TYPE, typename std::enable_if_t<std::is_base_of<graph::GraphB
 auto GraphUtil::getShortestPath(
     gsl::not_null<TYPE const *> const                                                                       pGraph,
     std::pair<gsl::not_null<graph::Vertex const *> const, gsl::not_null<graph::Vertex const *> const> const pVertices) {
-  std::deque<graph::Vertex const *const>                           result;
-  std::unordered_map<graph::Vertex const *, std::size_t>           dist;
-  std::unordered_map<graph::Vertex const *, graph::Vertex const *> prev;
+  std::unordered_map<graph::Vertex const *, std::vector<graph::Vertex const *>> paths;
+  paths[pVertices.first] = {pVertices.first};
 
-  std::list<graph::Vertex const *> vertices;
+  std::unordered_map<graph::Vertex const *, std::size_t> distances;
+  std::unordered_map<graph::Vertex const *, std::size_t> seen;
 
-  for (auto const *const pVertex : pGraph->getVertices()) {
-    vertices.push_back(pVertex);
+  std::size_t                                                              c = 0;
+  std::vector<std::tuple<std::size_t, std::size_t, graph::Vertex const *>> heap;
 
-    if (pVertex == pVertices.first) {
-      dist.insert({pVertex, 0});
-    } else {
-      dist.insert({pVertex, std::numeric_limits<std::size_t>::max() - 1});
+  seen[pVertices.first] = 0;
+  heap.emplace_back(0, c, pVertices.first);
+
+  ++c;
+  while (!heap.empty()) {
+    std::pop_heap(std::begin(heap), std::end(heap), std::greater<decltype(heap)::value_type>{});
+    auto const next = heap.back();
+    heap.pop_back();
+
+    auto const *const pVertex = std::get<2>(next);
+    if (distances.contains(pVertex)) {
+      continue;
     }
-  }
+    distances[pVertex] = std::get<0>(next);
 
-  while (!vertices.empty()) {
-    auto const iterMinDistVertex =
-        std::min_element(vertices.begin(), vertices.end(),
-                         [&](auto const *const pV1, auto const *const pV2) { return dist.at(pV1) < dist.at(pV2); });
-    auto pMinDistVertex = *iterMinDistVertex;
-
-    vertices.erase(iterMinDistVertex);
-
-    if (pMinDistVertex == pVertices.second) {
-      if (prev.contains(pMinDistVertex) || pMinDistVertex == pVertices.first) {
-        while (true) {
-          result.push_front(pMinDistVertex);
-
-          if (!prev.contains(pMinDistVertex)) {
-            break;
-          }
-
-          pMinDistVertex = prev.at(pMinDistVertex);
-        }
-      }
-
-      return result;
+    if (pVertex == pVertices.second) {
+      break;
     }
 
-    for (auto const &neighbor : _getReachableVertices(*pGraph, pMinDistVertex)) {
-      auto const        alt       = dist.at(pMinDistVertex) + 1;
-      auto const *const pNeighbor = pGraph->getVertex(neighbor.first);
-      if (alt < dist.at(pNeighbor)) {
-        dist.at(pNeighbor) = alt;
-        prev.insert_or_assign(pNeighbor, pMinDistVertex);
+    for (auto const &[neighbor, pEdge] : _getReachableVertices(*pGraph, pVertex)) {
+      LB_UNUSED(pEdge);
+      auto const *const pNeighbor = pGraph->getVertex(neighbor);
+
+      auto const distNeighbor = distances[pVertex] + 1;
+      if (!distances.contains(pNeighbor) && (!seen.contains(pNeighbor) || distNeighbor < seen[pNeighbor])) {
+        seen[pNeighbor] = distNeighbor;
+
+        heap.emplace_back(distNeighbor, c, pNeighbor);
+        std::push_heap(std::begin(heap), std::end(heap), std::greater<decltype(heap)::value_type>{});
+        paths[pNeighbor] = paths[pVertex];
+        paths[pNeighbor].push_back(pNeighbor);
+
+        ++c;
       }
     }
   }
 
-  return result;
+  return paths[pVertices.second];
 }
 
 // PRIVATE CLASS METHODS

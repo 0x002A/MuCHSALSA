@@ -41,7 +41,7 @@ include(cmake/StaticAnalyzers.cmake)
 option(ENABLE_TESTING "Enable Test Builds" ON)
 
 option(ENABLE_PCH "Enable Precompiled Headers" ON)
-if(ENABLE_PCH)
+if (ENABLE_PCH)
     target_precompile_headers(
             project_options
             INTERFACE
@@ -52,11 +52,11 @@ if(ENABLE_PCH)
             <unordered_map>
             <utility>
             <vector>)
-endif()
+endif ()
 
-if(ENABLE_TESTING)
-  enable_testing()
-endif()
+if (ENABLE_TESTING)
+    enable_testing()
+endif ()
 
 add_subdirectory("lib${LIBNAME}")
 
@@ -65,7 +65,7 @@ add_executable(${TARGET} ${SOURCES})
 
 option(ENABLE_BUILD_FAT_EXE "Enable linking dependencies statically" OFF)
 if (ENABLE_BUILD_FAT_EXE)
-  target_link_options(${TARGET} PRIVATE -static)
+    target_link_options(${TARGET} PRIVATE -static)
 endif ()
 
 target_include_directories(${TARGET} PRIVATE "include")

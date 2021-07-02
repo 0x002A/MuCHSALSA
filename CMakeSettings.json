@@ -3,16 +3,16 @@
     {
       "name": "Debug",
       "generator": "Unix Makefiles",
-      "configurationType" : "Debug",
-      "buildRoot":  "${projectDir}/build/${name}",
-      "cmakeCommandArgs":  "",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}/build/${name}",
+      "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs":  ""
+      "ctestCommandArgs": ""
     },
     {
       "name": "Release",
       "generator": "Unix Makefiles",
-      "configurationType" : "Release",
+      "configurationType": "Release",
       "buildRoot": "${projectDir}/build/${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",

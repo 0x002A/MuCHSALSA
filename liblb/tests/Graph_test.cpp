@@ -317,17 +317,18 @@ TEST(GraphTest, ShortestPathTest) {
   ASSERT_EQ(diGraph.getSize(), 5);
 
   std::string v1("1"), v2("4");
-  auto        shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(graph.getVertex(v1)),
-                                             lazybastard::util::make_not_null_and_const(graph.getVertex(v2)));
-  auto        shortestPath =
+  auto        shortestPathVertices =
+      std::make_pair(gsl::make_not_null(graph.getVertex(v1)), gsl::make_not_null(graph.getVertex(v2)));
+  auto shortestPath =
       lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&graph), shortestPathVertices);
+
   ASSERT_EQ(shortestPath.size(), 2);
   ASSERT_EQ(shortestPath[0]->getId(), "1");
   ASSERT_EQ(shortestPath[1]->getId(), "4");
 
-  shortestPathVertices = std::make_pair(lazybastard::util::make_not_null_and_const(diGraph.getVertex(v1)),
-                                        lazybastard::util::make_not_null_and_const(diGraph.getVertex(v2)));
-  shortestPath         = lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&diGraph),
+  shortestPathVertices =
+      std::make_pair(gsl::make_not_null(diGraph.getVertex(v1)), gsl::make_not_null(diGraph.getVertex(v2)));
+  shortestPath = lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&diGraph),
                                                          shortestPathVertices);
   ASSERT_EQ(shortestPath.size(), 3);
   ASSERT_EQ(shortestPath[0]->getId(), "1");

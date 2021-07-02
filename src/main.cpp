@@ -30,6 +30,7 @@
 #include <gsl/span>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -543,11 +544,11 @@ void computeBitweight(gsl::not_null<Job const *> const pJob) {
 
 void decycle(gsl::not_null<Job const *> const pJob) {
   auto const pEdge        = gsl::make_not_null(std::any_cast<Edge const *>(pJob->getParam(2)));
-  auto const pMaxSpanTree = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(3)));
+  auto const pMaxSpanTree = make_not_null_and_const(std::any_cast<Graph const *>(pJob->getParam(3)));
   if (pEdge->getConsensusDirection() != Direction::e_NONE &&
       !pMaxSpanTree->hasEdge(std::make_pair(pEdge->getVertices().first, pEdge->getVertices().second))) {
     auto const          shortestPath = GraphUtil::getShortestPath(pMaxSpanTree, pEdge->getVertices());
-    lazybastard::Toggle direction    = pEdge->getConsensusDirection();
+    lazybastard::Toggle direction    = pEdge->getConsensusDirection() == Direction::e_POS;
     auto const          baseWeight   = static_cast<double>(pEdge->getWeight());
 
     std::vector<double> weights;
@@ -555,7 +556,7 @@ void decycle(gsl::not_null<Job const *> const pJob) {
     for (auto it = shortestPath.begin(); it != std::prev(shortestPath.end()); ++it) {
       auto const pPathEdge = make_not_null_and_const(pGraph->getEdge(std::make_pair(*it, *std::next(it))));
 
-      direction *= pPathEdge->getConsensusDirection();
+      direction *= pPathEdge->getConsensusDirection() == Direction::e_POS;
       weights.push_back(static_cast<double>(pPathEdge->getWeight()));
     }
 

@@ -21,6 +21,7 @@
 
 #include "graph/Graph.h"
 
+#include <deque>
 #include <stdexcept>
 
 #include "Util.h"
