@@ -324,7 +324,7 @@ bool GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirect
 
 // PUBLIC CLASS METHODS
 
-std::unique_ptr<Graph> Graph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
+Graph Graph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
   std::vector<std::shared_ptr<Edge>> e;
   e.reserve(getSize());
 
@@ -332,7 +332,7 @@ std::unique_ptr<Graph> Graph::getSubgraph(std::vector<lazybastard::graph::Vertex
   std::transform(std::begin(edgesUntransformed), std::end(edgesUntransformed), std::back_inserter(e),
                  [](auto *const pEdge) { return pEdge->getSharedPtr(); });
 
-  return std::make_unique<Graph>(getVertexMap(vertices), std::move(e));
+  return Graph(getVertexMap(vertices), std::move(e));
 }
 
 // -------------
@@ -353,7 +353,7 @@ void DiGraph::addVertex(std::shared_ptr<Vertex> &&spVertex) {
   }
 }
 
-std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
+DiGraph DiGraph::getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices) {
   std::vector<std::shared_ptr<Edge>> e;
   e.reserve(getSize());
 
@@ -361,7 +361,7 @@ std::unique_ptr<DiGraph> DiGraph::getSubgraph(std::vector<lazybastard::graph::Ve
   std::transform(std::begin(edgesUntransformed), std::end(edgesUntransformed), std::back_inserter(e),
                  [](auto *const pEdge) { return pEdge->getSharedPtr(); });
 
-  return std::make_unique<DiGraph>(getVertexMap(vertices), std::move(e));
+  return DiGraph(getVertexMap(vertices), std::move(e));
 }
 
 std::vector<lazybastard::graph::Vertex const *> DiGraph::sortTopologically() const {

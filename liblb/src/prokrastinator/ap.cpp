@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <set>
 #include <string_view>
 #include <unordered_map>

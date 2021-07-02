@@ -202,14 +202,6 @@ public:
   std::vector<Edge *> getEdges() const;
 
   /**
-   * Replaces the Edge store of the Graph with the supplied one.
-   *
-   * @param edges a std::unordered_map containing the shared_ptr instances pointing to the Edge instances mapped to
-   *              their respective Edge identifiers
-   */
-  void replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges);
-
-  /**
    * Getter returning the number of Vertex instances attached to the Graph.
    *
    * @return The number of Vertex instances attached to the Graph
@@ -243,11 +235,6 @@ protected:
    * Copy assignment operator.
    */
   GraphBase &operator=(GraphBase other);
-
-  /**
-   * Move assignment operator.
-   */
-  GraphBase &operator=(GraphBase &&other) noexcept;
 
   /**
    * Swaps two instances of GraphBase.
@@ -387,17 +374,6 @@ public:
   Graph() = default;
 
   /**
-   * Constructor creating a new instance.
-   *
-   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
-   *                 all Vertex instances to their ids
-   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
-   *                 Edge instances
-   */
-  Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-        std::vector<std::shared_ptr<Edge>> &&                      edges);
-
-  /**
    * Destructor.
    */
   ~Graph() override = default;
@@ -408,9 +384,9 @@ public:
   Graph(Graph const &other) = default;
 
   /**
-   * Moving is disallowed.
+   * Move constructor.
    */
-  Graph(Graph &&) = delete;
+  Graph(Graph &&) noexcept;
 
   /**
    * Copy assignment operator.
@@ -418,9 +394,15 @@ public:
   Graph &operator=(Graph other);
 
   /**
-   * Move assignment is disallowed.
+   * Constructor creating a new instance.
+   *
+   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
+   *                 all Vertex instances to their ids
+   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
+   *                 Edge instances
    */
-  Graph &operator=(Graph &&) = delete;
+  Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+        std::vector<std::shared_ptr<Edge>> &&                      edges);
 
   /**
    * Adds a std::shared_ptr pointing to Vertex to this Graph.
@@ -482,9 +464,9 @@ public:
    *
    * @param vertices a const reference to a std::vector containing pointers pointing to the Vertex instances inducing
    *                 the requested subgraph
-   * @return A std::unique_ptr to the Graph representing the induced subgraph
+   * @return A Graph representing the induced subgraph
    */
-  std::unique_ptr<Graph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
+  Graph getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 };
 
 // -------------
@@ -505,17 +487,6 @@ public:
   DiGraph() = default;
 
   /**
-   * Constructor creating a new instance.
-   *
-   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
-   *                 all Vertex instances to their ids
-   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
-   *                 Edge instances
-   */
-  DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-          std::vector<std::shared_ptr<Edge>> &&                      edges);
-
-  /**
    * Destructor.
    */
   ~DiGraph() override = default;
@@ -526,9 +497,9 @@ public:
   DiGraph(DiGraph const &other);
 
   /**
-   * Moving is disallowed.
+   * Move constructor.
    */
-  DiGraph(DiGraph &&) = delete;
+  DiGraph(DiGraph &&) noexcept;
 
   /**
    * Copy assignment operator.
@@ -536,9 +507,15 @@ public:
   DiGraph &operator=(DiGraph other);
 
   /**
-   * Move assignment is disallowed.
+   * Constructor creating a new instance.
+   *
+   * @param vertices an rvalue reference to a std::unordered_map mapping the std::shared_ptr instances pointing to
+   *                 all Vertex instances to their ids
+   * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
+   *                 Edge instances
    */
-  DiGraph &operator=(DiGraph &&) = delete;
+  DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+          std::vector<std::shared_ptr<Edge>> &&                      edges);
 
   /**
    * Swaps two instances of DiGraph.
@@ -616,9 +593,9 @@ public:
    *
    * @param vertices a const reference to a std::vector containing pointers pointing to the Vertex instances inducing
    *                 the requested subgraph
-   * @return A std::unique_ptr to the DiGraph representing the induced subgraph
+   * @return A DiGraph representing the induced subgraph
    */
-  std::unique_ptr<DiGraph> getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
+  DiGraph getSubgraph(std::vector<lazybastard::graph::Vertex *> const &vertices);
 
   /**
    * Returns the std::unordered_map containing the mapping of all Vertex instances to their in-degrees.
@@ -726,10 +703,6 @@ GraphBase::hasEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex
   return hasEdge(temp);
 }
 
-inline void GraphBase::replaceEdges(std::unordered_map<std::string, std::shared_ptr<Edge>> &&edges) {
-  m_edges = std::move(edges);
-}
-
 inline std::size_t GraphBase::getOrder() const { return m_vertices.size(); }
 
 inline std::size_t GraphBase::getSize() const { return m_edges.size(); }
@@ -744,13 +717,6 @@ inline GraphBase::GraphBase(GraphBase &&other) noexcept : GraphBase() { swap(*th
 inline GraphBase &GraphBase::operator=(GraphBase other) {
   swap(*this, other);
 
-  return *this;
-}
-
-inline GraphBase &GraphBase::operator=(GraphBase &&other) noexcept {
-  GraphBase tmp(std::move(other));
-
-  swap(*this, tmp);
   return *this;
 }
 
@@ -774,9 +740,7 @@ inline void GraphBase::_onEdgeDeleted(
 
 // PUBLIC CLASS METHODS
 
-inline Graph::Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-                    std::vector<std::shared_ptr<Edge>> &&                      edges)
-    : GraphBase(std::move(vertices), std::move(edges), true) {}
+inline Graph::Graph(Graph &&other) noexcept : Graph() { swap(*this, other); }
 
 inline Graph &Graph::operator=(Graph other) {
   if (&other != this) {
@@ -784,6 +748,10 @@ inline Graph &Graph::operator=(Graph other) {
   }
   return *this;
 }
+
+inline Graph::Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+                    std::vector<std::shared_ptr<Edge>> &&                      edges)
+    : GraphBase(std::move(vertices), std::move(edges), true) {}
 
 inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); }
 
@@ -817,20 +785,22 @@ Graph::getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
 
 // PUBLIC CLASS METHODS
 
-inline DiGraph::DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-                        std::vector<std::shared_ptr<Edge>> &&                      edges)
-    : GraphBase(std::move(vertices), std::move(edges), false) {
-  _updateDegrees();
-}
-
 inline DiGraph::DiGraph(DiGraph const &other)
     : GraphBase(other), m_inDegrees(other.m_inDegrees), m_outDegrees(other.m_outDegrees) {}
+
+inline DiGraph::DiGraph(DiGraph &&other) noexcept : DiGraph() { swap(*this, other); }
 
 inline DiGraph &DiGraph::operator=(DiGraph other) {
   if (&other != this) {
     swap(*this, other);
   }
   return *this;
+}
+
+inline DiGraph::DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+                        std::vector<std::shared_ptr<Edge>> &&                      edges)
+    : GraphBase(std::move(vertices), std::move(edges), false) {
+  _updateDegrees();
 }
 
 inline void swap(DiGraph &lhs, DiGraph &rhs) noexcept {

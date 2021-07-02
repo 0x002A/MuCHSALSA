@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <deque>
 #include <gsl/pointers>
-#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -55,15 +54,15 @@ bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph
                  gsl::not_null<graph::Vertex const *> pNode, gsl::not_null<graph::Vertex const *> pTarget,
                  gsl::not_null<graph::EdgeOrder const *> pOrder, std::size_t wiggleRoom);
 
-std::unique_ptr<graph::Graph> getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
+graph::Graph getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
 
 std::vector<std::vector<lazybastard::graph::Vertex *>>
 getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
 
-std::unique_ptr<graph::DiGraph> getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
-                                                  gsl::not_null<matching::MatchMap *>  pMatchMap,
-                                                  gsl::not_null<graph::Graph const *>  pConnectedComponent,
-                                                  gsl::not_null<graph::Vertex const *> pStartNode);
+graph::DiGraph getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
+                                 gsl::not_null<matching::MatchMap *>  pMatchMap,
+                                 gsl::not_null<graph::Graph const *>  pConnectedComponent,
+                                 gsl::not_null<graph::Vertex const *> pStartNode);
 
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 

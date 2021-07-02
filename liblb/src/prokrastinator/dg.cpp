@@ -21,6 +21,7 @@
 
 #include "Prokrastinator.h"
 
+#include <memory>
 #include <stack>
 
 #include "Util.h"
@@ -30,7 +31,7 @@
 #include "types/Direction.h"
 #include "types/Toggle.h"
 
-std::unique_ptr<lazybastard::graph::DiGraph>
+lazybastard::graph::DiGraph
 lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const               pGraph,
                                gsl::not_null<matching::MatchMap *> const               pMatchMap,
                                gsl::not_null<graph::Graph const *> const               pConnectedComponent,
@@ -38,35 +39,35 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const        
   std::stack<std::tuple<graph::Vertex const *, Toggle>> stack;
   stack.push(std::make_tuple(pStartNode, true));
 
-  auto diGraph = std::make_unique<graph::DiGraph>();
+  auto diGraph = graph::DiGraph();
   while (!stack.empty()) {
     auto const currentNode = stack.top();
     stack.pop();
 
     auto const *const pCurrentNode = std::get<0>(currentNode);
 
-    if (!diGraph->hasVertex(pCurrentNode->getId())) {
-      diGraph->addVertex(pGraph->getVertexAsSharedPtr(pCurrentNode->getId()));
+    if (!diGraph.hasVertex(pCurrentNode->getId())) {
+      diGraph.addVertex(pGraph->getVertexAsSharedPtr(pCurrentNode->getId()));
     }
 
     if (pCurrentNode->getVertexDirection() == Direction::e_NONE) {
-      diGraph->getVertex(pCurrentNode->getId())->setVertexDirection(std::get<1>(currentNode));
+      diGraph.getVertex(pCurrentNode->getId())->setVertexDirection(std::get<1>(currentNode));
     }
 
     auto const neighbors = pConnectedComponent->getNeighbors(pCurrentNode);
     for (auto const &[neighborId, pNeighborEdge] : neighbors) {
       auto const *const pOtherNode      = pGraph->getVertex(neighborId);
       auto const        vertices        = pNeighborEdge->getVertices();
-      auto              otherNodeExists = diGraph->hasVertex(neighborId);
+      auto              otherNodeExists = diGraph.hasVertex(neighborId);
 
       util::exchange_if(otherNodeExists, pOtherNode->getVertexDirection() != Direction::e_NONE, otherNodeExists);
 
       if (!otherNodeExists) {
-        diGraph->addVertex(pConnectedComponent->getVertexAsSharedPtr(neighborId));
+        diGraph.addVertex(pConnectedComponent->getVertexAsSharedPtr(neighborId));
       }
 
-      if (diGraph->hasEdge(std::make_pair(vertices.first, vertices.second)) ||
-          diGraph->hasEdge(std::make_pair(vertices.second, vertices.first))) {
+      if (diGraph.hasEdge(std::make_pair(vertices.first, vertices.second)) ||
+          diGraph.hasEdge(std::make_pair(vertices.second, vertices.first))) {
         continue;
       }
 
@@ -82,12 +83,12 @@ lazybastard::getDirectionGraph(gsl::not_null<graph::Graph const *> const        
 
         util::swap_if(pStart, pEnd, flip);
 
-        auto *pNewEdge = diGraph->getEdge(std::make_pair(pStart, pEnd));
+        auto *pNewEdge = diGraph.getEdge(std::make_pair(pStart, pEnd));
         if (!pNewEdge) {
           auto verticesNewEdge = std::make_pair(pStart, pEnd);
 
-          diGraph->addEdge(verticesNewEdge);
-          pNewEdge = diGraph->getEdge(verticesNewEdge);
+          diGraph.addEdge(verticesNewEdge);
+          pNewEdge = diGraph.getEdge(verticesNewEdge);
 
           pNewEdge->setShadow(pEdge->isShadow());
 

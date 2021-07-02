@@ -37,7 +37,7 @@ TEST(MSTTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setWeight(1);
 
   auto mst = lazybastard::getMaxSpanTree(&graph);
-  ASSERT_EQ(mst->getSize(), 0);
+  ASSERT_EQ(mst.getSize(), 0);
 
   // Set consensus direction
   graph.getEdge(std::make_pair(spVertex1.get(), spVertex2.get()))->setConsensusDirection(true);
@@ -49,11 +49,14 @@ TEST(MSTTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setConsensusDirection(true);
 
   mst = lazybastard::getMaxSpanTree(&graph);
-  ASSERT_EQ(mst->getSize(), 4);
-  ASSERT_EQ(mst->getOrder(), graph.getOrder());
+  ASSERT_EQ(mst.getSize(), 4);
+  ASSERT_EQ(mst.getOrder(), graph.getOrder());
 
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex1.get(), spVertex5.get())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex3.get(), spVertex4.get())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex5.get(), spVertex2.get())));
-  ASSERT_TRUE(graph.hasEdge(std::make_pair(spVertex5.get(), spVertex3.get())));
+  ASSERT_TRUE(mst.hasEdge(std::make_pair(spVertex1.get(), spVertex5.get())));
+  ASSERT_TRUE(mst.hasEdge(std::make_pair(spVertex3.get(), spVertex4.get())));
+  ASSERT_TRUE(mst.hasEdge(std::make_pair(spVertex5.get(), spVertex2.get())));
+  ASSERT_TRUE(mst.hasEdge(std::make_pair(spVertex5.get(), spVertex3.get())));
+  ASSERT_FALSE(mst.hasEdge(std::make_pair(spVertex1.get(), spVertex2.get())));
+  ASSERT_FALSE(mst.hasEdge(std::make_pair(spVertex2.get(), spVertex3.get())));
+  ASSERT_FALSE(mst.hasEdge(std::make_pair(spVertex4.get(), spVertex5.get())));
 }

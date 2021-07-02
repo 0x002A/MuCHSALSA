@@ -22,6 +22,7 @@
 #include "Prokrastinator.h"
 
 #include <algorithm>
+#include <memory>
 #include <unordered_map>
 
 #include "graph/Edge.h"
@@ -70,7 +71,7 @@ private:
   std::unordered_map<lazybastard::graph::Vertex const *, std::size_t>                        m_weights;
 };
 
-std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Edge>>
+std::vector<std::shared_ptr<lazybastard::graph::Edge>>
 kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
   auto edges = pGraph->getEdges();
   edges.erase(std::remove_if(std::begin(edges), std::end(edges),
@@ -81,12 +82,12 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
   std::sort(std::begin(edges), std::end(edges),
             [](auto const *pEdge1, auto const *pEdge2) { return pEdge1->getWeight() > pEdge2->getWeight(); });
 
-  std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Edge>> result;
-  auto                                                                       uf = UnionFind();
+  std::vector<std::shared_ptr<lazybastard::graph::Edge>> result;
+  auto                                                   uf = UnionFind();
   for (auto *pEdge : edges) {
     auto const vertices = pEdge->getVertices();
     if (uf[vertices.first] != uf[vertices.second]) {
-      result.insert({pEdge->getId(), pEdge->getSharedPtr()});
+      result.emplace_back(pEdge->getSharedPtr());
       uf.unify(vertices.first, vertices.second);
     }
   }
@@ -95,12 +96,18 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
 }
 } // unnamed namespace
 
-std::unique_ptr<lazybastard::graph::Graph>
-lazybastard::getMaxSpanTree(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
-  auto pNewGraph = std::make_unique<lazybastard::graph::Graph>(*pGraph);
-  pNewGraph->replaceEdges(kruskal(pGraph));
+lazybastard::graph::Graph lazybastard::getMaxSpanTree(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
+  auto vertices = [=]() {
+    auto const                                                                   vertices = pGraph->getVertices();
+    std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Vertex>> newVertices;
 
-  return pNewGraph;
+    std::transform(std::begin(vertices), std::end(vertices), std::inserter(newVertices, std::begin(newVertices)),
+                   [](auto *const pVertex) { return std::make_pair(pVertex->getId(), pVertex->getSharedPtr()); });
+
+    return newVertices;
+  }();
+
+  return lazybastard::graph::Graph(std::move(vertices), kruskal(pGraph));
 }
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

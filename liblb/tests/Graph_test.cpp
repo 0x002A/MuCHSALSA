@@ -257,26 +257,26 @@ TEST(GraphTest, SubgraphTest) {
   auto       v1 = spVertex1.get(), v2 = spVertex3.get();
   auto const subgraphVertices = std::vector<lazybastard::graph::Vertex *>({v1, v2});
   auto const subgraph         = graph.getSubgraph(subgraphVertices);
-  ASSERT_EQ(subgraph->getSize(), 1);
-  ASSERT_TRUE(subgraph->hasVertex(v1->getId()));
-  ASSERT_TRUE(subgraph->hasVertex(v2->getId()));
+  ASSERT_EQ(subgraph.getSize(), 1);
+  ASSERT_TRUE(subgraph.hasVertex(v1->getId()));
+  ASSERT_TRUE(subgraph.hasVertex(v2->getId()));
 
-  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(v1, v2)));
-  ASSERT_TRUE(subgraph->hasEdge(std::make_pair(v2, v1)));
+  ASSERT_TRUE(subgraph.hasEdge(std::make_pair(v1, v2)));
+  ASSERT_TRUE(subgraph.hasEdge(std::make_pair(v2, v1)));
 
   auto const subDigraph = diGraph.getSubgraph(subgraphVertices);
-  ASSERT_EQ(subgraph->getSize(), 1);
-  ASSERT_TRUE(subDigraph->hasVertex(v1->getId()));
-  ASSERT_TRUE(subDigraph->hasVertex(v2->getId()));
+  ASSERT_EQ(subgraph.getSize(), 1);
+  ASSERT_TRUE(subDigraph.hasVertex(v1->getId()));
+  ASSERT_TRUE(subDigraph.hasVertex(v2->getId()));
 
-  ASSERT_TRUE(subDigraph->hasEdge(std::make_pair(v1, v2)));
+  ASSERT_TRUE(subDigraph.hasEdge(std::make_pair(v1, v2)));
 
-  auto const &inDegrees = subDigraph->getInDegrees();
+  auto const &inDegrees = subDigraph.getInDegrees();
   ASSERT_EQ(inDegrees.size(), 2);
   ASSERT_EQ(inDegrees.at(v1), 0);
   ASSERT_EQ(inDegrees.at(v2), 1);
 
-  auto const &outDegrees = subDigraph->getOutDegrees();
+  auto const &outDegrees = subDigraph.getOutDegrees();
   ASSERT_EQ(outDegrees.size(), 2);
   ASSERT_EQ(outDegrees.at(v1), 1);
   ASSERT_EQ(outDegrees.at(v2), 0);
