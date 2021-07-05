@@ -122,27 +122,12 @@ std::vector<lazybastard::graph::Vertex *> ramseyR2(lazybastard::graph::Graph con
   auto *const firstVertex  = vertices[0];
   std::for_each(std::next(std::begin(vertices)), std::end(vertices),
                 [=, &graph, &neighbors, &nonNeighbors](auto *const pVertex) {
-                  // std::cout << pVertex->getId() << ";";
                   if (graph.hasEdge(std::make_pair(firstVertex, pVertex))) {
                     neighbors.push_back(pVertex);
                   } else {
                     nonNeighbors.push_back(pVertex);
                   }
                 });
-  // std::cout << std::endl;
-
-  /*
-  std::cout << firstVertex->getId() << std::endl;
-  for (auto const * const pVertex : neighbors) {
-    std::cout << pVertex->getId() << ";";
-  }
-  std::cout << std::endl;
-
-  for (auto const * const pVertex : nonNeighbors) {
-    std::cout << pVertex->getId() << ";";
-  }
-  std::cout << std::endl;
-  */
 
   auto       cliqueNeighbors    = ramseyR2(graph, neighbors);
   auto const cliqueNonNeighbors = ramseyR2(graph, nonNeighbors);
@@ -704,8 +689,7 @@ void lazybastard::assemblePath(
     gsl::not_null<lazybastard::SequenceAccessor *> const                         pSequenceAccessor,
     gsl::not_null<lazybastard::matching::Id2OverlapMap *> const                  pId2OverlapMap,
     gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> const pPath,
-    gsl::not_null<lazybastard::graph::DiGraph const *> const pDiGraph, std::size_t asmIdx,
-    lazybastard::OutputWriter &writer) {
+    gsl::not_null<lazybastard::graph::DiGraph const *> const pDiGraph, int asmIdx, lazybastard::OutputWriter &writer) {
   struct Candidate {
     std::set<std::string>                 openIds;
     std::set<std::string>                 visitedIds;
@@ -1389,7 +1373,8 @@ void lazybastard::assemblePath(
 
         auto const preNanopore = containElement.matches.at(std::get<1>(containInfo[idxGlobalRange - 1]))->nanoporeRange;
         sequences2Write.emplace_back(getNanoporeSequence(*pSequenceAccessor, containElement.nano,
-                                                         preNanopore.second + 1, preNanopore.first - 1, direction),
+                                                         preNanopore.second + 1, match->nanoporeRange.first - 1,
+                                                         direction),
                                      std::get<1>(globalRanges.at(idxGlobalRange - 1)) + 1,
                                      std::get<0>(globalRanges.at(idxGlobalRange)) - 1, "Nano_Middle");
       }

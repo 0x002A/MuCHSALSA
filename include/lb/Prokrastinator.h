@@ -66,13 +66,13 @@ graph::DiGraph getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
 
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
-void assemblePath(gsl::not_null<matching::MatchMap const *> pMatchMap,
-                  gsl::not_null<std::unordered_map<graph::Vertex const *, std::vector<matching::ContainElement>> const
-                                    *> /*pContainElements*/,
-                  gsl::not_null<SequenceAccessor *>                                      pSequenceAccessor,
-                  gsl::not_null<matching::Id2OverlapMap *>                               pId2OverlapMap,
-                  gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
-                  gsl::not_null<graph::DiGraph const *> pDiGraph, std::size_t asmIdx, OutputWriter &writer);
+void assemblePath(
+    gsl::not_null<matching::MatchMap const *> pMatchMap,
+    gsl::not_null<std::unordered_map<graph::Vertex const *, std::vector<matching::ContainElement>> const *>
+                                      pContainElements,
+    gsl::not_null<SequenceAccessor *> pSequenceAccessor, gsl::not_null<matching::Id2OverlapMap *> pId2OverlapMap,
+    gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
+    gsl::not_null<graph::DiGraph const *> pDiGraph, int asmIdx, OutputWriter &writer);
 
 } // namespace lazybastard
 

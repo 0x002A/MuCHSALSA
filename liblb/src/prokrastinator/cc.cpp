@@ -33,40 +33,30 @@ lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Grap
   std::set<lazybastard::graph::Vertex const *>           visited;
 
   auto const vertices = pGraph->getVertices();
-  for (auto *const pVertex : vertices) {
-    if (visited.contains(pVertex)) {
+  for (auto *const pSourceVertex : vertices) {
+    if (visited.contains(pSourceVertex)) {
       continue;
     }
 
-    auto const                                neighbors = pGraph->getNeighbors(pVertex);
-    std::vector<lazybastard::graph::Vertex *> component({pVertex});
-    visited.insert(pVertex);
-    component.reserve(neighbors.size());
-    std::transform(std::begin(neighbors), std::end(neighbors), std::back_inserter(component),
-                   [&](auto const &p) { return pGraph->getVertex(p.first); });
+    std::vector<lazybastard::graph::Vertex *>           component({pSourceVertex});
+    std::deque<lazybastard::graph::Vertex const *const> queue({pSourceVertex});
 
-    std::deque<lazybastard::graph::Vertex *> queue({pVertex});
+    visited.insert(pSourceVertex);
 
     while (!queue.empty()) {
-      auto *pCurrentVertex = queue.front();
+      auto const *const pCurrentVertex = queue.front();
       queue.pop_front();
 
       auto const currentNeighbors = pGraph->getNeighbors(pCurrentVertex);
-
-      auto iterCurrentNeighbor = std::begin(currentNeighbors);
-      auto biComponent         = std::back_inserter(component);
-      while (iterCurrentNeighbor != std::end(currentNeighbors)) {
-
-        pCurrentVertex = pGraph->getVertex(iterCurrentNeighbor->first);
-        if (!visited.contains(pCurrentVertex)) {
-          if (iterCurrentNeighbor->second->getConsensusDirection() != lazybastard::Direction::e_NONE) {
-            *biComponent++ = pCurrentVertex;
-            queue.push_back(pCurrentVertex);
-          }
-          visited.insert(pCurrentVertex);
+      for (auto iterNeighbor = std::begin(currentNeighbors); iterNeighbor != std::end(currentNeighbors);
+           ++iterNeighbor) {
+        auto *pNeighbor = pGraph->getVertex(iterNeighbor->first);
+        if (!visited.contains(pNeighbor) &&
+            iterNeighbor->second->getConsensusDirection() != lazybastard::Direction::e_NONE) {
+          component.push_back(pNeighbor);
+          queue.push_back(pNeighbor);
+          visited.insert(pNeighbor);
         }
-
-        ++iterCurrentNeighbor;
       }
     }
 

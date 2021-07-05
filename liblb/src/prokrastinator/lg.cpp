@@ -458,7 +458,7 @@ lazybastard::linearizeGraph(gsl::not_null<lazybastard::graph::DiGraph *> const p
       auto const idxL1Start = static_cast<unsigned>(std::abs(std::distance(
           std::begin(paths[idx1]), std::find(std::begin(paths[idx1]), std::end(paths[idx1]), vertices.first))));
       auto const idxL2Start = static_cast<unsigned>(std::abs(std::distance(
-          std::begin(paths[idx2]), std::find(std::begin(paths[idx2]), std::end(paths[idx2]), vertices.first))));
+          std::begin(paths[idx2]), std::find(std::begin(paths[idx2]), std::end(paths[idx2]), vertices.second))));
       auto const l1End      = mappingColor2Length[idx1] - idxL1Start - 1;
       auto const l2End      = mappingColor2Length[idx2] - idxL2Start - 1;
 

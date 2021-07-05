@@ -6,6 +6,7 @@
 #include "Prokrastinator.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
+#include "types/Direction.h"
 
 TEST(CCTest, BasicTest) {
   auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
@@ -28,6 +29,15 @@ TEST(CCTest, BasicTest) {
   graph.addEdge(std::make_pair(spVertex3.get(), spVertex5.get()));
   graph.addEdge(std::make_pair(spVertex3.get(), spVertex4.get()));
   graph.addEdge(std::make_pair(spVertex4.get(), spVertex5.get()));
+
+  // Set Consensus Direction
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex2.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex1.get(), spVertex5.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex3.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex2.get(), spVertex5.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex5.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
 
   auto cc = lazybastard::getConnectedComponents(&graph);
   ASSERT_EQ(cc.size(), 1);
@@ -53,6 +63,10 @@ TEST(CCTest, BasicTest) {
   graph.addEdge(std::make_pair(spVertex6.get(), spVertex7.get()));
   graph.addEdge(std::make_pair(spVertex6.get(), spVertex8.get()));
   graph.addEdge(std::make_pair(spVertex7.get(), spVertex8.get()));
+
+  graph.getEdge(std::make_pair(spVertex6.get(), spVertex7.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex6.get(), spVertex8.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
+  graph.getEdge(std::make_pair(spVertex7.get(), spVertex8.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
 
   cc = lazybastard::getConnectedComponents(&graph);
   ASSERT_EQ(cc.size(), 2);

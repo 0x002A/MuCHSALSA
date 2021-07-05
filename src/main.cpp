@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <any>
+#include <atomic>
 #include <cstddef>
 #include <deque>
 #include <exception>
@@ -275,17 +276,15 @@ auto main(int const argc, char const *argv[]) -> int {
                               app.getOutputFilePath() + "/temp.target.fa");
     //// /OUTPUT FILES ////
 
-    std::size_t assemblyIdx         = 0;
-    auto        connectedComponents = lazybastard::getConnectedComponents(&graph);
-    auto        assemblyJob         = [](Job const *const pJob) { assemblePaths(pJob); };
+    std::atomic<int> assemblyIdx{-1};
+    auto             connectedComponents = lazybastard::getConnectedComponents(&graph);
+    auto             assemblyJob         = [](Job const *const pJob) { assemblePaths(pJob); };
     for (auto const &connectedComponent : connectedComponents) {
 
       wg.add(1);
       auto job = Job(assemblyJob, &wg, &graph, &matchMap, &containElements, &sequenceAccessor, &connectedComponent,
-                     assemblyIdx, std::ref(outputWriter));
+                     &assemblyIdx, std::ref(outputWriter));
       threadPool.addJob(std::move(job));
-
-      ++assemblyIdx;
     }
     wg.wait();
 
@@ -591,25 +590,26 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
   auto const pConnectedComponent =
       make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(5)));
+
   auto const subGraph         = pGraph->getSubgraph(*pConnectedComponent);
   auto const subGraphVertices = subGraph.getVertices();
   auto const maxNplVertexIter = std::max_element(
       std::begin(subGraphVertices), std::end(subGraphVertices),
       [](Vertex const *v1, Vertex const *v2) { return v1->getNanoporeLength() < v2->getNanoporeLength(); });
-  auto *const pMaxNplVertex = maxNplVertexIter == std::end(subGraph.getVertices()) ? nullptr : *maxNplVertexIter;
-  auto const  pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
+  auto const *const pMaxNplVertex = maxNplVertexIter == std::end(subGraph.getVertices()) ? nullptr : *maxNplVertexIter;
+  auto const        pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNplVertex != nullptr) {
     auto       diGraph = lazybastard::getDirectionGraph(pGraph, pMatchMap, &subGraph, pMaxNplVertex);
     auto const paths   = lazybastard::linearizeGraph(&diGraph);
 
     Id2OverlapMap id2OverlapMap;
-    auto const    assemblyIdx = std::any_cast<std::size_t>(pJob->getParam(6));
+    auto *const   pAssemblyIdx = std::any_cast<std::atomic<int> *>(pJob->getParam(6));
     std::for_each(std::begin(paths), std::end(paths), [&](auto const &path) {
       lazybastard::assemblePath(
           pMatchMap,
           std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(3)),
-          std::any_cast<SequenceAccessor *>(pJob->getParam(4)), &id2OverlapMap, &path, &diGraph, assemblyIdx,
+          std::any_cast<SequenceAccessor *>(pJob->getParam(4)), &id2OverlapMap, &path, &diGraph, ++(*pAssemblyIdx),
           std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(7)).get());
     });
   }
