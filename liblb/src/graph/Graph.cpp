@@ -164,7 +164,7 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
                                        auto const pEdge = gsl::make_not_null(s.second);
 
                                        auto vertices = pEdge->getVertices();
-                                       m_edges.erase(pEdge->getId());
+                                       m_edges.erase(pEdge);
                                        _onEdgeDeleted(std::move(vertices));
 
                                        if (pMatchMap) {
@@ -175,7 +175,7 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
                                        auto const pEdge = gsl::make_not_null(s.second);
 
                                        auto vertices = pEdge->getVertices();
-                                       m_edges.erase(pEdge->getId());
+                                       m_edges.erase(pEdge);
                                        _onEdgeDeleted(std::move(vertices));
 
                                        if (pMatchMap) {
@@ -202,7 +202,7 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
         }
 
         auto vertices = pEdge->getVertices();
-        m_edges.erase(pEdge->getId());
+        m_edges.erase(pEdge);
         _onEdgeDeleted(std::move(vertices));
 
         connectedVertices.erase(iterPredecessor);
@@ -262,7 +262,7 @@ void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidi
   if (pMatchMap) {
     pMatchMap->deleteEdgeMatches(pEdge);
   }
-  m_edges.erase(pEdge->getId());
+  m_edges.erase(pEdge);
 }
 
 std::unordered_map<std::string, Edge *const>
@@ -313,7 +313,7 @@ bool GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirect
   }
 
   if (inserted) {
-    m_edges.emplace(spEdge->getId(), std::move(spEdge));
+    m_edges.emplace(spEdge.get(), std::move(spEdge));
   }
 
   return inserted;

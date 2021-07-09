@@ -13,7 +13,6 @@
 TEST(GraphTest, BasicTest) {
   auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
   auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::make_pair(spVertex1.get(), spVertex2.get())), "1,2");
 
   auto vertexIDs = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph     = lazybastard::graph::Graph();
@@ -24,7 +23,6 @@ TEST(GraphTest, BasicTest) {
   graph.addEdge(vertexIDs);
   graph.addEdge(std::make_pair(vertexIDs.second, vertexIDs.first));
   ASSERT_EQ(graph.getSize(), 1);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::move(vertexIDs)), "1,2");
 
   auto expected    = std::make_pair(spVertex1.get(), spVertex2.get());
   auto expectedToo = std::make_pair(spVertex2.get(), spVertex1.get());
@@ -46,7 +44,6 @@ TEST(GraphTest, EdgeCreationTest) {
 TEST(GraphTest, InverseOrderTest) {
   auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
   auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::make_pair(spVertex1.get(), spVertex2.get())), "2,1");
 
   auto vertexIDs = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph     = lazybastard::graph::Graph();
@@ -55,7 +52,6 @@ TEST(GraphTest, InverseOrderTest) {
   ASSERT_EQ(graph.getOrder(), 2);
 
   graph.addEdge(vertexIDs);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::move(vertexIDs)), "2,1");
 
   auto expected    = std::make_pair(spVertex1.get(), spVertex2.get());
   auto expectedToo = std::make_pair(spVertex2.get(), spVertex1.get());
@@ -66,7 +62,6 @@ TEST(GraphTest, InverseOrderTest) {
 TEST(GraphTest, DirectedGraphTest) {
   auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
   auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::make_pair(spVertex1.get(), spVertex2.get())), "2,1");
 
   auto vertices = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph    = lazybastard::graph::DiGraph();
@@ -75,7 +70,6 @@ TEST(GraphTest, DirectedGraphTest) {
   ASSERT_EQ(graph.getOrder(), 2);
 
   graph.addEdge(vertices);
-  ASSERT_EQ(lazybastard::graph::Edge::getEdgeId(std::move(vertices)), "2,1");
 
   auto expected = std::make_pair(gsl::make_not_null(spVertex1.get()), gsl::make_not_null(spVertex2.get()));
   ASSERT_TRUE(graph.hasEdge(expected));

@@ -844,17 +844,6 @@ void lazybastard::assemblePath(
       std::reverse(std::begin(vertexInfoOfInterest), std::end(vertexInfoOfInterest));
     }
 
-    // std::pair<std::pair<int, int>, std::tuple<std::tuple<std::string, std::size_t>, std::size_t>
-    std::string values;
-    for (auto const &value : vertexInfo[idx]) {
-      values.append(std::to_string(value.first.first) + "," + std::to_string(value.first.second) + ",");
-      values.append(std::get<0>(std::get<0>(value.second)) + "," +
-                    std::to_string(std::get<1>(std::get<0>(value.second))));
-      values.append(";");
-    }
-    // std::cout << vertices.at(idx)->getId() << ";" << (vertices.at(idx)->getVertexDirection() == Direction::e_NEG ?
-    // "-1" : "1") << ";" << values << std::endl;
-
     vertexInfoOfInterest = vertexInfo[idx];
     if (vertexInfoOfInterest.empty()) {
       continue;

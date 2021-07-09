@@ -122,13 +122,6 @@ public:
   Edge &operator=(Edge &&) = delete;
 
   /**
-   * Getter returning the unique Edge id.
-   *
-   * @return The unique Edge id
-   */
-  [[nodiscard]] auto const &getId() const;
-
-  /**
    * Getter returning the Vertex instances assigned to this Edge.
    *
    * @return The assigned Vertex instances
@@ -219,16 +212,7 @@ public:
    */
   void clearOrders();
 
-  /**
-   * Generates an Edge identifier based on the supplied Vertex instances.
-   *
-   * @param vertices an rvalue reference to a std::pair of pointers pointing to the Vertex instances
-   * @return The Edge identifier
-   */
-  static std::string getEdgeId(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices);
-
 private:
-  std::string const m_id; /*!< Id of the Edge */
   std::pair<std::shared_ptr<Vertex const> const, std::shared_ptr<Vertex const> const> const
                          m_vertices;           /*!< Assigned Vertex instances */
   std::vector<EdgeOrder> m_orders;             /*!< Assigned EdgeOrder instances */
@@ -250,8 +234,6 @@ private:
 inline std::shared_ptr<Edge> Edge::getSharedPtr() { return shared_from_this(); }
 
 inline std::shared_ptr<Edge const> Edge::getSharedPtr() const { return shared_from_this(); }
-
-[[nodiscard]] inline auto const &Edge::getId() const { return m_id; }
 
 [[nodiscard]] inline std::pair<Vertex const *, Vertex const *> Edge::getVertices() const {
   return std::make_pair(m_vertices.first.get(), m_vertices.second.get());

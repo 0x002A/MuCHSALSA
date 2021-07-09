@@ -339,7 +339,7 @@ protected:
 private:
   template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
   um_t<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< std::unordered_map containing all the Vertex instances */
-  um_t<std::string, std::shared_ptr<Edge>>   m_edges;    /*!< std::unordered_map  containing all the Edge instances */
+  um_t<Edge const *, std::shared_ptr<Edge>>  m_edges;    /*!< std::unordered_map  containing all the Edge instances */
   um_t<std::string, um_t<std::string, Edge *const>>
                             m_adjacencyList; /*!< std::unordered_map  containing all the Edge instances */
   mutable std::shared_mutex m_mutexVertex;   /*!< std::shared_mutex for securing the parallel use of the Vertex map */
