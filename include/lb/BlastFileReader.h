@@ -52,10 +52,13 @@ public:
    * @param pBlastFileAccessor a pointer to the BlastFileAccessor to be used for accessing the BLAST file
    * @param pGraph a pointer to the Graph receiving the Vertex instances
    * @param pMatchMap a pointer to the MatchMap
+   * @param pRegistryNanopore a pointer to the Registry used to register nanopore ids
+   * @param pRegistryIllumina a pointer to the Registry used to register nanopore ids
    */
   BlastFileReader(gsl::not_null<threading::ThreadPool *> pThreadPool,
                   gsl::not_null<BlastFileAccessor *> pBlastFileAccessor, gsl::not_null<graph::Graph *> pGraph,
-                  gsl::not_null<matching::MatchMap *> pMatchMap);
+                  gsl::not_null<matching::MatchMap *> pMatchMap, gsl::not_null<Registry *> pRegistryNanopore,
+                  gsl::not_null<Registry *> pRegistryIllumina);
 
   /**
    * Destructor.
@@ -99,7 +102,9 @@ private:
   BlastFileAccessor
       *const m_pBlastFileAccessor;    /*!< Pointer to the BlastFileAccessor to be used for accessing the BLAST file */
   graph::Graph *const       m_pGraph; /*!< Pointer to the Graph receiving the Vertex instances */
-  matching::MatchMap *const m_pMatchMap; /*!< Pointer to the MatchMap */
+  matching::MatchMap *const m_pMatchMap;         /*!< Pointer to the MatchMap */
+  Registry *const           m_pRegistryNanopore; /*!< Pointer to the Registry used to register nanopore ids */
+  Registry *const           m_pRegistryIllumina; /*!< Pointer to the Registry used to register illumina ids */
 };
 
 // =====================================================================================================================
@@ -115,8 +120,11 @@ private:
 inline BlastFileReader::BlastFileReader(gsl::not_null<threading::ThreadPool *> const pThreadPool,
                                         gsl::not_null<BlastFileAccessor *>           pBlastFileAccessor,
                                         gsl::not_null<graph::Graph *> const          pGraph,
-                                        gsl::not_null<matching::MatchMap *> const    pMatchMap)
-    : m_pThreadPool(pThreadPool), m_pBlastFileAccessor(pBlastFileAccessor), m_pGraph(pGraph), m_pMatchMap(pMatchMap) {}
+                                        gsl::not_null<matching::MatchMap *> const    pMatchMap,
+                                        gsl::not_null<Registry *> const              pRegistryNanopore,
+                                        gsl::not_null<Registry *> const              pRegistryIllumina)
+    : m_pThreadPool(pThreadPool), m_pBlastFileAccessor(pBlastFileAccessor), m_pGraph(pGraph), m_pMatchMap(pMatchMap),
+      m_pRegistryNanopore(pRegistryNanopore), m_pRegistryIllumina(pRegistryIllumina) {}
 
 } // namespace lazybastard
 

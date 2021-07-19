@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "BlastFileAccessor.h"
+#include "Registry.h"
 #include "Util.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
@@ -106,11 +107,11 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
   addNode &= illuminaRange.second - illuminaRange.first + 1 >= MINIMUM_MATCHES;
 
   if (addNode) {
-    auto spVertex = std::make_shared<graph::Vertex>(tokens[POS_NID], nanoporeLength, lineIdx);
-    m_pGraph->addVertex(std::move(spVertex));
+    auto const nanoporeId = (*m_pRegistryNanopore)[tokens[POS_NID]];
+    auto const illuminaId = (*m_pRegistryIllumina)[tokens[POS_IID]];
 
-    auto const &nanoporeId = tokens[POS_NID];
-    auto const &illuminaId = tokens[POS_IID];
+    auto spVertex = std::make_shared<graph::Vertex>(nanoporeId, nanoporeLength, lineIdx);
+    m_pGraph->addVertex(std::move(spVertex));
 
     auto const nanoporeRange = std::make_pair(std::stoi(tokens[POS_NRS]), std::stoi(tokens[POS_NRE]) - 1);
     auto const direction     = tokens[POS_DIR] == "+";
@@ -121,7 +122,7 @@ void BlastFileReader::parseLine(gsl::not_null<threading::Job const *> const pJob
     isPrimary &= matches >= TH_MATCHES;
 
     auto spVertexMatch = lazybastard::util::make_shared_aggregate<lazybastard::matching::VertexMatch>(
-        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary, lineIdx, std::make_pair(0, 0));
+        nanoporeRange, illuminaRange, rRatio, direction, matches, isPrimary, lineIdx);
     m_pMatchMap->addVertexMatch(nanoporeId, illuminaId, spVertexMatch);
   }
 

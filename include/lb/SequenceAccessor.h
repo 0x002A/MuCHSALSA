@@ -57,9 +57,12 @@ public:
    * @param pThreadPool a pointer pointing to the ThreadPool to be used for parallelization
    * @param fpNanopore a std::string_view representing the path to the file containing the nanopore sequences
    * @param fpIllumina a std::string_view representing the path to the file containing the illumina sequences
+   * @param pRegistryNanopore a pointer to the Registry used to register nanopore ids
+   * @param pRegistryIllumina a pointer to the Registry used to register nanopore ids
    */
   SequenceAccessor(gsl::not_null<threading::ThreadPool *> pThreadPool, std::string_view fpNanopore,
-                   std::string_view fpIllumina);
+                   std::string_view fpIllumina, gsl::not_null<Registry *> pRegistryNanopore,
+                   gsl::not_null<Registry *> pRegistryIllumina);
 
   /**
    * Builds the sequence index.
@@ -70,19 +73,19 @@ public:
    * Returns the nanopore sequence of the supplied nanopore id.
    * This function is **thread-safe**.
    *
-   * @param nanoporeId a const reference to the std::string representing the nanopore id to return the sequence for
+   * @param nanoporeId an unsigned int representing the nanopore id to return the sequence for
    * @return A std::string representing the nanopore sequence
    */
-  std::string getNanoporeSequence(std::string const &nanoporeId);
+  std::string getNanoporeSequence(unsigned int nanoporeId);
 
   /**
    * Returns the illumina sequence of the supplied illumina id.
    * This function is **thread-safe**.
    *
-   * @param illuminaId a const reference to the std::string representing the illumina id to return the sequence for
+   * @param illuminaId an unsigned int representing the illumina id to return the sequence for
    * @return A std::string representing the illumina sequence
    */
-  std::string getIlluminaSequence(std::string const &illuminaId);
+  std::string getIlluminaSequence(unsigned int illuminaId);
 
 private:
   threading::ThreadPool *const m_pThreadPool; /*!< Pointer to the ThreadPool used for parallelization */
@@ -90,11 +93,13 @@ private:
       m_pNanoporeSequenceFile; /*!< Pointer pointing to the FILE handle required for accessing the nanopore sequences
                                 */
   std::unique_ptr<std::FILE, void (*)(std::FILE *)>
-       m_pIlluminaSequenceFile; /*!< Pointer pointing to the FILE handle required for accessing illumina sequences */
-  bool m_nanoporeFileIsFastQ;   /*!< bool stating whether the file containing the illumina sequences is a FastQ file */
-  std::unordered_map<std::string, std::pair<long, long>>
+      m_pIlluminaSequenceFile; /*!< Pointer pointing to the FILE handle required for accessing illumina sequences */
+  Registry *const m_pRegistryNanopore; /*!< Pointer to the Registry used to register nanopore ids */
+  Registry *const m_pRegistryIllumina; /*!< Pointer to the Registry used to register illumina ids */
+  bool m_nanoporeFileIsFastQ; /*!< bool stating whether the file containing the illumina sequences is a FastQ file */
+  std::unordered_map<unsigned int, std::pair<long, long>>
       m_idxNanopore; /*!< std::unordered_map containing the mapping of nanopore ids to the position of the sequences */
-  std::unordered_map<std::string, std::pair<long, long>>
+  std::unordered_map<unsigned int, std::pair<long, long>>
       m_idxIllumina; /*!< std::unordered_map containing the mapping of illumina ids to the position of the sequences */
   std::mutex m_mutexNanoporeSequenceFile; /*!< std::mutex for securing the parallel use of the file containing the
                                              nanopore sequences */
@@ -102,14 +107,14 @@ private:
                                              illumina sequences */
 
   /**
-   * Assigns the offset and length data to the Vertex instances of the attached Graph.
+   * Stores the offset and length data for nanopore reads.
    *
    * @param pJob a pointer to the Job containing the parameters
    */
   void _buildNanoporeIdx(gsl::not_null<threading::Job const *> pJob);
 
   /**
-   * Assigns the offset and length data to the VertexMatch and EdgeMatch instances of the attached MatchMap.
+   * Stores the offset and length data for illumina reads.
    *
    * @param pJob a pointer to the Job containing the parameters
    */

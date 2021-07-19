@@ -29,13 +29,13 @@
 #include "matching/MatchMap.h"
 #include "types/Toggle.h"
 
-using path_t  = std::tuple<std::deque<std::string>, std::size_t, bool>;
-using match_t = std::tuple<std::pair<int, int>, std::string>;
+using path_t  = std::tuple<std::deque<unsigned int>, std::size_t, bool>;
+using match_t = std::tuple<std::pair<int, int>, unsigned int>;
 
 namespace {
 bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                        gsl::not_null<lazybastard::graph::Edge const *> const pEdge, std::string const &illuminaId1,
-                        std::string const &illuminaId, std::size_t wiggleRoom) {
+                        gsl::not_null<lazybastard::graph::Edge const *> const pEdge, unsigned int illuminaId1,
+                        unsigned int illuminaId, std::size_t wiggleRoom) {
   auto const nanoCheck = [&](int *pOrientation, double *pDiff,
                              gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) -> bool {
     auto const edgeMatch1 = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId1));
@@ -144,18 +144,18 @@ bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> c
 std::vector<path_t>
 lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
                                  gsl::not_null<lazybastard::graph::Edge const *> const        pEdge,
-                                 std::vector<std::string> const &illuminaIDs, lazybastard::Toggle direction,
+                                 std::vector<unsigned int> const &illuminaIds, lazybastard::Toggle direction,
                                  std::size_t wiggleRoom) {
   std::vector<path_t> result;
 
-  if (illuminaIDs.empty()) {
+  if (illuminaIds.empty()) {
     return result;
   }
 
   std::vector<match_t> vStart;
   std::vector<match_t> vEnd;
 
-  auto const idCount = illuminaIDs.size();
+  auto const idCount = illuminaIds.size();
   vStart.reserve(idCount);
   vEnd.reserve(idCount);
 
@@ -167,7 +167,7 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
     vStart.emplace_back(start->nanoporeRange, illuminaId);
     vEnd.emplace_back(end->nanoporeRange, illuminaId);
   };
-  std::for_each(std::begin(illuminaIDs), std::end(illuminaIDs), storeIlluminaId);
+  std::for_each(std::begin(illuminaIds), std::end(illuminaIds), storeIlluminaId);
 
   std::sort(std::begin(vStart), std::end(vStart));
   std::sort(std::begin(vEnd), std::end(vEnd));
@@ -211,7 +211,7 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
   }
 
   auto const &            vMaxPath = std::get<0>(*maxPathIter);
-  std::deque<std::string> dTmp;
+  std::deque<unsigned int> dTmp;
   std::transform(std::begin(vMaxPath), std::end(vMaxPath), std::back_inserter(dTmp),
                  [&](auto const idx) { return std::get<1>(vStart[idx]); });
 
@@ -252,7 +252,7 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
   auto alreadyAShadow = result.size() == 1;
   alreadyAShadow &= std::get<2>(result.front());
   if (alreadyAShadow) {
-    using match_id_t = std::tuple<std::pair<int, int>, std::string>;
+    using match_id_t = std::tuple<std::pair<int, int>, unsigned int>;
     std::vector<match_id_t> vIDsStart;
     std::vector<match_id_t> vIDsEnd;
 

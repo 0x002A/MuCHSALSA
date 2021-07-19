@@ -28,7 +28,6 @@
 #include <deque>
 #include <gsl/pointers>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -50,16 +49,16 @@ namespace lazybastard::graph {
  * Struct representing an order attached to an Edge.
  */
 struct EdgeOrder {
-  Vertex const *          startVertex; /*!< Start Vertex */
-  Vertex const *          endVertex;   /*!< End Vertex */
-  double                  leftOffset;  /*!< Left offset */
-  double                  rightOffset; /*!< Right offset */
-  Toggle                  isContained; /*!< Bool indicating containment */
-  Vertex const *          baseVertex;  /*!< Base Vertex */
-  std::size_t             score;       /*!< Score */
-  std::deque<std::string> ids;         /*!< IDs */
-  Toggle                  direction;   /*!< Bool indicating direction */
-  Toggle                  isPrimary;   /*!< Bool indicating a primary */
+  Vertex const *           startVertex; /*!< Start Vertex */
+  Vertex const *           endVertex;   /*!< End Vertex */
+  double                   leftOffset;  /*!< Left offset */
+  double                   rightOffset; /*!< Right offset */
+  Toggle                   isContained; /*!< Bool indicating containment */
+  Vertex const *           baseVertex;  /*!< Base Vertex */
+  std::size_t              score;       /*!< Score */
+  std::deque<unsigned int> ids;         /*!< IDs */
+  Toggle                   direction;   /*!< Bool indicating direction */
+  Toggle                   isPrimary;   /*!< Bool indicating a primary */
 };
 
 // ----------

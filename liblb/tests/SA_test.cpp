@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "Registry.h"
 #include "SequenceAccessor.h"
 #include "threading/ThreadPool.h"
 
@@ -11,8 +12,18 @@ TEST(SATest, FastaTest) {
   auto fastaInputFile = std::string(pTestDataPath);
   fastaInputFile.append("/fasta.fa");
 
+  auto registryNanopore = lazybastard::Registry();
+  auto registryIllumina = lazybastard::Registry();
+
+  registryNanopore["HSBGPG"];
+  registryIllumina["HSBGPG"];
+
+  registryNanopore["HSGLTH1"];
+  registryIllumina["HSGLTH1"];
+
   auto                          threadPool = lazybastard::threading::ThreadPool(1);
-  lazybastard::SequenceAccessor sequenceAccessor(&threadPool, fastaInputFile, fastaInputFile);
+  lazybastard::SequenceAccessor sequenceAccessor(&threadPool, fastaInputFile, fastaInputFile, &registryNanopore,
+                                                 &registryIllumina);
   sequenceAccessor.buildIndex();
 
   const char *pExpectedSequenceFirst = "GGCAGATTCCCCCTAGACCCGCCCGCACCATGGTCAGGCATGCCCCTCCTCATCGCTGGGCACAGCCCAGAGGGT\
@@ -33,8 +44,8 @@ GGCCTATCGGCGCTTCTACGGCCCGGTCTAGGGTGTCGCTCTGCTGGCCTGGCCGGCAACCCCAGTTCTGCTCCT\
 CTCCAGGCACCCTTCTTTCCTCTTCCCCTTGCCCTTGCCCTGACCTCCCAGCCCTATGGATGTGGGGTCCCCATC\
 ATCCCAGCTGCTCCCAAATAAACTCCAGAAG";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence("HSBGPG").c_str(), pExpectedSequenceFirst), 0);
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence("HSBGPG").c_str(), pExpectedSequenceFirst), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence(0).c_str(), pExpectedSequenceFirst), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence(0).c_str(), pExpectedSequenceFirst), 0);
 
   const char *pExpectedSequenceSecond = "CCACTGCACTCACCGCACCCGGCCAATTTTTGTGTTTTTAGTAGAGACTAAATACCATATAGTGAACACCTAAGA\
 CGGGGGGCCTTGGATCCAGGGCGATTCAGAGGGCCCCGGTCGGAGCTGTCGGAGATTGAGCGCGCGCGGTCCCGG\
@@ -51,8 +62,8 @@ TCAGCCCCGCGCTGCAGGCGTCGCTGGACAAGTTCCTGAGCCACGTTATCTCGGCGCTGGTTTCCGAGTACCGCT\
 GAACTGTGGGTGGGTGGCCGCGGGATCCCCAGGCGACCTTCCCCGTGTTTGAGTAAAGCCTCTCCCAGGAGCAGC\
 CTTCTTGCCGTGCTCTCTCGAGGTCAGGACGCGAGAGGAAGGCGC";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence("HSGLTH1").c_str(), pExpectedSequenceSecond), 0);
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence("HSGLTH1").c_str(), pExpectedSequenceSecond), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence(1).c_str(), pExpectedSequenceSecond), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence(1).c_str(), pExpectedSequenceSecond), 0);
 }
 
 TEST(SATest, FastQTest) {
@@ -62,8 +73,18 @@ TEST(SATest, FastQTest) {
   auto fastqInputFile = std::string(pTestDataPath);
   fastqInputFile.append("/fastq.fq");
 
+  auto registryNanopore = lazybastard::Registry();
+  auto registryIllumina = lazybastard::Registry();
+
+  registryNanopore["A00456:495:HHVKWDSXY:1:1101:25952:1031"];
+  registryIllumina["HSBGPG"];
+
+  registryNanopore["A00456:495:HHVKWDSXY:1:1101:3016:1047"];
+  registryIllumina["HSGLTH1"];
+
   auto                          threadPool = lazybastard::threading::ThreadPool(1);
-  lazybastard::SequenceAccessor sequenceAccessor(&threadPool, fastqInputFile, fastaInputFile);
+  lazybastard::SequenceAccessor sequenceAccessor(&threadPool, fastqInputFile, fastaInputFile, &registryNanopore,
+                                                 &registryIllumina);
   sequenceAccessor.buildIndex();
 
   const char *pExpectedISequenceFirst = "GGCAGATTCCCCCTAGACCCGCCCGCACCATGGTCAGGCATGCCCCTCCTCATCGCTGGGCACAGCCCAGAGGGT\
@@ -84,7 +105,7 @@ GGCCTATCGGCGCTTCTACGGCCCGGTCTAGGGTGTCGCTCTGCTGGCCTGGCCGGCAACCCCAGTTCTGCTCCT\
 CTCCAGGCACCCTTCTTTCCTCTTCCCCTTGCCCTTGCCCTGACCTCCCAGCCCTATGGATGTGGGGTCCCCATC\
 ATCCCAGCTGCTCCCAAATAAACTCCAGAAG";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence("HSBGPG").c_str(), pExpectedISequenceFirst), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence(0).c_str(), pExpectedISequenceFirst), 0);
 
   const char *pExpectedISequenceSecond = "CCACTGCACTCACCGCACCCGGCCAATTTTTGTGTTTTTAGTAGAGACTAAATACCATATAGTGAACACCTAAGA\
 CGGGGGGCCTTGGATCCAGGGCGATTCAGAGGGCCCCGGTCGGAGCTGTCGGAGATTGAGCGCGCGCGGTCCCGG\
@@ -101,19 +122,15 @@ TCAGCCCCGCGCTGCAGGCGTCGCTGGACAAGTTCCTGAGCCACGTTATCTCGGCGCTGGTTTCCGAGTACCGCT\
 GAACTGTGGGTGGGTGGCCGCGGGATCCCCAGGCGACCTTCCCCGTGTTTGAGTAAAGCCTCTCCCAGGAGCAGC\
 CTTCTTGCCGTGCTCTCTCGAGGTCAGGACGCGAGAGGAAGGCGC";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence("HSGLTH1").c_str(), pExpectedISequenceSecond), 0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getIlluminaSequence(1).c_str(), pExpectedISequenceSecond), 0);
 
   const char *pExpectedNSequenceFirst = "ATTGGNCCACAAGGGCTCTTTCCGCCTTTGATTCATACGGTAGCATACAATGGCGCTTAGCATCCATGTGAGCTCTTA\
 TACTTTCGATAGAGGAACCCTGGTAACTGCAACATAAGCATTCATTATTCTGTATTATGATATCAGCAAGAT";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence("A00456:495:HHVKWDSXY:1:1101:25952:1031").c_str(),
-                        pExpectedNSequenceFirst),
-            0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence(0).c_str(), pExpectedNSequenceFirst), 0);
 
   const char *pExpectedNSequenceSecond = "TCGGANTCATAATCAGAATCCCGATGAGGGAATGGCCTGAAATGGGCTCCTGCCCAAGGAGACGTGTAGCTGTGGTT\
 CACAGGCAGGTCCTGTGGGAATTGCTCCGAAAGAATAGTCAGGGTCTTTAATTCAGAGCCCGATTCTAGCAGC";
 
-  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence("A00456:495:HHVKWDSXY:1:1101:3016:1047").c_str(),
-                        pExpectedNSequenceSecond),
-            0);
+  ASSERT_EQ(std::strcmp(sequenceAccessor.getNanoporeSequence(1).c_str(), pExpectedNSequenceSecond), 0);
 }

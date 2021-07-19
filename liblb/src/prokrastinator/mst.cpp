@@ -98,8 +98,8 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
 
 lazybastard::graph::Graph lazybastard::getMaxSpanTree(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
   auto vertices = [=]() {
-    auto const                                                                   vertices = pGraph->getVertices();
-    std::unordered_map<std::string, std::shared_ptr<lazybastard::graph::Vertex>> newVertices;
+    auto const                                                                    vertices = pGraph->getVertices();
+    std::unordered_map<unsigned int, std::shared_ptr<lazybastard::graph::Vertex>> newVertices;
 
     std::transform(std::begin(vertices), std::end(vertices), std::inserter(newVertices, std::begin(newVertices)),
                    [](auto *const pVertex) { return std::make_pair(pVertex->getId(), pVertex->getSharedPtr()); });

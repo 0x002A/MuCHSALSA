@@ -37,7 +37,7 @@ namespace lazybastard::graph {
 namespace {
 
 auto getVertexMap(std::vector<lazybastard::graph::Vertex *> const &vertices) {
-  std::unordered_map<std::string, std::shared_ptr<Vertex>> result;
+  std::unordered_map<unsigned int, std::shared_ptr<Vertex>> result;
 
   std::for_each(std::begin(vertices), std::end(vertices), [&](auto *pVertex) {
     if (pVertex) {
@@ -60,22 +60,20 @@ auto getVertexMap(std::vector<lazybastard::graph::Vertex *> const &vertices) {
 
 // PUBLIC CLASS METHODS
 
-bool GraphBase::hasVertex(std::string const &nanoporeId) const {
-  return m_vertices.find(nanoporeId) != std::end(m_vertices);
-}
+bool GraphBase::hasVertex(unsigned int vertexId) const { return m_vertices.find(vertexId) != std::end(m_vertices); }
 
-std::shared_ptr<Vertex> GraphBase::getVertexAsSharedPtr(std::string const &nanoporeId) const {
+std::shared_ptr<Vertex> GraphBase::getVertexAsSharedPtr(unsigned int vertexId) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
-  auto iter = m_vertices.find(nanoporeId);
+  auto const iter = m_vertices.find(vertexId);
 
   return iter != std::end(m_vertices) ? iter->second : nullptr;
 }
 
-Vertex *GraphBase::getVertex(std::string const &nanoporeId) const {
+Vertex *GraphBase::getVertex(unsigned int vertexId) const {
   std::shared_lock<std::shared_mutex> lck(m_mutexVertex);
 
-  auto iter = m_vertices.find(nanoporeId);
+  auto const iter = m_vertices.find(vertexId);
 
   return iter != std::end(m_vertices) ? iter->second.get() : nullptr;
 }
@@ -129,7 +127,7 @@ std::vector<Edge *> GraphBase::getEdges() const {
 
 // PROTECTED CLASS METHODS
 
-GraphBase::GraphBase(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+GraphBase::GraphBase(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
                      std::vector<std::shared_ptr<Edge>> &&edges, bool hasBidirectionalEdges)
     : m_vertices(std::move(vertices)) {
   for (auto &edge : edges) {
@@ -238,7 +236,7 @@ void GraphBase::_addEdge(
 
 void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidirectional,
                             lazybastard::matching::MatchMap *pMatchMap) {
-  auto const findAndDeleteEdge = [&](std::string const &source, std::string const &target) {
+  auto const findAndDeleteEdge = [&](unsigned int source, unsigned int target) {
     auto const outerIter = m_adjacencyList.find(source);
 
     if (outerIter != std::end(m_adjacencyList)) {
@@ -265,7 +263,7 @@ void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidi
   m_edges.erase(pEdge);
 }
 
-std::unordered_map<std::string, Edge *const>
+std::unordered_map<unsigned int, Edge *const>
 GraphBase::_getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
   auto const outerIter = m_adjacencyList.find(pVertex->getId());
   if (outerIter != std::end(m_adjacencyList)) {
@@ -275,9 +273,9 @@ GraphBase::_getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
   return decltype(outerIter->second)();
 }
 
-std::unordered_map<std::string, Edge *const>
+std::unordered_map<unsigned int, Edge *const>
 GraphBase::_getPredecessors(gsl::not_null<Vertex const *> const pVertex) const {
-  std::unordered_map<std::string, Edge *const> result;
+  std::unordered_map<unsigned int, Edge *const> result;
 
   auto const &vertexId = pVertex->getId();
   for (auto const &[currentVertexId, connectedVertices] : m_adjacencyList) {
@@ -297,10 +295,9 @@ GraphBase::_getPredecessors(gsl::not_null<Vertex const *> const pVertex) const {
 // PRIVATE CLASS METHODS
 
 bool GraphBase::_addEdgeInternal(std::shared_ptr<Edge> &&spEdge, bool isBidirectional) {
-  auto const emplaceEdge = [&](std::string const &source, std::string const &target, Edge *pEdge) {
-    auto const insertAdjacencyList =
-        m_adjacencyList.emplace(source, std::unordered_map<std::string, Edge *const>()).first;
-    auto const inserted = insertAdjacencyList->second.emplace(target, pEdge).second;
+  auto const emplaceEdge = [&](unsigned int source, unsigned int target, Edge *pEdge) {
+    auto const insertAdjacencyList = m_adjacencyList.emplace(source, decltype(m_adjacencyList)::mapped_type()).first;
+    auto const inserted            = insertAdjacencyList->second.emplace(target, pEdge).second;
 
     return inserted;
   };

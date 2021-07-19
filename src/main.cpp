@@ -46,6 +46,7 @@
 #include <lb/Debug.h>
 #include <lb/OutputWriter.h>
 #include <lb/Prokrastinator.h>
+#include <lb/Registry.h>
 #include <lb/SequenceAccessor.h>
 #include <lb/Util.h>
 #include <lb/graph/Edge.h>
@@ -69,6 +70,7 @@ using lazybastard::BlastFileReader;
 using lazybastard::Direction;
 using lazybastard::GraphUtil;
 using lazybastard::OutputWriter;
+using lazybastard::Registry;
 using lazybastard::SequenceAccessor;
 
 using lazybastard::graph::Edge;
@@ -131,18 +133,31 @@ auto main(int const argc, char const *argv[]) -> int {
       return -1;
     }
 
+    // Initialize threading
     auto const threadCount = app.getThreadCount();
     auto       threadPool  = ThreadPool(threadCount);
 
+    // Initialize structures
+    auto graph            = Graph();
+    auto matchMap         = MatchMap(&threadPool, &graph);
+    auto registryNanopore = Registry();
+    auto registryIllumina = Registry();
+
     // Read BLAST file
-    auto bfAccessor      = BlastFileAccessor(app.getContigsFilePath());
-    auto graph           = Graph();
-    auto matchMap        = MatchMap(&threadPool, &graph);
-    auto blastFileReader = BlastFileReader(&threadPool, &bfAccessor, &graph, &matchMap);
+    auto bfAccessor = BlastFileAccessor(app.getContigsFilePath());
+    auto blastFileReader =
+        BlastFileReader(&threadPool, &bfAccessor, &graph, &matchMap, &registryNanopore, &registryIllumina);
     blastFileReader.read();
     matchMap.calculateEdges();
 
     TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
+
+    SequenceAccessor sequenceAccessor(&threadPool, app.getNanoporeFilePath(), app.getUnitigsFilePath(),
+                                      &registryNanopore, &registryIllumina);
+    sequenceAccessor.buildIndex();
+
+    registryNanopore.clear();
+    registryIllumina.clear();
 
     WaitGroup wg;
 
@@ -172,7 +187,7 @@ auto main(int const argc, char const *argv[]) -> int {
     std::unordered_map<Vertex const *, Vertex const *> contractionTargets;
     for (auto const *const pVertex : graph.getVertices()) {
       contractionTargets.insert({pVertex, pVertex});
-    };
+    }
 
     auto contractionTargetsJob = [](Job const *const pJob) { findContractionTargets(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
@@ -216,6 +231,12 @@ auto main(int const argc, char const *argv[]) -> int {
       threadPool.addJob(std::move(job));
     }
     wg.wait();
+
+    std::size_t numConElem = 0;
+    for (auto const &[pNode, ce] : containElements) {
+      numConElem += ce.size();
+    }
+    TRACE("Number of contain elements: %lu\n", numConElem);
 
     std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
                   [&](auto const *const pTarget) { graph.deleteVertex(pTarget, &matchMap); });
@@ -268,9 +289,6 @@ auto main(int const argc, char const *argv[]) -> int {
     TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
     TRACE("Starting assembly\n");
 
-    SequenceAccessor sequenceAccessor(&threadPool, app.getNanoporeFilePath(), app.getUnitigsFilePath());
-    sequenceAccessor.buildIndex();
-
     //// OUTPUT FILES ////
     OutputWriter outputWriter(app.getOutputFilePath() + "/temp.query.fa", app.getOutputFilePath() + "/temp.align.paf",
                               app.getOutputFilePath() + "/temp.target.fa");
@@ -301,8 +319,8 @@ auto main(int const argc, char const *argv[]) -> int {
 // =====================================================================================================================
 
 void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
-  std::vector<std::string> plusIDs;
-  std::vector<std::string> minusIDs;
+  std::vector<unsigned int> plusIDs;
+  std::vector<unsigned int> minusIDs;
 
   auto const        pMatchMap    = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(1)));
   auto const        pEdge        = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(2)));
@@ -395,7 +413,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
     if (order.isContained && order.isPrimary) {
       auto       isSane    = true;
       auto const neighbors = pGraph->getNeighbors(order.startVertex);
-      auto const edges     = std::map<std::string, Edge *>(std::begin(neighbors), std::end(neighbors));
+      auto const edges     = std::map<unsigned int, Edge *>(std::begin(neighbors), std::end(neighbors));
       for (auto const &[targetId, pSubedge] : edges) {
         auto const *const pTargetVertex = pGraph->getVertex(targetId);
 
@@ -478,7 +496,7 @@ void contract(gsl::not_null<Job const *> const pJob) {
   auto const pOrder    = make_not_null_and_const(std::any_cast<EdgeOrder const *>(pJob->getParam(1)));
   auto const pMatchMap = make_not_null_and_const(std::any_cast<MatchMap *>(pJob->getParam(3)));
 
-  std::unordered_map<std::string, VertexMatch const *> matches;
+  std::unordered_map<unsigned int, VertexMatch const *> matches;
   std::for_each(std::begin(pOrder->ids), std::end(pOrder->ids), [&](auto const id) {
     auto const *pVertexMatches = pMatchMap->getVertexMatch(pOrder->startVertex->getId(), id);
     if (pVertexMatches != nullptr) {

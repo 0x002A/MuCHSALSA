@@ -9,11 +9,11 @@
 #include "types/Direction.h"
 
 TEST(CCTest, BasicTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
-  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>("5", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
+  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>(5, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());
@@ -52,9 +52,9 @@ TEST(CCTest, BasicTest) {
   ASSERT_TRUE(contains(cc[0], spVertex4.get()));
   ASSERT_TRUE(contains(cc[0], spVertex5.get()));
 
-  auto spVertex6 = std::make_shared<lazybastard::graph::Vertex>("6", 0);
-  auto spVertex7 = std::make_shared<lazybastard::graph::Vertex>("7", 0);
-  auto spVertex8 = std::make_shared<lazybastard::graph::Vertex>("8", 0);
+  auto spVertex6 = std::make_shared<lazybastard::graph::Vertex>(6, 0);
+  auto spVertex7 = std::make_shared<lazybastard::graph::Vertex>(7, 0);
+  auto spVertex8 = std::make_shared<lazybastard::graph::Vertex>(8, 0);
 
   graph.addVertex(spVertex6->getSharedPtr());
   graph.addVertex(spVertex7->getSharedPtr());

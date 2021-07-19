@@ -6,11 +6,11 @@
 #include "graph/Vertex.h"
 
 TEST(MSTTest, BasicTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
-  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>("5", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
+  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>(5, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());

@@ -43,12 +43,12 @@ namespace lazybastard {
 // =====================================================================================================================
 
 std::optional<graph::EdgeOrder> computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
-                                               std::deque<std::string> &ids, gsl::not_null<graph::Edge const *> pEdge,
+                                               std::deque<unsigned int> &ids, gsl::not_null<graph::Edge const *> pEdge,
                                                bool direction, std::size_t score, bool isPrimary);
 
-std::vector<std::tuple<std::deque<std::string>, std::size_t, bool>>
+std::vector<std::tuple<std::deque<unsigned int>, std::size_t, bool>>
 getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> pMatches, gsl::not_null<graph::Edge const *> pEdge,
-                    std::vector<std::string> const &illuminaIDs, Toggle direction, std::size_t wiggleRoom);
+                    std::vector<unsigned int> const &illuminaIds, Toggle direction, std::size_t wiggleRoom);
 
 bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph::Vertex const *> pSubnode,
                  gsl::not_null<graph::Vertex const *> pNode, gsl::not_null<graph::Vertex const *> pTarget,

@@ -32,7 +32,6 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -120,30 +119,30 @@ public:
   /**
    * Returns a bool indicating whether the supplied Vertex is present or not.
    *
-   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be checked
+   * @param vertexId an unsigned int representing the id of the Vertex to be checked
    * @return A bool indicating whether the Vertex is present or not
    */
-  bool hasVertex(std::string const &nanoporeId) const;
+  bool hasVertex(unsigned int vertexId) const;
 
   /**
    * Returns a std::shared_ptr to the requested Vertex instance if found.
    * If no result is found, the std::shared_ptr will be initialized with nullptr.
    * This function is **thread-safe**.
    *
-   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be returned
+   * @param vertexId an unsigned int representing the id of the Vertex to be returned
    * @return A std::shared_ptr to the Vertex (nullptr if not found)
    */
-  std::shared_ptr<Vertex> getVertexAsSharedPtr(std::string const &nanoporeId) const;
+  std::shared_ptr<Vertex> getVertexAsSharedPtr(unsigned int vertexId) const;
 
   /**
    * Returns a pointer pointing to the requested Vertex instance if found.
    * If no result is found, nullptr will be returned.
    * This function is **thread-safe**.
    *
-   * @param nanoporeId a const reference to a std::string representing the id of the Vertex to be returned
+   * @param vertexId an unsigned int representing the id of the Vertex to be returned
    * @return A pointer pointing to the Vertex if found (nullptr if not found)
    */
-  Vertex *getVertex(std::string const &nanoporeId) const;
+  Vertex *getVertex(unsigned int vertexId) const;
 
   /**
    * Returns a std::vector containing pointers to all Vertex instances assigned to this Graph.
@@ -254,7 +253,7 @@ protected:
    *                 Edge instances
    * @param hasBidirectionalEdges a bool indicating whether Edge instances should be inserted bidirectional
    */
-  GraphBase(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+  GraphBase(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
             std::vector<std::shared_ptr<Edge>> &&edges, bool hasBidirectionalEdges);
 
   /**
@@ -305,7 +304,7 @@ protected:
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> _getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
+  std::unordered_map<unsigned int, Edge *const> _getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
@@ -314,7 +313,7 @@ protected:
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> _getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
+  std::unordered_map<unsigned int, Edge *const> _getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Hook which is getting called every time an Edge is about to get added.
@@ -338,10 +337,10 @@ protected:
 
 private:
   template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
-  um_t<std::string, std::shared_ptr<Vertex>> m_vertices; /*!< std::unordered_map containing all the Vertex instances */
-  um_t<Edge const *, std::shared_ptr<Edge>>  m_edges;    /*!< std::unordered_map  containing all the Edge instances */
-  um_t<std::string, um_t<std::string, Edge *const>>
-                            m_adjacencyList; /*!< std::unordered_map  containing all the Edge instances */
+  um_t<unsigned int, std::shared_ptr<Vertex>> m_vertices; /*!< std::unordered_map containing all the Vertex instances */
+  um_t<Edge const *, std::shared_ptr<Edge>>   m_edges;    /*!< std::unordered_map  containing all the Edge instances */
+  um_t<unsigned int, um_t<unsigned int, Edge *const>>
+                            m_adjacencyList; /*!< std::unordered_map representing the adjacency list */
   mutable std::shared_mutex m_mutexVertex;   /*!< std::shared_mutex for securing the parallel use of the Vertex map */
   mutable std::shared_mutex m_mutexEdge;     /*!< std::shared_mutex for securing the parallel use of the Edge map */
 
@@ -402,8 +401,8 @@ public:
    * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
    *                 Edge instances
    */
-  Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-        std::vector<std::shared_ptr<Edge>> &&                      edges);
+  Graph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
+        std::vector<std::shared_ptr<Edge>> &&                       edges);
 
   /**
    * Adds a std::shared_ptr pointing to Vertex to this Graph.
@@ -458,7 +457,7 @@ public:
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> getNeighbors(gsl::not_null<Vertex const *> pVertex) const;
+  std::unordered_map<unsigned int, Edge *const> getNeighbors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Returns a Graph representing the subgraph induced by the supplied Vertex instances.
@@ -515,8 +514,8 @@ public:
    * @param edges an rvalue reference to a std::vector containing the std::shared_ptr instances pointing to all
    *                 Edge instances
    */
-  DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-          std::vector<std::shared_ptr<Edge>> &&                      edges);
+  DiGraph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
+          std::vector<std::shared_ptr<Edge>> &&                       edges);
 
   /**
    * Swaps two instances of DiGraph.
@@ -578,7 +577,7 @@ public:
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
+  std::unordered_map<unsigned int, Edge *const> getSuccessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Getter returning the predecessors of a particular Vertex instance.
@@ -587,7 +586,7 @@ public:
    * @return A std::unordered_map mapping the ids of the connected Vertex instances to a pointer pointing to the
    *         corresponding Edge instance
    */
-  std::unordered_map<std::string, Edge *const> getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
+  std::unordered_map<unsigned int, Edge *const> getPredecessors(gsl::not_null<Vertex const *> pVertex) const;
 
   /**
    * Returns a DiGraph representing the subgraph induced by the supplied Vertex instances.
@@ -750,8 +749,8 @@ inline Graph &Graph::operator=(Graph other) {
   return *this;
 }
 
-inline Graph::Graph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
-                    std::vector<std::shared_ptr<Edge>> &&                      edges)
+inline Graph::Graph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
+                    std::vector<std::shared_ptr<Edge>> &&                       edges)
     : GraphBase(std::move(vertices), std::move(edges), true) {}
 
 inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); }
@@ -775,7 +774,7 @@ inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::ma
   _deleteEdge(pEdge, true, pMatchMap);
 }
 
-inline std::unordered_map<std::string, Edge *const>
+inline std::unordered_map<unsigned int, Edge *const>
 Graph::getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
   return _getSuccessors(pVertex);
 }
@@ -798,7 +797,7 @@ inline DiGraph &DiGraph::operator=(DiGraph other) {
   return *this;
 }
 
-inline DiGraph::DiGraph(std::unordered_map<std::string, std::shared_ptr<Vertex>> &&vertices,
+inline DiGraph::DiGraph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
                         std::vector<std::shared_ptr<Edge>> &&                      edges)
     : GraphBase(std::move(vertices), std::move(edges), false) {
   _updateDegrees();
@@ -834,12 +833,12 @@ inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge, lazybastard::
   _deleteEdge(pEdge, false, pMatchMap);
 }
 
-inline std::unordered_map<std::string, Edge *const>
+inline std::unordered_map<unsigned int, Edge *const>
 DiGraph::getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
   return _getSuccessors(pVertex);
 }
 
-inline std::unordered_map<std::string, Edge *const>
+inline std::unordered_map<unsigned int, Edge *const>
 DiGraph::getPredecessors(gsl::not_null<Vertex const *> const pVertex) const {
   return _getPredecessors(pVertex);
 }
@@ -864,9 +863,9 @@ inline void DiGraph::_onEdgeDeleted(
 
 } // namespace graph
 
-// ---------------
-// class GraphUtil
-// ---------------
+// ----------------
+// struct GraphUtil
+// ----------------
 
 // PUBLIC CLASS METHODS
 

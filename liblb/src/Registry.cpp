@@ -19,54 +19,31 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#ifndef INCLUDED_LAZYBASTARD_LB_FWD
-#define INCLUDED_LAZYBASTARD_LB_FWD
-
-#pragma once
+#include "Registry.h"
 
 namespace lazybastard {
 
 // =====================================================================================================================
-//                                                 FORWARD DECLARATIONS
+//                                                     CLASS METHODS
 // =====================================================================================================================
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-namespace graph {
+// --------------
+// class Registry
+// --------------
 
-class DiGraph;
-class Edge;
-struct EdgeOrder;
-class Graph;
-class GraphBase;
-class Vertex;
+// PUBLIC CLASS METHODS
 
-} // namespace graph
+const unsigned int &Registry::operator[](std::string const &str) {
+  std::scoped_lock<std::mutex> lck(m_mutex);
 
-namespace matching {
+  if (!m_identifiers.contains(str)) {
+    m_identifiers[str] = m_nextValue;
+    ++m_nextValue;
+  }
 
-struct VertexMatch;
-struct EdgeMatch;
-struct ContainElement;
-class MatchMap;
-class Id2OverlapMap;
-
-} // namespace matching
-
-namespace threading {
-
-class Job;
-class ThreadPool;
-
-} // namespace threading
-
-class BlastFileAccessor;
-class BlastFileReader;
-class OutputWriter;
-class Registry;
-class SequenceAccessor;
-struct Toggle;
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+  return m_identifiers.at(str);
+}
 
 } // namespace lazybastard
 
-#endif // INCLUDED_LAZYBASTARD_LB_FWD
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

@@ -11,8 +11,8 @@
 #include "graph/Vertex.h"
 
 TEST(GraphTest, BasicTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
 
   auto vertexIDs = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph     = lazybastard::graph::Graph();
@@ -31,19 +31,19 @@ TEST(GraphTest, BasicTest) {
 }
 
 TEST(GraphTest, EdgeCreationTest) {
-  auto const spVertex1 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto const spVertex2 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
+  auto const spVertex1 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto const spVertex2 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
 
   auto const edge = lazybastard::graph::Edge(std::make_pair(spVertex1, spVertex2));
 
   auto const vertices = edge.getVertices();
-  ASSERT_EQ(vertices.first->getId(), "2");
-  ASSERT_EQ(vertices.second->getId(), "1");
+  ASSERT_EQ(vertices.first->getId(), 2);
+  ASSERT_EQ(vertices.second->getId(), 1);
 }
 
 TEST(GraphTest, InverseOrderTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
 
   auto vertexIDs = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph     = lazybastard::graph::Graph();
@@ -60,8 +60,8 @@ TEST(GraphTest, InverseOrderTest) {
 }
 
 TEST(GraphTest, DirectedGraphTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
 
   auto vertices = std::make_pair(spVertex1.get(), spVertex2.get());
   auto graph    = lazybastard::graph::DiGraph();
@@ -79,9 +79,9 @@ TEST(GraphTest, DirectedGraphTest) {
 }
 
 TEST(GraphTest, EdgeDeletionTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
 
   auto firstEdge  = std::make_pair(spVertex1.get(), spVertex2.get());
   auto secondEdge = std::make_pair(spVertex1.get(), spVertex3.get());
@@ -129,9 +129,9 @@ TEST(GraphTest, EdgeDeletionTest) {
 }
 
 TEST(GraphTest, VertexDeletionTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());
@@ -169,10 +169,10 @@ TEST(GraphTest, VertexDeletionTest) {
 }
 
 TEST(GraphTest, NeighboorTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());
@@ -202,25 +202,25 @@ TEST(GraphTest, NeighboorTest) {
 
   auto graphNeighbors = graph.getNeighbors(spVertex3.get());
   ASSERT_EQ(graphNeighbors.size(), 3);
-  ASSERT_TRUE(graphNeighbors.contains("1"));
-  ASSERT_TRUE(graphNeighbors.contains("2"));
-  ASSERT_TRUE(graphNeighbors.contains("4"));
+  ASSERT_TRUE(graphNeighbors.contains(1));
+  ASSERT_TRUE(graphNeighbors.contains(2));
+  ASSERT_TRUE(graphNeighbors.contains(4));
 
   graphNeighbors = diGraph.getPredecessors(spVertex3.get());
   ASSERT_EQ(graphNeighbors.size(), 1);
-  ASSERT_TRUE(graphNeighbors.contains("1"));
+  ASSERT_TRUE(graphNeighbors.contains(1));
 
   auto const diGraphNeighbors = diGraph.getSuccessors(spVertex3.get());
   ASSERT_EQ(diGraphNeighbors.size(), 2);
-  ASSERT_TRUE(diGraphNeighbors.contains("2"));
-  ASSERT_TRUE(diGraphNeighbors.contains("4"));
+  ASSERT_TRUE(diGraphNeighbors.contains(2));
+  ASSERT_TRUE(diGraphNeighbors.contains(4));
 }
 
 TEST(GraphTest, SubgraphTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());
@@ -277,10 +277,10 @@ TEST(GraphTest, SubgraphTest) {
 }
 
 TEST(GraphTest, ShortestPathTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
 
   auto graph = lazybastard::graph::Graph();
   graph.addVertex(spVertex1->getSharedPtr());
@@ -310,30 +310,30 @@ TEST(GraphTest, ShortestPathTest) {
   diGraph.addEdge(std::make_pair(spVertex4.get(), spVertex1.get()));
   ASSERT_EQ(diGraph.getSize(), 5);
 
-  std::string v1("1"), v2("4");
+  unsigned int v1 = 1, v2 = 4;
   auto        shortestPathVertices =
       std::make_pair(gsl::make_not_null(graph.getVertex(v1)), gsl::make_not_null(graph.getVertex(v2)));
   auto shortestPath =
       lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&graph), shortestPathVertices);
 
   ASSERT_EQ(shortestPath.size(), 2);
-  ASSERT_EQ(shortestPath[0]->getId(), "1");
-  ASSERT_EQ(shortestPath[1]->getId(), "4");
+  ASSERT_EQ(shortestPath[0]->getId(), 1);
+  ASSERT_EQ(shortestPath[1]->getId(), 4);
 
   shortestPathVertices =
       std::make_pair(gsl::make_not_null(diGraph.getVertex(v1)), gsl::make_not_null(diGraph.getVertex(v2)));
   shortestPath = lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&diGraph),
                                                          shortestPathVertices);
   ASSERT_EQ(shortestPath.size(), 3);
-  ASSERT_EQ(shortestPath[0]->getId(), "1");
-  ASSERT_EQ(shortestPath[1]->getId(), "2");
-  ASSERT_EQ(shortestPath[2]->getId(), "4");
+  ASSERT_EQ(shortestPath[0]->getId(), 1);
+  ASSERT_EQ(shortestPath[1]->getId(), 2);
+  ASSERT_EQ(shortestPath[2]->getId(), 4);
 }
 
 TEST(GraphTest, DegreeTest) {
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
 
   auto firstEdge  = std::make_pair(spVertex1.get(), spVertex2.get());
   auto secondEdge = std::make_pair(spVertex1.get(), spVertex3.get());
@@ -393,11 +393,11 @@ TEST(GraphTest, DegreeTest) {
 TEST(GraphTest, TopologicalSortTest) {
   auto diGraph = lazybastard::graph::DiGraph();
 
-  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>("1", 0);
-  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>("2", 0);
-  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>("3", 0);
-  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>("4", 0);
-  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>("5", 0);
+  auto spVertex1 = std::make_shared<lazybastard::graph::Vertex>(1, 0);
+  auto spVertex2 = std::make_shared<lazybastard::graph::Vertex>(2, 0);
+  auto spVertex3 = std::make_shared<lazybastard::graph::Vertex>(3, 0);
+  auto spVertex4 = std::make_shared<lazybastard::graph::Vertex>(4, 0);
+  auto spVertex5 = std::make_shared<lazybastard::graph::Vertex>(5, 0);
 
   diGraph.addVertex(spVertex1->getSharedPtr());
   diGraph.addVertex(spVertex2->getSharedPtr());

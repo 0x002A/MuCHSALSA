@@ -26,7 +26,6 @@
 
 #include <cstddef>
 #include <functional>
-#include <string>
 #include <unordered_map>
 #include <utility>
 
@@ -37,11 +36,11 @@ namespace lazybastard::matching {
 // =====================================================================================================================
 
 namespace detail {
-using key_t = std::tuple<std::string, std::size_t>;
+using key_t = std::tuple<unsigned int, std::size_t>;
 
 struct KeyHash : public std::unary_function<key_t, std::size_t> {
   std::size_t operator()(const key_t &key) const {
-    return std::hash<std::string>{}(std::get<0>(key)) ^ std::get<1>(key);
+    return std::hash<unsigned int>{}(std::get<0>(key)) ^ std::get<1>(key);
   }
 };
 

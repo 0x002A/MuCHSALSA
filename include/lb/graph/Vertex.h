@@ -55,11 +55,11 @@ public:
    * Class constructor creating a new instance.
    *
    * @tparam TYPES the list of meta datum types
-   * @param id a std::string representing the unique Id of the Vertex
+   * @param id an unsigned int representing the unique id of the Vertex
    * @param nanoporeLength the nanopore length
    * @param metaData the meta data of the Vertex
    */
-  template <class... TYPES> explicit Vertex(std::string id, std::size_t nanoporeLength, TYPES... metaData);
+  template <class... TYPES> explicit Vertex(unsigned int id, std::size_t nanoporeLength, TYPES... metaData);
 
   /**
    * Destructor.
@@ -109,9 +109,9 @@ public:
   auto getSharedPtr() const;
 
   /**
-   * Getter returning the unique Id of this Vertex.
+   * Getter returning the unique id of this Vertex.
    *
-   * @return The unique Id of this Vertex
+   * @return The unique id of this Vertex
    */
   auto const &getId() const;
 
@@ -137,20 +137,6 @@ public:
   void setVertexDirection(bool vertexDirection);
 
   /**
-   * Getter returning the sequence offset and length.
-   *
-   * @return A const reference to the sequence offset and length
-   */
-  [[nodiscard]] std::pair<std::size_t, std::size_t> const &getSeqPos() const;
-
-  /**
-   * Setter setting the sequence offset and length.
-   *
-   * @param seqPos an rvalue reference to the sequence offset and length represented by a std::pair of std::size_t
-   */
-  void setSeqPos(std::pair<std::size_t, std::size_t> &&seqPos);
-
-  /**
    * Getter returning the meta datum at the specified index.
    *
    * @tparam TYPE the type of the meta datum
@@ -166,10 +152,9 @@ public:
   void clearMetaData();
 
 private:
-  std::string const                   m_id;             /*!< Unique Vertex Id */
+  unsigned int const                  m_id;             /*!< Unique Vertex Id */
   std::size_t const                   m_nanoporeLength; /*!< Nanopore length */
   Direction::Enum                     m_direction;      /*!< Vertex Direction */
-  std::pair<std::size_t, std::size_t> m_seqPos;         /*!< Sequence offset and length */
   std::vector<std::any>               m_metaData;       /*!< Meta data */
 
   /**
@@ -199,8 +184,8 @@ private:
 
 // PUBLIC CLASS METHODS
 
-template <class... TYPES> Vertex::Vertex(std::string id, std::size_t nanoporeLength, TYPES... metaData)
-    : m_id(std::move(id)), m_nanoporeLength(nanoporeLength), m_direction(Direction::e_NONE) {
+template <class... TYPES> Vertex::Vertex(unsigned int id, std::size_t nanoporeLength, TYPES... metaData)
+    : m_id(id), m_nanoporeLength(nanoporeLength), m_direction(Direction::e_NONE) {
   _addMetaDatum(metaData...);
 }
 
@@ -219,10 +204,6 @@ inline auto Vertex::getNanoporeLength() const { return m_nanoporeLength; }
 inline void Vertex::setVertexDirection(bool vertexDirection) {
   m_direction = vertexDirection ? Direction::e_POS : Direction::e_NEG;
 }
-
-inline std::pair<std::size_t, std::size_t> const &Vertex::getSeqPos() const { return m_seqPos; }
-
-inline void Vertex::setSeqPos(std::pair<std::size_t, std::size_t> &&seqPos) { m_seqPos = std::move(seqPos); }
 
 template <class TYPE> TYPE Vertex::getMetaDatum(std::size_t idx) const {
   return std::any_cast<TYPE>(m_metaData.at(idx));

@@ -30,10 +30,8 @@
 #include <utility>
 #include <vector>
 
+#include "Registry.h"
 #include "Util.h"
-#include "graph/Graph.h"
-#include "graph/Vertex.h"
-#include "matching/MatchMap.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
 #include "threading/WaitGroup.h"
@@ -100,12 +98,14 @@ void cleanSequenceId(std::string &sequenceId) {
 // PUBLIC CLASS METHODS
 
 SequenceAccessor::SequenceAccessor(gsl::not_null<threading::ThreadPool *> pThreadPool, std::string_view fpNanopore,
-                                   std::string_view fpIllumina)
+                                   std::string_view fpIllumina, gsl::not_null<Registry *> pRegistryNanopore,
+                                   gsl::not_null<Registry *> pRegistryIllumina)
     : m_pThreadPool(pThreadPool),
       m_pNanoporeSequenceFile(decltype(m_pNanoporeSequenceFile)(
           fopen(fpNanopore.data(), "rbe"), [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })),
       m_pIlluminaSequenceFile(decltype(m_pIlluminaSequenceFile)(
           fopen(fpIllumina.data(), "rbe"), [](gsl::owner<std::FILE *> pFile) { std::fclose(pFile); })),
+      m_pRegistryNanopore(pRegistryNanopore), m_pRegistryIllumina(pRegistryIllumina),
       m_nanoporeFileIsFastQ(isFastQ(fpNanopore)) {
   if (!m_pNanoporeSequenceFile || !m_pIlluminaSequenceFile) {
     throw std::runtime_error("Can't open sequence file(s).");
@@ -127,13 +127,13 @@ void SequenceAccessor::buildIndex() {
   wg.wait();
 }
 
-[[maybe_unused]] std::string SequenceAccessor::getNanoporeSequence(std::string const &nanoporeId) {
+[[maybe_unused]] std::string SequenceAccessor::getNanoporeSequence(unsigned int nanoporeId) {
   std::scoped_lock<std::mutex> lck(m_mutexNanoporeSequenceFile);
 
   return getSequenceFromFile(m_pNanoporeSequenceFile.get(), m_idxNanopore[nanoporeId]);
 }
 
-[[maybe_unused]] std::string SequenceAccessor::getIlluminaSequence(std::string const &illuminaId) {
+[[maybe_unused]] std::string SequenceAccessor::getIlluminaSequence(unsigned int illuminaId) {
   std::scoped_lock<std::mutex> lck(m_mutexIlluminaSequenceFile);
 
   return getSequenceFromFile(m_pIlluminaSequenceFile.get(), m_idxIllumina[illuminaId]);
@@ -170,7 +170,7 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
       auto offsetEnd = std::ftell(m_pNanoporeSequenceFile.get());
 
       if (ret == -1 || *pLine == identifierSplitline) {
-        m_idxNanopore.emplace(sequenceId, std::make_pair(offsetStart, lengthCurrentSequence));
+        m_idxNanopore.emplace((*m_pRegistryNanopore)[sequenceId], std::make_pair(offsetStart, lengthCurrentSequence));
 
         offsetStart = offsetEnd;
         break;
@@ -218,7 +218,7 @@ void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> p
       auto offsetEnd = std::ftell(m_pIlluminaSequenceFile.get());
 
       if (ret == -1 || *pLine == FASTA_IDENTIFIER_DESCLINE) {
-        m_idxIllumina.emplace(sequenceId, std::make_pair(offsetStart, lengthCurrentSequence));
+        m_idxIllumina.emplace((*m_pRegistryIllumina)[sequenceId], std::make_pair(offsetStart, lengthCurrentSequence));
 
         offsetStart = offsetEnd;
         break;
