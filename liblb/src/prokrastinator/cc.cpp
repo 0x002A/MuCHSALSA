@@ -22,6 +22,7 @@
 #include "Prokrastinator.h"
 
 #include <algorithm>
+#include <deque>
 #include <set>
 
 #include "graph/Graph.h"

@@ -29,7 +29,7 @@
 #include "matching/MatchMap.h"
 #include "types/Toggle.h"
 
-using path_t  = std::tuple<std::deque<unsigned int>, std::size_t, bool>;
+using path_t  = std::tuple<std::vector<unsigned int>, std::size_t, bool>;
 using match_t = std::tuple<std::pair<int, int>, unsigned int>;
 
 namespace {
@@ -210,16 +210,16 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
     util::exchange_if(maxPathVal, currentPathVal, currentPathVal > maxPathVal);
   }
 
-  auto const &            vMaxPath = std::get<0>(*maxPathIter);
-  std::deque<unsigned int> dTmp;
-  std::transform(std::begin(vMaxPath), std::end(vMaxPath), std::back_inserter(dTmp),
+  auto const &              vMaxPath = std::get<0>(*maxPathIter);
+  std::vector<unsigned int> vTmp;
+  std::transform(std::begin(vMaxPath), std::end(vMaxPath), std::back_inserter(vTmp),
                  [&](auto const idx) { return std::get<1>(vStart[idx]); });
 
   auto hasPrimary = std::any_of(std::begin(vMaxPath), std::end(vMaxPath), [&](auto const idx) {
     return pMatches->getEdgeMatch(pEdge, std::get<1>(vStart[idx]))->isPrimary;
   });
   hasPrimary |= vMaxPath.size() > 2;
-  result.emplace_back(std::move(dTmp), maxPathVal, hasPrimary);
+  result.emplace_back(std::move(vTmp), maxPathVal, hasPrimary);
 
   auto const pathThreshold = maxPathVal * 0.75;
   for (auto const &populationEntry : population) {
@@ -238,11 +238,11 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
       std::for_each(std::begin(result), std::end(result), isDisjoint);
 
       if (disjoint) {
-        dTmp.clear(); // Return object to known state
-        std::transform(std::begin(vIdx), std::end(vIdx), std::back_inserter(dTmp),
+        vTmp.clear(); // Return object to known state
+        std::transform(std::begin(vIdx), std::end(vIdx), std::back_inserter(vTmp),
                        [&](auto const idx) { return std::get<1>(vStart[idx]); });
 
-        result.emplace_back(std::move(dTmp), score, std::any_of(std::begin(vIdx), std::end(vIdx), [&](auto const idx) {
+        result.emplace_back(std::move(vTmp), score, std::any_of(std::begin(vIdx), std::end(vIdx), [&](auto const idx) {
                               return pMatches->getEdgeMatch(pEdge, std::get<1>(vStart[idx]))->isPrimary;
                             }));
       }

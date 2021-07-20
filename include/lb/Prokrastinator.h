@@ -25,7 +25,6 @@
 #pragma once
 
 #include <cstddef>
-#include <deque>
 #include <gsl/pointers>
 #include <optional>
 #include <string>
@@ -43,10 +42,10 @@ namespace lazybastard {
 // =====================================================================================================================
 
 std::optional<graph::EdgeOrder> computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
-                                               std::deque<unsigned int> &ids, gsl::not_null<graph::Edge const *> pEdge,
+                                               std::vector<unsigned int> &ids, gsl::not_null<graph::Edge const *> pEdge,
                                                bool direction, std::size_t score, bool isPrimary);
 
-std::vector<std::tuple<std::deque<unsigned int>, std::size_t, bool>>
+std::vector<std::tuple<std::vector<unsigned int>, std::size_t, bool>>
 getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> pMatches, gsl::not_null<graph::Edge const *> pEdge,
                     std::vector<unsigned int> const &illuminaIds, Toggle direction, std::size_t wiggleRoom);
 

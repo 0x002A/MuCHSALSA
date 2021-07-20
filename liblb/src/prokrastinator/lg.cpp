@@ -22,6 +22,7 @@
 #include "Prokrastinator.h"
 
 #include <algorithm>
+#include <deque>
 #include <iterator>
 #include <map>
 #include <set>

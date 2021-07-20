@@ -56,7 +56,7 @@ std::pair<double, double> computeOverhangs(gsl::not_null<lazybastard::matching::
 
 std::optional<lazybastard::graph::EdgeOrder>
 lazybastard::computeOverlap(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                            std::deque<unsigned int> &ids, gsl::not_null<lazybastard::graph::Edge const *> const pEdge,
+                            std::vector<unsigned int> &ids, gsl::not_null<lazybastard::graph::Edge const *> const pEdge,
                             bool direction, std::size_t score, bool isPrimary) {
   auto const &firstId = ids.front();
   auto const &lastId  = ids.back();
