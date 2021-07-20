@@ -311,7 +311,7 @@ TEST(GraphTest, ShortestPathTest) {
   ASSERT_EQ(diGraph.getSize(), 5);
 
   unsigned int v1 = 1, v2 = 4;
-  auto        shortestPathVertices =
+  auto         shortestPathVertices =
       std::make_pair(gsl::make_not_null(graph.getVertex(v1)), gsl::make_not_null(graph.getVertex(v2)));
   auto shortestPath =
       lazybastard::GraphUtil::getShortestPath(lazybastard::util::make_not_null_and_const(&graph), shortestPathVertices);

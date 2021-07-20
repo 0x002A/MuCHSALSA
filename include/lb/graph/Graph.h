@@ -798,7 +798,7 @@ inline DiGraph &DiGraph::operator=(DiGraph other) {
 }
 
 inline DiGraph::DiGraph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&vertices,
-                        std::vector<std::shared_ptr<Edge>> &&                      edges)
+                        std::vector<std::shared_ptr<Edge>> &&                       edges)
     : GraphBase(std::move(vertices), std::move(edges), false) {
   _updateDegrees();
 }

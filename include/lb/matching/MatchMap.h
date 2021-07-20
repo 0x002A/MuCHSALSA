@@ -112,8 +112,7 @@ public:
    * @param illuminaId an unsigned int representing the illumina id
    * @param spMatch a const reference to the std::shared_ptr pointing to the VertexMatch to be copied into the MatchMap
    */
-  void addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId,
-                      std::shared_ptr<VertexMatch> const &spMatch);
+  void addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId, std::shared_ptr<VertexMatch> const &spMatch);
 
   /**
    * Getter returning a pointer pointing to a specific VertexMatch of the Vertex having the supplied id.
@@ -168,8 +167,7 @@ public:
    * @param illuminaId an unsigned int representing the illumina id
    * @return A pointer pointing to the EdgeMatch (nullptr if not found)
    */
-  [[nodiscard]] EdgeMatch const *getEdgeMatch(lazybastard::graph::Edge const *pEdge,
-                                              unsigned int illuminaId) const;
+  [[nodiscard]] EdgeMatch const *getEdgeMatch(lazybastard::graph::Edge const *pEdge, unsigned int illuminaId) const;
 
   /**
    * Getter returning a std::unordered_map containing all EdgeMatch instances for a specific Edge stored within this

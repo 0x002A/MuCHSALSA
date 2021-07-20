@@ -152,10 +152,10 @@ public:
   void clearMetaData();
 
 private:
-  unsigned int const                  m_id;             /*!< Unique Vertex Id */
-  std::size_t const                   m_nanoporeLength; /*!< Nanopore length */
-  Direction::Enum                     m_direction;      /*!< Vertex Direction */
-  std::vector<std::any>               m_metaData;       /*!< Meta data */
+  unsigned int const    m_id;             /*!< Unique Vertex Id */
+  std::size_t const     m_nanoporeLength; /*!< Nanopore length */
+  Direction::Enum       m_direction;      /*!< Vertex Direction */
+  std::vector<std::any> m_metaData;       /*!< Meta data */
 
   /**
    * Adds a meta datum to the Vertex.
