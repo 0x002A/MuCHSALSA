@@ -1,3 +1,27 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
+#ifndef INCLUDED_LAZYBASTARD_THREADPOOL
+#define INCLUDED_LAZYBASTARD_THREADPOOL
+
 #pragma once
 
 #include <atomic>
@@ -12,6 +36,14 @@
 
 namespace lazybastard::threading {
 
+// =====================================================================================================================
+//                                                         TYPES
+// =====================================================================================================================
+
+// ----------------
+// class ThreadPool
+// ----------------
+
 /**
  * Class for thread management.
  *
@@ -23,7 +55,7 @@ public:
   /**
    * Class constructor creating a new instance.
    *
-   * @param threadCount the number of threads to start
+   * @param threadCount the number of std::thread instances to start
    */
   explicit ThreadPool(std::size_t threadCount);
 
@@ -53,18 +85,22 @@ public:
   ~ThreadPool();
 
   /**
-   * Adds a Job to the queue of the thread pool.
+   * Adds a Job to the queue of the ThreadPool.
    *
    * @param job an rvalue reference to the Job to be added.
    */
   void addJob(Job &&job);
 
 private:
-  std::vector<std::thread> m_threads;       /*!< Store containing the available threads */
-  std::queue<Job> m_jobs;                   /*!< std::queue of Jobs to be executed */
-  std::mutex m_mutex;                       /*!< std::mutex for securing the parallel use of the std::queue */
-  std::atomic<bool> m_terminatePool{false}; /*!< Bool indicating whether the ThreadPool is going to be terminated */
+  std::vector<std::thread> m_threads;       /*!< std::vector containing the available threads */
+  std::queue<Job>          m_jobs;          /*!< std::queue of Jobs to be executed */
+  std::mutex               m_mutex;         /*!< std::mutex for securing the parallel use of the std::queue */
+  std::atomic<bool> m_terminatePool{false}; /*!< bool indicating whether the ThreadPool is going to be terminated */
   std::condition_variable m_condition;      /*!< std::conditional_variable used to notify threads about new Jobs */
 };
 
 } // namespace lazybastard::threading
+
+#endif // INCLUDED_LAZYBASTARD_THREADPOOL
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

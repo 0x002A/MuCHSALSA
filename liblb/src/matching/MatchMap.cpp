@@ -1,64 +1,165 @@
+// -*- C++ -*-
+//===---------------------------------------------------------------------------------------------------------------==//
+//
+// Copyright (C) 2021 Kevin Klein
+// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+//
+// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
+// later version.
+//
+// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+// details.
+//
+// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// If not, see <http://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+//===---------------------------------------------------------------------------------------------------------------==//
+
 #include "matching/MatchMap.h"
 
-#include <algorithm>
 #include <any>
-#include <iterator>
+#include <stdexcept>
+#include <unordered_set>
+#include <vector>
 
 #include "Util.h"
-#include "graph/Graph.h"
+#include "graph/Edge.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
 #include "threading/WaitGroup.h"
 
-// Constants
+#include "Debug.h"
+
+// =====================================================================================================================
+//                                                       CONSTANTS
+// =====================================================================================================================
+
 constexpr std::size_t TH_OVERLAP = 100;
 
 namespace lazybastard::matching {
 
-void MatchMap::addVertexMatch(const std::string &nanoporeID, const std::string &illuminaID,
-                              std::shared_ptr<VertexMatch> &&spMatch) {
-  lazybastard::util::check_pointers(spMatch.get());
-  std::scoped_lock<std::mutex> lck(m_vertexMutex);
+// =====================================================================================================================
+//                                                     CLASS METHODS
+// =====================================================================================================================
 
-  /*
-   * SIDENOTE: insert will only insert if NOT present, but it will always
-   * provide us with the right iterator this saves us a lot of extra checks here
-   */
+// --------------
+// class MatchMap
+// --------------
 
-  // Map representing the scaffolds
-  auto nanoporeIDs =
-      m_scaffolds.insert(std::make_pair(illuminaID, std::map<std::string, std::shared_ptr<VertexMatch>>())).first;
-  nanoporeIDs->second.insert(std::make_pair(nanoporeID, spMatch));
+void MatchMap::addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId,
+                              std::shared_ptr<VertexMatch> const &spMatch) {
+  if (!spMatch) {
+    throw std::runtime_error("Unexpected nullptr.");
+  }
+
+  std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
 
   // Actual map containing the matches
-  auto illuminaIDs =
-      m_vertexMatches.insert(std::make_pair(nanoporeID, um<std::string, std::shared_ptr<VertexMatch>>())).first;
-  illuminaIDs->second.insert(std::make_pair(illuminaID, std::move(spMatch)));
+  auto &illuminaIds = m_vertexMatches[nanoporeId];
+
+  auto insertMatch = false;
+  if (illuminaIds.contains(illuminaId)) {
+    auto const lineNumber = illuminaIds[illuminaId]->lineNumber;
+
+    if (lineNumber > spMatch->lineNumber) {
+      insertMatch = true;
+    }
+  } else {
+    insertMatch = true;
+  }
+
+  if (insertMatch) {
+    illuminaIds[illuminaId] = spMatch;
+    auto &scaffold          = m_scaffolds[illuminaId];
+
+    scaffold[m_pGraph->getVertex(nanoporeId)] = spMatch;
+  }
 }
 
-void MatchMap::addEdgeMatch(std::string &&edgeID, const std::string &illuminaID, std::shared_ptr<EdgeMatch> &&spMatch) {
-  lazybastard::util::check_pointers(spMatch.get());
-  std::scoped_lock<std::mutex> lck(m_edgeMutex);
+[[nodiscard]] VertexMatch const *MatchMap::getVertexMatch(unsigned int vertexId, unsigned int illuminaId) const {
+  auto const vertexIter = m_vertexMatches.find(vertexId);
+  if (vertexIter != std::end(m_vertexMatches)) {
+    auto const illuminaIter = vertexIter->second.find(illuminaId);
+    if (illuminaIter != std::end(vertexIter->second)) {
+      return illuminaIter->second.get();
+    }
+  }
 
-  /*
-   * SIDENOTE: insert will only insert if NOT present, but it will always
-   * provide us with the right iterator this saves us a lot of extra checks here
-   */
+  return nullptr;
+}
+
+[[nodiscard]] std::unordered_map<unsigned int, std::shared_ptr<VertexMatch>> const *
+MatchMap::getVertexMatches(unsigned int vertexId) const {
+  auto iter = m_vertexMatches.find(vertexId);
+  if (iter != std::end(m_vertexMatches)) {
+    return &(iter->second);
+  }
+
+  return nullptr;
+}
+
+void MatchMap::addEdgeMatch(lazybastard::graph::Edge const *const pEdge, unsigned int illuminaId,
+                            std::shared_ptr<EdgeMatch> const &spMatch) {
+  if (!spMatch) {
+    throw std::runtime_error("Unexpected nullptr.");
+  }
+
+  std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
 
   // Actual map containing the matches
-  auto illuminaIDs =
-      m_edgeMatches.insert(std::make_pair(std::move(edgeID), um<std::string, std::shared_ptr<EdgeMatch>>())).first;
-  illuminaIDs->second.insert(std::make_pair(illuminaID, std::move(spMatch)));
+  auto &illuminaIds = m_edgeMatches[pEdge];
+
+  auto insertMatch = false;
+  if (illuminaIds.contains(illuminaId)) {
+    auto const lineNumber = illuminaIds[illuminaId]->lineNumber;
+
+    if (lineNumber > spMatch->lineNumber) {
+      insertMatch = true;
+    }
+  } else {
+    insertMatch = true;
+  }
+
+  if (insertMatch) {
+    illuminaIds[illuminaId] = spMatch;
+  }
+}
+
+[[nodiscard]] EdgeMatch const *MatchMap::getEdgeMatch(lazybastard::graph::Edge const *const pEdge,
+                                                      unsigned int                          illuminaId) const {
+  auto const edgeIter = m_edgeMatches.find(pEdge);
+  if (edgeIter != std::end(m_edgeMatches)) {
+    auto const illuminaIter = edgeIter->second.find(illuminaId);
+    if (illuminaIter != std::end(edgeIter->second)) {
+      return illuminaIter->second.get();
+    }
+  }
+
+  return nullptr;
+}
+
+[[nodiscard]] std::unordered_map<unsigned int, std::shared_ptr<EdgeMatch>> const *
+MatchMap::getEdgeMatches(lazybastard::graph::Edge const *const pEdge) const {
+  auto const iter = m_edgeMatches.find(pEdge);
+  if (iter != std::end(m_edgeMatches)) {
+    return &iter->second;
+  }
+
+  return nullptr;
 }
 
 void MatchMap::calculateEdges() {
   threading::WaitGroup wg;
-  auto const jobFn = [this](threading::Job const *const pJob) { processScaffold(pJob); };
+  auto const           jobFn = [this](threading::Job const *const pJob) { processScaffold(pJob); };
 
-  for (auto const &[illuminaID, scaffold] : m_scaffolds) {
+  for (auto const &[illuminaId, scaffold] : m_scaffolds) {
     wg.add(1);
 
-    auto job = threading::Job(jobFn, &wg, illuminaID, scaffold);
+    auto job = threading::Job(jobFn, &wg, illuminaId, scaffold);
     m_pThreadPool->addJob(std::move(job));
   }
 
@@ -66,32 +167,49 @@ void MatchMap::calculateEdges() {
 }
 
 void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob) {
-  auto const scaffold = std::any_cast<std::map<std::string, std::shared_ptr<VertexMatch>>>(pJob->getParam(2));
+  auto scaffold = std::any_cast<decltype(m_scaffolds)::mapped_type>(pJob->getParam(2));
 
-  for (auto outerIter = std::begin(scaffold); outerIter != std::end(scaffold); ++outerIter) {
-    auto const *const outerMatch = outerIter->second.get();
-    for (auto innerIter = std::next(outerIter, 1); innerIter != std::end(scaffold); ++innerIter) {
-      auto const *const innerMatch = innerIter->second.get();
+  std::vector<std::pair<std::size_t, lazybastard::graph::Vertex *>> idx;
+  for (auto iter = std::begin(scaffold); iter != std::end(scaffold); ++iter) {
+    idx.emplace_back(iter->second->lineNumber, iter->first);
+  }
+
+  std::sort(std::begin(idx), std::end(idx), [](auto const &lhs, auto const &rhs) { return lhs.first < rhs.first; });
+
+  for (auto outerIter = std::next(std::begin(idx)); outerIter != std::end(idx); ++outerIter) {
+    auto const *const outerMatch = scaffold[outerIter->second].get();
+    for (auto innerIter = std::begin(idx); innerIter != outerIter; ++innerIter) {
+      auto const *const innerMatch = scaffold[innerIter->second].get();
       auto const overlap = std::make_pair(std::max(outerMatch->illuminaRange.first, innerMatch->illuminaRange.first),
                                           std::min(outerMatch->illuminaRange.second, innerMatch->illuminaRange.second));
 
       if (overlap.first <= overlap.second && overlap.second - overlap.first > static_cast<int>(TH_OVERLAP)) {
         auto const direction = outerMatch->direction == innerMatch->direction;
-        auto const isPrimary = outerMatch->isPrimary == innerMatch->isPrimary;
+        auto const isPrimary = outerMatch->isPrimary && innerMatch->isPrimary;
         auto const outerLength =
-            static_cast<float>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
+            static_cast<double>(outerMatch->illuminaRange.second - outerMatch->illuminaRange.first + 1);
         auto const innerLength =
-            static_cast<float>(innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1);
-        auto const commonLength = static_cast<float>(overlap.second - overlap.first + 1);
-        auto const outerScore = static_cast<float>(outerMatch->score) * (commonLength / outerLength);
-        auto const innerScore = static_cast<float>(innerMatch->score) * (commonLength / innerLength);
-        auto const sumScore = outerScore + innerScore;
+            static_cast<double>(innerMatch->illuminaRange.second - innerMatch->illuminaRange.first + 1);
+        auto const commonLength = static_cast<double>(overlap.second - overlap.first + 1);
+        auto const outerScore   = static_cast<double>(outerMatch->score) * commonLength / outerLength;
+        auto const innerScore   = static_cast<double>(innerMatch->score) * commonLength / innerLength;
+        auto const sumScore     = outerScore + innerScore;
 
-        auto vertexIDs = std::make_pair(innerIter->first, outerIter->first);
-        auto edgeID = m_pGraph->addEdge(vertexIDs);
+        auto pVertices = [=]() {
+          auto const lineIdxInnerVertex = innerIter->second->getMetaDatum<std::size_t>(0);
+          auto const lineIdxOuterVertex = outerIter->second->getMetaDatum<std::size_t>(0);
 
-        addEdgeMatch(std::move(edgeID), std::any_cast<std::string>(pJob->getParam(1)),
-                     lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary));
+          if (lineIdxOuterVertex < lineIdxInnerVertex) {
+            return std::make_pair(outerIter->second, innerIter->second);
+          }
+
+          return std::make_pair(innerIter->second, outerIter->second);
+        }();
+        m_pGraph->addEdge(pVertices);
+
+        addEdgeMatch(m_pGraph->getEdge(std::move(pVertices)), std::any_cast<unsigned int>(pJob->getParam(1)),
+                     lazybastard::util::make_shared_aggregate<EdgeMatch>(overlap, direction, sumScore, isPrimary,
+                                                                         outerMatch->lineNumber));
       }
     }
   }
@@ -99,4 +217,10 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }
 
+void MatchMap::onVertexDeleted(const lazybastard::graph::Vertex *pVertex) { deleteVertexMatches(pVertex->getId()); }
+
+void MatchMap::onEdgeDeleted(const lazybastard::graph::Edge *pEdge) { deleteEdgeMatches(pEdge); }
+
 } // namespace lazybastard::matching
+
+// ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

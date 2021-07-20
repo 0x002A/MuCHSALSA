@@ -11,17 +11,17 @@ std::mutex m;
 
 TEST(ThreadingTest, ReturnsCorrectResult) {
   const std::vector<std::size_t> nums{10, 20, 30, 40, 50, 60, 70, 80};
-  std::vector<std::size_t> res{};
+  std::vector<std::size_t>       res{};
 
   auto threadPool = lazybastard::threading::ThreadPool(2);
 
   lazybastard::threading::WaitGroup wg;
-  auto jobFn = [&res](lazybastard::threading::Job const *const pJob) {
+  auto                              jobFn = [&res](lazybastard::threading::Job const *const pJob) {
     const auto number = std::any_cast<size_t>(pJob->getParam(1));
 
     // push value
     {
-      std::unique_lock<std::mutex> lock(m);
+      std::scoped_lock<std::mutex> lock(m);
       res.push_back(number * 10);
     }
 
@@ -55,7 +55,7 @@ TEST(ThreadingTest, ThrowsNoException) {
   auto threadPool = lazybastard::threading::ThreadPool(2);
 
   lazybastard::threading::WaitGroup wg;
-  auto jobFn = [](lazybastard::threading::Job const *const pJob) {
+  auto                              jobFn = [](lazybastard::threading::Job const *const pJob) {
     // simulate a long running job to test wait group behaviour
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

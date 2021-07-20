@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.17.0)
-
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -7,15 +5,15 @@ find_package(Threads REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(
-  gsl
-  GIT_REPOSITORY https://github.com/microsoft/GSL.git
-  GIT_TAG        v3.0.1
+        gsl
+        GIT_REPOSITORY https://github.com/microsoft/GSL.git
+        GIT_TAG v3.0.1
 )
 
 FetchContent_GetProperties(gsl)
-if(NOT gsl_POPULATED)
-  FetchContent_Populate(gsl)
-endif()
+if (NOT gsl_POPULATED)
+    FetchContent_Populate(gsl)
+endif ()
 
 include(../cmake/Doxygen.cmake)
 
@@ -33,5 +31,7 @@ target_link_libraries(${TARGET}
         PRIVATE project_options
         project_warnings)
 
-set(TEST_SRC_DIR "${CMAKE_SOURCE_DIR}/lib${TARGET}")
-include(../cmake/Testing.cmake)
+if (ENABLE_TESTING)
+    message("Building tests")
+    add_subdirectory(tests)
+endif ()
