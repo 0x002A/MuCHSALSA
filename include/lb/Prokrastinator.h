@@ -41,37 +41,31 @@ namespace lazybastard {
 //                                                        KERNEL
 // =====================================================================================================================
 
-std::optional<graph::EdgeOrder> computeOverlap(gsl::not_null<matching::MatchMap const *> matches,
-                                               std::vector<unsigned int> &ids, gsl::not_null<graph::Edge const *> pEdge,
-                                               bool direction, std::size_t score, bool isPrimary);
+std::optional<graph::EdgeOrder> computeOverlap(matching::MatchMap const &matches, std::vector<unsigned int> &ids,
+                                               graph::Edge const &edge, bool direction, std::size_t score,
+                                               bool isPrimary);
 
 std::vector<std::tuple<std::vector<unsigned int>, std::size_t, bool>>
-getMaxPairwisePaths(gsl::not_null<matching::MatchMap const *> pMatches, gsl::not_null<graph::Edge const *> pEdge,
+getMaxPairwisePaths(matching::MatchMap const &matches, graph::Edge const &edge,
                     std::vector<unsigned int> const &illuminaIds, Toggle direction, std::size_t wiggleRoom);
 
-bool sanityCheck(gsl::not_null<graph::Graph const *> pGraph, gsl::not_null<graph::Vertex const *> pSubnode,
-                 gsl::not_null<graph::Vertex const *> pNode, gsl::not_null<graph::Vertex const *> pTarget,
-                 gsl::not_null<graph::EdgeOrder const *> pOrder, std::size_t wiggleRoom);
+bool sanityCheck(graph::Graph const &graph, graph::Vertex const &subnode, graph::Vertex const &node,
+                 graph::Vertex const &target, graph::EdgeOrder const &order, std::size_t wiggleRoom);
 
-graph::Graph getMaxSpanTree(gsl::not_null<graph::Graph const *> pGraph);
+graph::Graph getMaxSpanTree(graph::Graph const &graph);
 
-std::vector<std::vector<lazybastard::graph::Vertex *>>
-getConnectedComponents(gsl::not_null<graph::Graph const *> pGraph);
+std::vector<std::vector<lazybastard::graph::Vertex *>> getConnectedComponents(graph::Graph const &graph);
 
-graph::DiGraph getDirectionGraph(gsl::not_null<graph::Graph const *>  pGraph,
-                                 gsl::not_null<matching::MatchMap *>  pMatchMap,
-                                 gsl::not_null<graph::Graph const *>  pConnectedComponent,
-                                 gsl::not_null<graph::Vertex const *> pStartNode);
+graph::DiGraph getDirectionGraph(gsl::not_null<matching::MatchMap *> pMatchMap, graph::Graph const &graph,
+                                 graph::Graph const &connectedComponent, graph::Vertex const &startNode);
 
 std::vector<std::vector<lazybastard::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
 void assemblePath(
-    gsl::not_null<matching::MatchMap const *> pMatchMap,
-    gsl::not_null<std::unordered_map<graph::Vertex const *, std::vector<matching::ContainElement>> const *>
-                                      pContainElements,
-    gsl::not_null<SequenceAccessor *> pSequenceAccessor, gsl::not_null<matching::Id2OverlapMap *> pId2OverlapMap,
-    gsl::not_null<std::vector<lazybastard::graph::Vertex const *> const *> pPath,
-    gsl::not_null<graph::DiGraph const *> pDiGraph, int asmIdx, OutputWriter &writer);
+    gsl::not_null<matching::Id2OverlapMap *> pId2OverlapMap, matching::MatchMap const &matchMap,
+    std::unordered_map<graph::Vertex const *, std::vector<matching::ContainElement>> const &containElements,
+    SequenceAccessor &sequenceAccessor, std::vector<lazybastard::graph::Vertex const *> const &path,
+    graph::DiGraph const &diGraph, int asmIdx, OutputWriter &writer);
 
 } // namespace lazybastard
 

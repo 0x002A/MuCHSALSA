@@ -33,16 +33,15 @@ using path_t  = std::tuple<std::vector<unsigned int>, std::size_t, bool>;
 using match_t = std::tuple<std::pair<int, int>, unsigned int>;
 
 namespace {
-bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                        gsl::not_null<lazybastard::graph::Edge const *> const pEdge, unsigned int illuminaId1,
-                        unsigned int illuminaId, std::size_t wiggleRoom) {
+bool checkCompatibility(lazybastard::matching::MatchMap const &matches, lazybastard::graph::Edge const &edge,
+                        unsigned int illuminaId1, unsigned int illuminaId2, std::size_t wiggleRoom) {
   auto const nanoCheck = [&](int *pOrientation, double *pDiff,
                              gsl::not_null<lazybastard::graph::Vertex const *> const pVertex) -> bool {
-    auto const edgeMatch1 = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId1));
-    auto const edgeMatch2 = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId));
+    auto const edgeMatch1 = gsl::make_not_null(matches.getEdgeMatch(&edge, illuminaId1));
+    auto const edgeMatch2 = gsl::make_not_null(matches.getEdgeMatch(&edge, illuminaId2));
 
-    auto const vertexMatch1 = gsl::make_not_null(pMatches->getVertexMatch(pVertex->getId(), illuminaId1));
-    auto const vertexMatch2 = gsl::make_not_null(pMatches->getVertexMatch(pVertex->getId(), illuminaId));
+    auto const vertexMatch1 = gsl::make_not_null(matches.getVertexMatch(pVertex->getId(), illuminaId1));
+    auto const vertexMatch2 = gsl::make_not_null(matches.getVertexMatch(pVertex->getId(), illuminaId2));
 
     auto ncl1 = static_cast<double>(edgeMatch1->overlap.first - vertexMatch1->illuminaRange.first) //
                 / vertexMatch1->rRatio;
@@ -110,7 +109,7 @@ bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> c
     return false;
   };
 
-  auto const vertices = pEdge->getVertices();
+  auto const vertices = edge.getVertices();
 
   auto orientation1 = 0;
   auto orientation2 = 0;
@@ -125,7 +124,7 @@ bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> c
     return false;
   }
 
-  auto pEdgeMatch1 = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId1));
+  auto pEdgeMatch1 = gsl::make_not_null(matches.getEdgeMatch(&edge, illuminaId1));
 
   lazybastard::util::exchange_if(orientation2, orientation2 * -1, !pEdgeMatch1->direction);
 
@@ -141,11 +140,10 @@ bool checkCompatibility(gsl::not_null<lazybastard::matching::MatchMap const *> c
 }
 } // unnamed namespace
 
-std::vector<path_t>
-lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                                 gsl::not_null<lazybastard::graph::Edge const *> const        pEdge,
-                                 std::vector<unsigned int> const &illuminaIds, lazybastard::Toggle direction,
-                                 std::size_t wiggleRoom) {
+std::vector<path_t> lazybastard::getMaxPairwisePaths(lazybastard::matching::MatchMap const &matches,
+                                                     lazybastard::graph::Edge const &       edge,
+                                                     std::vector<unsigned int> const &      illuminaIds,
+                                                     lazybastard::Toggle direction, std::size_t wiggleRoom) {
   std::vector<path_t> result;
 
   if (illuminaIds.empty()) {
@@ -159,10 +157,10 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
   vStart.reserve(idCount);
   vEnd.reserve(idCount);
 
-  auto const vertexIDs       = pEdge->getVertices();
+  auto const vertexIDs       = edge.getVertices();
   auto const storeIlluminaId = [&](auto const &illuminaId) {
-    auto const *const start = pMatches->getVertexMatch(vertexIDs.first->getId(), illuminaId);
-    auto const *const end   = pMatches->getVertexMatch(vertexIDs.second->getId(), illuminaId);
+    auto const *const start = matches.getVertexMatch(vertexIDs.first->getId(), illuminaId);
+    auto const *const end   = matches.getVertexMatch(vertexIDs.second->getId(), illuminaId);
 
     vStart.emplace_back(start->nanoporeRange, illuminaId);
     vEnd.emplace_back(end->nanoporeRange, illuminaId);
@@ -179,15 +177,14 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
   population.reserve(length);
 
   std::transform(std::begin(vStart), std::end(vStart), std::back_inserter(population), [&](auto const &t) {
-    return std::make_tuple(std::vector<std::size_t>(), pMatches->getEdgeMatch(pEdge, std::get<1>(t))->score);
+    return std::make_tuple(std::vector<std::size_t>(), matches.getEdgeMatch(&edge, std::get<1>(t))->score);
   });
 
   auto const limit = std::max(length, 1UL) - 1;
   for (std::size_t k = 0; k < limit; ++k) {
     for (std::size_t l = k + 1; l <= limit; ++l) {
-      auto isCompatible =
-          checkCompatibility(pMatches, pEdge, std::get<1>(vStart[k]), std::get<1>(vStart[l]), wiggleRoom);
-      auto const score = std::get<1>(population[k]) + pMatches->getEdgeMatch(pEdge, std::get<1>(vStart[l]))->score;
+      auto isCompatible = checkCompatibility(matches, edge, std::get<1>(vStart[k]), std::get<1>(vStart[l]), wiggleRoom);
+      auto const score  = std::get<1>(population[k]) + matches.getEdgeMatch(&edge, std::get<1>(vStart[l]))->score;
       isCompatible &= score > std::get<1>(population[l]);
 
       if (isCompatible) {
@@ -216,7 +213,7 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
                  [&](auto const idx) { return std::get<1>(vStart[idx]); });
 
   auto hasPrimary = std::any_of(std::begin(vMaxPath), std::end(vMaxPath), [&](auto const idx) {
-    return pMatches->getEdgeMatch(pEdge, std::get<1>(vStart[idx]))->isPrimary;
+    return matches.getEdgeMatch(&edge, std::get<1>(vStart[idx]))->isPrimary;
   });
   hasPrimary |= vMaxPath.size() > 2;
   result.emplace_back(std::move(vTmp), maxPathVal, hasPrimary);
@@ -243,7 +240,7 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
                        [&](auto const idx) { return std::get<1>(vStart[idx]); });
 
         result.emplace_back(std::move(vTmp), score, std::any_of(std::begin(vIdx), std::end(vIdx), [&](auto const idx) {
-                              return pMatches->getEdgeMatch(pEdge, std::get<1>(vStart[idx]))->isPrimary;
+                              return matches.getEdgeMatch(&edge, std::get<1>(vStart[idx]))->isPrimary;
                             }));
       }
     }
@@ -256,8 +253,8 @@ lazybastard::getMaxPairwisePaths(gsl::not_null<lazybastard::matching::MatchMap c
     std::vector<match_id_t> vIDsStart;
     std::vector<match_id_t> vIDsEnd;
 
-    auto startVertexMatches = gsl::make_not_null(pMatches->getVertexMatches(vertexIDs.first->getId()));
-    auto endVertexMatches   = gsl::make_not_null(pMatches->getVertexMatches(vertexIDs.second->getId()));
+    auto startVertexMatches = gsl::make_not_null(matches.getVertexMatches(vertexIDs.first->getId()));
+    auto endVertexMatches   = gsl::make_not_null(matches.getVertexMatches(vertexIDs.second->getId()));
 
     vIDsStart.reserve(startVertexMatches->size());
     vIDsEnd.reserve(endVertexMatches->size());

@@ -71,9 +71,8 @@ private:
   std::unordered_map<lazybastard::graph::Vertex const *, std::size_t>                        m_weights;
 };
 
-std::vector<std::shared_ptr<lazybastard::graph::Edge>>
-kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
-  auto edges = pGraph->getEdges();
+std::vector<std::shared_ptr<lazybastard::graph::Edge>> kruskal(lazybastard::graph::Graph const &graph) {
+  auto edges = graph.getEdges();
   edges.erase(std::remove_if(std::begin(edges), std::end(edges),
                              [](auto const *const pEdge) {
                                return pEdge->getConsensusDirection() == lazybastard::Direction::e_NONE;
@@ -96,9 +95,9 @@ kruskal(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
 }
 } // unnamed namespace
 
-lazybastard::graph::Graph lazybastard::getMaxSpanTree(gsl::not_null<lazybastard::graph::Graph const *> const pGraph) {
+lazybastard::graph::Graph lazybastard::getMaxSpanTree(lazybastard::graph::Graph const &graph) {
   auto vertices = [=]() {
-    auto const                                                                    vertices = pGraph->getVertices();
+    auto const                                                                    vertices = graph.getVertices();
     std::unordered_map<unsigned int, std::shared_ptr<lazybastard::graph::Vertex>> newVertices;
 
     std::transform(std::begin(vertices), std::end(vertices), std::inserter(newVertices, std::begin(newVertices)),
@@ -107,7 +106,7 @@ lazybastard::graph::Graph lazybastard::getMaxSpanTree(gsl::not_null<lazybastard:
     return newVertices;
   }();
 
-  return lazybastard::graph::Graph(std::move(vertices), kruskal(pGraph));
+  return lazybastard::graph::Graph(std::move(vertices), kruskal(graph));
 }
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

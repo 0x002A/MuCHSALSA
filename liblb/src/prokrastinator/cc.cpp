@@ -29,11 +29,11 @@
 #include "types/Direction.h"
 
 std::vector<std::vector<lazybastard::graph::Vertex *>>
-lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Graph *> pGraph) {
+lazybastard::getConnectedComponents(lazybastard::graph::Graph const &graph) {
   std::vector<std::vector<lazybastard::graph::Vertex *>> result;
   std::set<lazybastard::graph::Vertex const *>           visited;
 
-  auto const vertices = pGraph->getVertices();
+  auto const vertices = graph.getVertices();
   for (auto *const pSourceVertex : vertices) {
     if (visited.contains(pSourceVertex)) {
       continue;
@@ -48,10 +48,10 @@ lazybastard::getConnectedComponents(gsl::not_null<const lazybastard::graph::Grap
       auto const *const pCurrentVertex = queue.front();
       queue.pop_front();
 
-      auto const currentNeighbors = pGraph->getNeighbors(pCurrentVertex);
+      auto const currentNeighbors = graph.getNeighbors(pCurrentVertex);
       for (auto iterNeighbor = std::begin(currentNeighbors); iterNeighbor != std::end(currentNeighbors);
            ++iterNeighbor) {
-        auto *pNeighbor = pGraph->getVertex(iterNeighbor->first);
+        auto *pNeighbor = graph.getVertex(iterNeighbor->first);
         if (!visited.contains(pNeighbor) &&
             iterNeighbor->second->getConsensusDirection() != lazybastard::Direction::e_NONE) {
           component.push_back(pNeighbor);

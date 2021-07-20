@@ -30,12 +30,11 @@
 
 namespace {
 
-std::pair<double, double> computeOverhangs(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                                           gsl::not_null<lazybastard::graph::Vertex const *> const      pVertex,
-                                           gsl::not_null<lazybastard::graph::Edge const *> const        pEdge,
-                                           unsigned int                                                 illuminaId) {
-  auto const pVertexMatch = gsl::make_not_null(pMatches->getVertexMatch(pVertex->getId(), illuminaId));
-  auto const pEdgeMatch   = gsl::make_not_null(pMatches->getEdgeMatch(pEdge, illuminaId));
+std::pair<double, double> computeOverhangs(lazybastard::matching::MatchMap const & matches,
+                                           lazybastard::graph::Vertex const *const pVertex,
+                                           lazybastard::graph::Edge const &edge, unsigned int illuminaId) {
+  auto const pVertexMatch = gsl::make_not_null(matches.getVertexMatch(pVertex->getId(), illuminaId));
+  auto const pEdgeMatch   = gsl::make_not_null(matches.getEdgeMatch(&edge, illuminaId));
 
   auto nanoCorrectionLeft = static_cast<double>(pEdgeMatch->overlap.first - pVertexMatch->illuminaRange.first) //
                             / pVertexMatch->rRatio;
@@ -55,18 +54,17 @@ std::pair<double, double> computeOverhangs(gsl::not_null<lazybastard::matching::
 } // unnamed namespace
 
 std::optional<lazybastard::graph::EdgeOrder>
-lazybastard::computeOverlap(gsl::not_null<lazybastard::matching::MatchMap const *> const pMatches,
-                            std::vector<unsigned int> &ids, gsl::not_null<lazybastard::graph::Edge const *> const pEdge,
-                            bool direction, std::size_t score, bool isPrimary) {
+lazybastard::computeOverlap(lazybastard::matching::MatchMap const &matches, std::vector<unsigned int> &ids,
+                            lazybastard::graph::Edge const &edge, bool direction, std::size_t score, bool isPrimary) {
   auto const &firstId = ids.front();
   auto const &lastId  = ids.back();
 
-  auto const vertices = pEdge->getVertices();
+  auto const vertices = edge.getVertices();
 
-  auto const overhangsFirstIdFirstVertex  = computeOverhangs(pMatches, vertices.first, pEdge, firstId);
-  auto const overhangsLastIdFirstVertex   = computeOverhangs(pMatches, vertices.first, pEdge, lastId);
-  auto const overhangsFirstIdSecondVertex = computeOverhangs(pMatches, vertices.second, pEdge, firstId);
-  auto const overhangsLastIdSecondVertex  = computeOverhangs(pMatches, vertices.second, pEdge, lastId);
+  auto const overhangsFirstIdFirstVertex  = computeOverhangs(matches, vertices.first, edge, firstId);
+  auto const overhangsLastIdFirstVertex   = computeOverhangs(matches, vertices.first, edge, lastId);
+  auto const overhangsFirstIdSecondVertex = computeOverhangs(matches, vertices.second, edge, firstId);
+  auto const overhangsLastIdSecondVertex  = computeOverhangs(matches, vertices.second, edge, lastId);
 
   auto const leftOverhangFirstVertex  = overhangsFirstIdFirstVertex.first;
   auto const rightOverhangFirstVertex = overhangsLastIdFirstVertex.second;
