@@ -32,6 +32,7 @@
 #include <utility>
 
 #include "Lb.fwd.h"
+#include "graph/Graph.h"
 #include "types/Toggle.h"
 
 namespace lazybastard::matching {
@@ -94,7 +95,7 @@ struct ContainElement {
  *
  * Instances of this class are designed to be thread-safe.
  */
-class MatchMap {
+class MatchMap : public lazybastard::graph::IGraphObserver {
 public:
   /**
    * Class constructor creating a new instance.
@@ -205,6 +206,20 @@ public:
    */
   void processScaffold(gsl::not_null<threading::Job const *> pJob);
 
+  /**
+   * Hook which is getting called every time a Vertex is about to get deleted.
+   *
+   * @param pVertex a const pointer to the Vertex instance which is about to get deleted
+   */
+  void onVertexDeleted(lazybastard::graph::Vertex const *pVertex);
+
+  /**
+   * Hook which is getting called every time an Edge is about to get deleted.
+   *
+   * @param pEdge a const pointer to the Edge instance which is about to get deleted
+   */
+  void onEdgeDeleted(lazybastard::graph::Edge const *pEdge);
+
 private:
   template <class KEY, class VALUE> using um_t = std::unordered_map<KEY, VALUE>;
 
@@ -233,15 +248,23 @@ private:
 // PUBLIC CLASS METHODS
 inline MatchMap::MatchMap(gsl::not_null<threading::ThreadPool *> const pThreadPool,
                           gsl::not_null<graph::Graph *> const          pGraph)
-    : m_pThreadPool(pThreadPool), m_pGraph(pGraph) {}
+    : m_pThreadPool(pThreadPool), m_pGraph(pGraph) {
+  pGraph->attachObserver(this);
+}
 
 [[nodiscard]] inline auto const &MatchMap::getVertexMatches() const { return m_vertexMatches; }
 
-inline void MatchMap::deleteVertexMatches(unsigned int vertexId) { m_vertexMatches.erase(vertexId); }
+inline void MatchMap::deleteVertexMatches(unsigned int vertexId) {
+  std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
+  m_vertexMatches.erase(vertexId);
+}
 
 [[maybe_unused]] [[nodiscard]] inline auto const &MatchMap::getEdgeMatches() const { return m_edgeMatches; }
 
-inline void MatchMap::deleteEdgeMatches(lazybastard::graph::Edge const *pEdge) { m_edgeMatches.erase(pEdge); }
+inline void MatchMap::deleteEdgeMatches(lazybastard::graph::Edge const *pEdge) {
+  std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
+  m_edgeMatches.erase(pEdge);
+}
 
 } // namespace lazybastard::matching
 

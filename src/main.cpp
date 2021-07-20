@@ -232,7 +232,7 @@ auto main(int const argc, char const *argv[]) -> int {
     wg.wait();
 
     std::for_each(std::begin(deletableVertices), std::end(deletableVertices),
-                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget, &matchMap); });
+                  [&](auto const *const pTarget) { graph.deleteVertex(pTarget); });
     deletableVertices.clear();
     edges = graph.getEdges();
 
@@ -248,7 +248,7 @@ auto main(int const argc, char const *argv[]) -> int {
     TRACE("Edges to become deleted: %lu\n", deletableEdges.size());
 
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
-                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
+                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget); });
     deletableEdges.clear();
 
     TRACE("Order: %lu, Size: %lu\n", graph.getOrder(), graph.getSize());
@@ -275,7 +275,7 @@ auto main(int const argc, char const *argv[]) -> int {
     TRACE("Edges to become deleted: %lu\n", deletableEdges.size());
 
     std::for_each(std::begin(deletableEdges), std::end(deletableEdges),
-                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget, &matchMap); });
+                  [&](auto const *const pTarget) { graph.deleteEdge(pTarget); });
     deletableEdges.clear();
     edges = graph.getEdges();
 

@@ -28,10 +28,11 @@
 
 #include "Util.h"
 #include "graph/Edge.h"
-#include "graph/Graph.h"
 #include "threading/Job.h"
 #include "threading/ThreadPool.h"
 #include "threading/WaitGroup.h"
+
+#include "Debug.h"
 
 // =====================================================================================================================
 //                                                       CONSTANTS
@@ -215,6 +216,10 @@ void MatchMap::processScaffold(gsl::not_null<threading::Job const *> const pJob)
 
   std::any_cast<lazybastard::threading::WaitGroup *const>(pJob->getParam(0))->done();
 }
+
+void MatchMap::onVertexDeleted(const lazybastard::graph::Vertex *pVertex) { deleteVertexMatches(pVertex->getId()); }
+
+void MatchMap::onEdgeDeleted(const lazybastard::graph::Edge *pEdge) { deleteEdgeMatches(pEdge); }
 
 } // namespace lazybastard::matching
 

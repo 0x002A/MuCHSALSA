@@ -136,7 +136,7 @@ void sortReduction(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraphCy
       auto const *const pPredecessor = pDiGraphCycle->getVertex(p.first);
       if (verticesWithNonNullInDegree.contains(pPredecessor)) {
         p.second->setShadow(true);
-        pDiGraphCycle->deleteEdge(p.second, nullptr);
+        pDiGraphCycle->deleteEdge(p.second);
       }
     });
 
@@ -372,7 +372,7 @@ extractPaths(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraph) {
   auto const edges = diGraphCycle.getEdges();
   for (auto const *const pEdge : edges) {
     if (pEdge->isShadow()) {
-      diGraphCycle.deleteEdge(pEdge, nullptr);
+      diGraphCycle.deleteEdge(pEdge);
     }
   }
 
@@ -417,7 +417,7 @@ extractPaths(gsl::not_null<lazybastard::graph::DiGraph *> const pDiGraph) {
 
     for (auto const *const pVertex : longestPath) {
       visited.insert(pVertex);
-      diGraphCycle.deleteVertex(pVertex, nullptr);
+      diGraphCycle.deleteVertex(pVertex);
     }
   }
 

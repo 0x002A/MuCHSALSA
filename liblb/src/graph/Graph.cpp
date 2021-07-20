@@ -26,7 +26,6 @@
 
 #include "Util.h"
 #include "graph/Edge.h"
-#include "matching/MatchMap.h"
 
 namespace lazybastard::graph {
 
@@ -149,8 +148,7 @@ void GraphBase::_addVertex(std::shared_ptr<Vertex> &&spVertex) {
   m_vertices.emplace(spVertex->getId(), std::move(spVertex));
 }
 
-void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool hasBidirectionalEdges,
-                              lazybastard::matching::MatchMap *pMatchMap) {
+void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool hasBidirectionalEdges) {
   using successor_t          = decltype(m_adjacencyList)::mapped_type::value_type;
   auto const eraseSuccessors = hasBidirectionalEdges //
                                    ? std::function{[&](successor_t const &s) {
@@ -161,24 +159,22 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
 
                                        auto const pEdge = gsl::make_not_null(s.second);
 
+                                       std::for_each(std::begin(m_observers), std::end(m_observers),
+                                                     [=](auto *pObserver) { pObserver->onEdgeDeleted(pEdge); });
+
                                        auto vertices = pEdge->getVertices();
                                        m_edges.erase(pEdge);
                                        _onEdgeDeleted(std::move(vertices));
-
-                                       if (pMatchMap) {
-                                         pMatchMap->deleteEdgeMatches(pEdge);
-                                       }
                                      }}
                                    : std::function{[&](successor_t const &s) {
                                        auto const pEdge = gsl::make_not_null(s.second);
 
+                                       std::for_each(std::begin(m_observers), std::end(m_observers),
+                                                     [=](auto *pObserver) { pObserver->onEdgeDeleted(pEdge); });
+
                                        auto vertices = pEdge->getVertices();
                                        m_edges.erase(pEdge);
                                        _onEdgeDeleted(std::move(vertices));
-
-                                       if (pMatchMap) {
-                                         pMatchMap->deleteEdgeMatches(pEdge);
-                                       }
                                      }};
 
   auto const iterSuccessors = m_adjacencyList.find(pVertex->getId());
@@ -195,9 +191,8 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
       if (iterPredecessor != std::end(connectedVertices)) {
         auto const pEdge = gsl::make_not_null(iterPredecessor->second);
 
-        if (pMatchMap) {
-          pMatchMap->deleteEdgeMatches(pEdge);
-        }
+        std::for_each(std::begin(m_observers), std::end(m_observers),
+                      [=](auto *pObserver) { pObserver->onEdgeDeleted(pEdge); });
 
         auto vertices = pEdge->getVertices();
         m_edges.erase(pEdge);
@@ -208,9 +203,9 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
     }
   }
 
-  if (pMatchMap) {
-    pMatchMap->deleteVertexMatches(pVertex->getId());
-  }
+  std::for_each(std::begin(m_observers), std::end(m_observers),
+                [=](auto *pObserver) { pObserver->onVertexDeleted(pVertex); });
+
   m_vertices.erase(pVertex->getId());
 }
 
@@ -234,8 +229,7 @@ void GraphBase::_addEdge(
   }
 }
 
-void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidirectional,
-                            lazybastard::matching::MatchMap *pMatchMap) {
+void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidirectional) {
   auto const findAndDeleteEdge = [&](unsigned int source, unsigned int target) {
     auto const outerIter = m_adjacencyList.find(source);
 
@@ -257,9 +251,9 @@ void GraphBase::_deleteEdge(gsl::not_null<Edge const *> const pEdge, bool isBidi
     findAndDeleteEdge(vertices.second->getId(), vertices.first->getId());
   }
 
-  if (pMatchMap) {
-    pMatchMap->deleteEdgeMatches(pEdge);
-  }
+  std::for_each(std::begin(m_observers), std::end(m_observers),
+                [=](auto *pObserver) { pObserver->onEdgeDeleted(pEdge); });
+
   m_edges.erase(pEdge);
 }
 

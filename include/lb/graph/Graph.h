@@ -96,6 +96,66 @@ private:
 namespace graph {
 
 // =====================================================================================================================
+//                                                      INTERFACES
+// =====================================================================================================================
+
+// --------------------
+// class IGraphObserver
+// --------------------
+
+/**
+ * Class representing an interface for structures observing a graph for changes.
+ */
+class IGraphObserver {
+public:
+  /**
+   * Constructor creating a new instance.
+   */
+  IGraphObserver() = default;
+
+  /**
+   * Copy constructor.
+   */
+  IGraphObserver(IGraphObserver const &other) = default;
+
+  /**
+   * Move constructor.
+   */
+  IGraphObserver(IGraphObserver &&other) = default;
+
+  /**
+   * Copy assigment operator.
+   */
+  IGraphObserver &operator=(IGraphObserver const &other) = default;
+
+  /**
+   * Move assignment operator.
+   */
+  IGraphObserver &operator=(IGraphObserver &&other) = default;
+
+  /**
+   * Destructor.
+   */
+  virtual ~IGraphObserver() = default;
+
+  /**
+   * Hook which is getting called every time a Vertex is about to get deleted.
+   * This method can be overridden by deriving classes.
+   *
+   * @param pVertex a const pointer to the Vertex instance which is about to get deleted
+   */
+  virtual void onVertexDeleted(Vertex const *pVertex) = 0;
+
+  /**
+   * Hook which is getting called every time an Edge is about to get deleted.
+   * This method can be overridden by deriving classes.
+   *
+   * @param pEdge a const pointer to the Edge instance which is about to get deleted
+   */
+  virtual void onEdgeDeleted(Edge const *pEdge) = 0;
+};
+
+// =====================================================================================================================
 //                                                         TYPES
 // =====================================================================================================================
 
@@ -115,6 +175,13 @@ public:
    * Destructor.
    */
   virtual ~GraphBase() = default;
+
+  /**
+   * Attaches an observer.
+   *
+   * @param pObserver a pointer to an observer
+   */
+  void attachObserver(IGraphObserver *pObserver);
 
   /**
    * Returns a bool indicating whether the supplied Vertex is present or not.
@@ -271,10 +338,8 @@ protected:
    *
    * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
-   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges,
-                     lazybastard::matching::MatchMap *pMatchMap);
+  void _deleteVertex(gsl::not_null<Vertex const *> pVertex, bool hasBidirectionalEdges);
 
   /**
    * Adds an Edge to this Graph. Already existing edges are omitted.
@@ -293,9 +358,8 @@ protected:
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
    * @param isBidirectional a bool indicating whether the Edge is bidirectional or not
-   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void _deleteEdge(gsl::not_null<Edge const *> pEdge, bool isBidirectional, lazybastard::matching::MatchMap *pMatchMap);
+  void _deleteEdge(gsl::not_null<Edge const *> pEdge, bool isBidirectional);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
@@ -340,9 +404,10 @@ private:
   um_t<unsigned int, std::shared_ptr<Vertex>> m_vertices; /*!< std::unordered_map containing all the Vertex instances */
   um_t<Edge const *, std::shared_ptr<Edge>>   m_edges;    /*!< std::unordered_map  containing all the Edge instances */
   um_t<unsigned int, um_t<unsigned int, Edge *const>>
-                            m_adjacencyList; /*!< std::unordered_map representing the adjacency list */
-  mutable std::shared_mutex m_mutexVertex;   /*!< std::shared_mutex for securing the parallel use of the Vertex map */
-  mutable std::shared_mutex m_mutexEdge;     /*!< std::shared_mutex for securing the parallel use of the Edge map */
+                                m_adjacencyList; /*!< std::unordered_map representing the adjacency list */
+  std::vector<IGraphObserver *> m_observers;     /*!< std::vector containing pointers to the attached observers */
+  mutable std::shared_mutex     m_mutexVertex; /*!< std::shared_mutex for securing the parallel use of the Vertex map */
+  mutable std::shared_mutex     m_mutexEdge;   /*!< std::shared_mutex for securing the parallel use of the Edge map */
 
   /**
    * Adds an Edge to this Graph.
@@ -386,7 +451,7 @@ public:
   /**
    * Move constructor.
    */
-  Graph(Graph &&) noexcept;
+  Graph(Graph &&other) noexcept;
 
   /**
    * Copy assignment operator.
@@ -419,9 +484,8 @@ public:
    *
    * @param pVertex a pointer pointing to the Vertex to be deleted
    * @param hasBidirectionalEdges a bool indicating whether the Vertex is connected by bidirectional Edge instances
-   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap);
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
 
   /**
    * Adds an Edge to this Graph. Already existing Edge instances are omitted.
@@ -446,9 +510,8 @@ public:
    * The memory will be cleaned up and all references will become invalid.
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
-   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap);
+  void deleteEdge(gsl::not_null<Edge const *> pEdge);
 
   /**
    * Getter returning the neighbors of a particular Vertex instance.
@@ -499,7 +562,7 @@ public:
   /**
    * Move constructor.
    */
-  DiGraph(DiGraph &&) noexcept;
+  DiGraph(DiGraph &&other) noexcept;
 
   /**
    * Copy assignment operator.
@@ -539,9 +602,8 @@ public:
    * will become invalid.
    *
    * @param pVertex a pointer pointing to the Vertex to be deleted
-   * @param pMatchMap a pointer to a MatchMap for clean up
    */
-  void deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap);
+  void deleteVertex(gsl::not_null<Vertex const *> pVertex);
 
   /**
    * Adds an Edge to this DiGraph. Already existing Edge instances are omitted.
@@ -566,9 +628,8 @@ public:
    * The memory will be cleaned up and all references will become invalid.
    *
    * @param pEdge a pointer pointing to the Edge to become deleted
-   * @param pMatchMap a pointer to a MatchMap for clean up (defaulted to nullptr)
    */
-  void deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap);
+  void deleteEdge(gsl::not_null<Edge const *> pEdge);
 
   /**
    * Getter returning the successors of a particular Vertex instance.
@@ -691,6 +752,8 @@ private:
 
 // PUBLIC CLASS METHODS
 
+inline void GraphBase::attachObserver(IGraphObserver *pObserver) { m_observers.push_back(pObserver); }
+
 inline Edge *
 GraphBase::getEdge(std::pair<gsl::not_null<Vertex const *>, gsl::not_null<Vertex const *>> &&vertices) const {
   auto temp = std::move(vertices);
@@ -755,9 +818,7 @@ inline Graph::Graph(std::unordered_map<unsigned int, std::shared_ptr<Vertex>> &&
 
 inline void Graph::addVertex(std::shared_ptr<Vertex> &&spVertex) { _addVertex(std::move(spVertex)); }
 
-inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {
-  _deleteVertex(pVertex, true, pMatchMap);
-}
+inline void Graph::deleteVertex(gsl::not_null<Vertex const *> pVertex) { _deleteVertex(pVertex, true); }
 
 inline void
 Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vertex const *> const> const &pVertices) {
@@ -770,9 +831,7 @@ Graph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Vert
   addEdge(temp);
 }
 
-inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge, lazybastard::matching::MatchMap *pMatchMap) {
-  _deleteEdge(pEdge, true, pMatchMap);
-}
+inline void Graph::deleteEdge(gsl::not_null<Edge const *> pEdge) { _deleteEdge(pEdge, true); }
 
 inline std::unordered_map<unsigned int, Edge *const>
 Graph::getNeighbors(gsl::not_null<Vertex const *> const pVertex) const {
@@ -811,8 +870,8 @@ inline void swap(DiGraph &lhs, DiGraph &rhs) noexcept {
   swap(lhs.m_outDegrees, rhs.m_outDegrees);
 }
 
-inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex, lazybastard::matching::MatchMap *pMatchMap) {
-  _deleteVertex(pVertex, false, pMatchMap);
+inline void DiGraph::deleteVertex(gsl::not_null<Vertex const *> pVertex) {
+  _deleteVertex(pVertex, false);
 
   m_inDegrees.erase(pVertex);
   m_outDegrees.erase(pVertex);
@@ -829,9 +888,7 @@ DiGraph::addEdge(std::pair<gsl::not_null<Vertex const *> const, gsl::not_null<Ve
   return addEdge(temp);
 }
 
-inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge, lazybastard::matching::MatchMap *pMatchMap) {
-  _deleteEdge(pEdge, false, pMatchMap);
-}
+inline void DiGraph::deleteEdge(gsl::not_null<const Edge *> pEdge) { _deleteEdge(pEdge, false); }
 
 inline std::unordered_map<unsigned int, Edge *const>
 DiGraph::getSuccessors(gsl::not_null<Vertex const *> const pVertex) const {
@@ -906,13 +963,13 @@ auto GraphUtil::getShortestPath(
       auto const *const pNeighbor = pGraph->getVertex(neighbor);
 
       auto const distNeighbor = distances[pVertex] + 1;
-      if (!distances.contains(pNeighbor) && (!seen.contains(pNeighbor) || distNeighbor < seen[pNeighbor])) {
+      if (!distances.contains(pNeighbor) && (!seen.contains(pNeighbor) || distNeighbor < seen.at(pNeighbor))) {
         seen[pNeighbor] = distNeighbor;
 
         heap.emplace_back(distNeighbor, c, pNeighbor);
         std::push_heap(std::begin(heap), std::end(heap), std::greater<decltype(heap)::value_type>{});
         paths[pNeighbor] = paths[pVertex];
-        paths[pNeighbor].push_back(pNeighbor);
+        paths.at(pNeighbor).push_back(pNeighbor);
 
         ++c;
       }

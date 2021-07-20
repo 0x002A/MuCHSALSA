@@ -36,6 +36,7 @@ namespace graph {
 class DiGraph;
 class Edge;
 struct EdgeOrder;
+class IGraphObserver;
 class Graph;
 class GraphBase;
 class Vertex;

@@ -130,13 +130,13 @@ void SequenceAccessor::buildIndex() {
 [[maybe_unused]] std::string SequenceAccessor::getNanoporeSequence(unsigned int nanoporeId) {
   std::scoped_lock<std::mutex> lck(m_mutexNanoporeSequenceFile);
 
-  return getSequenceFromFile(m_pNanoporeSequenceFile.get(), m_idxNanopore[nanoporeId]);
+  return getSequenceFromFile(m_pNanoporeSequenceFile.get(), m_idxNanopore.at(nanoporeId));
 }
 
 [[maybe_unused]] std::string SequenceAccessor::getIlluminaSequence(unsigned int illuminaId) {
   std::scoped_lock<std::mutex> lck(m_mutexIlluminaSequenceFile);
 
-  return getSequenceFromFile(m_pIlluminaSequenceFile.get(), m_idxIllumina[illuminaId]);
+  return getSequenceFromFile(m_pIlluminaSequenceFile.get(), m_idxIllumina.at(illuminaId));
 }
 
 // PRIVATE CLASS METHODS
