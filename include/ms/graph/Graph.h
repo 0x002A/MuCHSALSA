@@ -661,16 +661,14 @@ public:
   /**
    * Returns the std::unordered_map containing the mapping of all Vertex instances to their in-degrees.
    *
-   * @return A const reference to the std::unordered_map containing the mapping of all Vertex instances to their
-   *         in-degrees
+   * @return A const reference to the std::unordered_map mapping all Vertex instances to their in-degrees
    */
   auto const &getInDegrees() const;
 
   /**
    * Returns the std::unordered_map containing the mapping of all Vertex instances to their out-degrees.
    *
-   * @return A const reference to the std::unordered_map containing the mapping of all Vertex instances to their
-   *         out-degrees
+   * @return A const reference to the std::unordered_map mapping all Vertex instances to their out-degrees
    */
   auto const &getOutDegrees() const;
 
