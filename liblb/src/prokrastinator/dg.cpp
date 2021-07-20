@@ -21,8 +21,9 @@
 
 #include "Prokrastinator.h"
 
-#include <memory>
 #include <stack>
+#include <tuple>
+#include <utility>
 
 #include "Util.h"
 #include "graph/Graph.h"

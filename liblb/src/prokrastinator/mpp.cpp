@@ -22,10 +22,12 @@
 #include "Prokrastinator.h"
 
 #include <algorithm>
+#include <iterator>
+#include <tuple>
+#include <utility>
 
 #include "Util.h"
-#include "graph/Edge.h"
-#include "graph/Graph.h"
+#include "graph/Vertex.h"
 #include "matching/MatchMap.h"
 #include "types/Toggle.h"
 

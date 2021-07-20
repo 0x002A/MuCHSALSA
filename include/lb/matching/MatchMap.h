@@ -32,7 +32,6 @@
 #include <utility>
 
 #include "Lb.fwd.h"
-#include "graph/Vertex.h"
 #include "types/Toggle.h"
 
 namespace lazybastard::matching {

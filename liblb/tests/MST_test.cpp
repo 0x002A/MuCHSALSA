@@ -36,7 +36,7 @@ TEST(MSTTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setWeight(3);
   graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setWeight(1);
 
-  auto mst = lazybastard::getMaxSpanTree(&graph);
+  auto mst = lazybastard::getMaxSpanTree(graph);
   ASSERT_EQ(mst.getSize(), 0);
 
   // Set consensus direction
@@ -48,7 +48,7 @@ TEST(MSTTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setConsensusDirection(true);
   graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setConsensusDirection(true);
 
-  mst = lazybastard::getMaxSpanTree(&graph);
+  mst = lazybastard::getMaxSpanTree(graph);
   ASSERT_EQ(mst.getSize(), 4);
   ASSERT_EQ(mst.getOrder(), graph.getOrder());
 

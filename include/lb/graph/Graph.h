@@ -26,9 +26,9 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <gsl/pointers>
 #include <iterator>
-#include <list>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>

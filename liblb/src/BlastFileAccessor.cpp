@@ -22,6 +22,7 @@
 #include "BlastFileAccessor.h"
 
 #include <cstdlib>
+#include <gsl/pointers>
 
 namespace lazybastard {
 

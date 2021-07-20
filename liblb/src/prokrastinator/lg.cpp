@@ -23,14 +23,18 @@
 
 #include <algorithm>
 #include <deque>
+#include <initializer_list>
 #include <iterator>
 #include <map>
 #include <set>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include "Util.h"
 #include "graph/Graph.h"
+#include "graph/Vertex.h"
 
 namespace {
 

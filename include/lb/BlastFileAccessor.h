@@ -24,15 +24,13 @@
 
 #pragma once
 
+#include <cstdint>
 #include <cstdio>
-#include <gsl/pointers>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include "Lb.fwd.h"
 
 namespace lazybastard {
 

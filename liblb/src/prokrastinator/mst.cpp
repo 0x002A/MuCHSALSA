@@ -22,10 +22,11 @@
 #include "Prokrastinator.h"
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
-#include "graph/Edge.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
 #include "types/Direction.h"

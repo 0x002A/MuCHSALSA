@@ -24,7 +24,6 @@
 #include <utility>
 
 #include "Util.h"
-#include "graph/Graph.h"
 #include "graph/Vertex.h"
 #include "matching/MatchMap.h"
 

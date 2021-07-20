@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <gsl/pointers>
 #include <optional>
-#include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>

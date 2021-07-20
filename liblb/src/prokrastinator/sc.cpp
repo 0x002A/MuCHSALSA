@@ -24,6 +24,7 @@
 #include "Util.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
+#include "types/Toggle.h"
 
 bool lazybastard::sanityCheck(lazybastard::graph::Graph const &graph, lazybastard::graph::Vertex const &subnode,
                               lazybastard::graph::Vertex const &node, lazybastard::graph::Vertex const &target,

@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <cstdio>
 #include <gsl/pointers>
 #include <memory>
@@ -31,6 +32,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 #include "Lb.fwd.h"
 
@@ -97,9 +99,9 @@ private:
   Registry *const m_pRegistryNanopore; /*!< Pointer to the Registry used to register nanopore ids */
   Registry *const m_pRegistryIllumina; /*!< Pointer to the Registry used to register illumina ids */
   bool m_nanoporeFileIsFastQ; /*!< bool stating whether the file containing the illumina sequences is a FastQ file */
-  std::unordered_map<unsigned int, std::pair<long, long>>
+  std::unordered_map<unsigned int, std::pair<int64_t, int64_t>>
       m_idxNanopore; /*!< std::unordered_map containing the mapping of nanopore ids to the position of the sequences */
-  std::unordered_map<unsigned int, std::pair<long, long>>
+  std::unordered_map<unsigned int, std::pair<int64_t, int64_t>>
       m_idxIllumina; /*!< std::unordered_map containing the mapping of illumina ids to the position of the sequences */
   std::mutex m_mutexNanoporeSequenceFile; /*!< std::mutex for securing the parallel use of the file containing the
                                              nanopore sequences */

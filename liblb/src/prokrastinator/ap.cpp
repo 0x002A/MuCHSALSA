@@ -23,10 +23,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <set>
+#include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -39,6 +42,7 @@
 #include "matching/Id2OverlapMap.h"
 #include "matching/MatchMap.h"
 #include "types/Direction.h"
+#include "types/Toggle.h"
 
 // =====================================================================================================================
 //                                                       CONSTANTS

@@ -21,9 +21,11 @@
 
 #include "Prokrastinator.h"
 
-#include <algorithm>
 #include <deque>
+#include <functional>
+#include <iterator>
 #include <set>
+#include <utility>
 
 #include "graph/Graph.h"
 #include "types/Direction.h"

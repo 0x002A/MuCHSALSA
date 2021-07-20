@@ -39,7 +39,7 @@ TEST(CCTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex3.get(), spVertex4.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
   graph.getEdge(std::make_pair(spVertex4.get(), spVertex5.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
 
-  auto cc = lazybastard::getConnectedComponents(&graph);
+  auto cc = lazybastard::getConnectedComponents(graph);
   ASSERT_EQ(cc.size(), 1);
 
   auto const contains = [](std::vector<lazybastard::graph::Vertex *> &v, lazybastard::graph::Vertex *pS) {
@@ -68,7 +68,7 @@ TEST(CCTest, BasicTest) {
   graph.getEdge(std::make_pair(spVertex6.get(), spVertex8.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
   graph.getEdge(std::make_pair(spVertex7.get(), spVertex8.get()))->setConsensusDirection(lazybastard::Direction::e_POS);
 
-  cc = lazybastard::getConnectedComponents(&graph);
+  cc = lazybastard::getConnectedComponents(graph);
   ASSERT_EQ(cc.size(), 2);
 
   std::size_t firstIdx = 0, secondIdx = 1;

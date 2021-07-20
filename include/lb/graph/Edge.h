@@ -25,7 +25,6 @@
 #pragma once
 
 #include <cstddef>
-#include <gsl/pointers>
 #include <memory>
 #include <utility>
 #include <vector>
