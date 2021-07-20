@@ -2,17 +2,17 @@
 //===---------------------------------------------------------------------------------------------------------------==//
 //
 // Copyright (C) 2021 Kevin Klein
-// This file is part of LazyBastardOnMate <https://github.com/0x002A/LazyBastardOnMate>.
+// This file is part of MuCHSALSA <https://github.com/0x002A/MuCHSALSA>.
 //
-// LazyBastardOnMate is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// MuCHSALSA is free software: you can redistribute it and/or modify it under the terms of the GNU General
 // Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any
 // later version.
 //
-// LazyBastardOnMate is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// MuCHSALSA is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
 // implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
 // details.
 //
-// You should have received a copy of the GNU General Public License along with LazyBastardOnMate.
+// You should have received a copy of the GNU General Public License along with MuCHSALSA.
 // If not, see <http://www.gnu.org/licenses/>.
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -39,24 +39,24 @@
 #include <utility>
 #include <vector>
 
-#include <lb/BlastFileAccessor.h>
-#include <lb/BlastFileReader.h>
-#include <lb/Debug.h>
-#include <lb/OutputWriter.h>
-#include <lb/Prokrastinator.h>
-#include <lb/Registry.h>
-#include <lb/SequenceAccessor.h>
-#include <lb/Util.h>
-#include <lb/graph/Edge.h>
-#include <lb/graph/Graph.h>
-#include <lb/graph/Vertex.h>
-#include <lb/matching/Id2OverlapMap.h>
-#include <lb/matching/MatchMap.h>
-#include <lb/threading/Job.h>
-#include <lb/threading/ThreadPool.h>
-#include <lb/threading/WaitGroup.h>
-#include <lb/types/Direction.h>
-#include <lb/types/Toggle.h>
+#include <ms/BlastFileAccessor.h>
+#include <ms/BlastFileReader.h>
+#include <ms/Debug.h>
+#include <ms/Kernel.h>
+#include <ms/OutputWriter.h>
+#include <ms/Registry.h>
+#include <ms/SequenceAccessor.h>
+#include <ms/Util.h>
+#include <ms/graph/Edge.h>
+#include <ms/graph/Graph.h>
+#include <ms/graph/Vertex.h>
+#include <ms/matching/Id2OverlapMap.h>
+#include <ms/matching/MatchMap.h>
+#include <ms/threading/Job.h>
+#include <ms/threading/ThreadPool.h>
+#include <ms/threading/WaitGroup.h>
+#include <ms/types/Direction.h>
+#include <ms/types/Toggle.h>
 
 #include "Application.h"
 
@@ -64,29 +64,29 @@
 //                                                  USING DECLARATIONS
 // =====================================================================================================================
 
-using lazybastard::BlastFileAccessor;
-using lazybastard::BlastFileReader;
-using lazybastard::Direction;
-using lazybastard::GraphUtil;
-using lazybastard::OutputWriter;
-using lazybastard::Registry;
-using lazybastard::SequenceAccessor;
+using muchsalsa::BlastFileAccessor;
+using muchsalsa::BlastFileReader;
+using muchsalsa::Direction;
+using muchsalsa::GraphUtil;
+using muchsalsa::OutputWriter;
+using muchsalsa::Registry;
+using muchsalsa::SequenceAccessor;
 
-using lazybastard::graph::Edge;
-using lazybastard::graph::EdgeOrder;
-using lazybastard::graph::Graph;
-using lazybastard::graph::Vertex;
+using muchsalsa::graph::Edge;
+using muchsalsa::graph::EdgeOrder;
+using muchsalsa::graph::Graph;
+using muchsalsa::graph::Vertex;
 
-using lazybastard::matching::ContainElement;
-using lazybastard::matching::Id2OverlapMap;
-using lazybastard::matching::MatchMap;
-using lazybastard::matching::VertexMatch;
+using muchsalsa::matching::ContainElement;
+using muchsalsa::matching::Id2OverlapMap;
+using muchsalsa::matching::MatchMap;
+using muchsalsa::matching::VertexMatch;
 
-using lazybastard::threading::Job;
-using lazybastard::threading::ThreadPool;
-using lazybastard::threading::WaitGroup;
+using muchsalsa::threading::Job;
+using muchsalsa::threading::ThreadPool;
+using muchsalsa::threading::WaitGroup;
 
-using lazybastard::util::make_not_null_and_const;
+using muchsalsa::util::make_not_null_and_const;
 
 // =====================================================================================================================
 //                                                       CONSTANTS
@@ -193,7 +193,7 @@ auto main(int const argc, char const *argv[]) -> int {
       LB_UNUSED(pEdge);
 
       wg.add(1);
-      auto job = lazybastard::threading::Job(contractionTargetsJob, &wg, pOrder, &contractionTargets, std::ref(mutex));
+      auto job = Job(contractionTargetsJob, &wg, pOrder, &contractionTargets, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -207,8 +207,8 @@ auto main(int const argc, char const *argv[]) -> int {
       LB_UNUSED(pEdge);
 
       wg.add(1);
-      auto job = lazybastard::threading::Job(deletableVerticesJob, &wg, pOrder, &deletableVertices, &contractionRoots,
-                                             &contractionTargets, std::ref(mutex));
+      auto job = Job(deletableVerticesJob, &wg, pOrder, &deletableVertices, &contractionRoots, &contractionTargets,
+                     std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -226,7 +226,7 @@ auto main(int const argc, char const *argv[]) -> int {
       }
 
       wg.add(1);
-      auto job = lazybastard::threading::Job(contractionJob, &wg, pOrder, &containElements, &matchMap, std::ref(mutex));
+      auto job = Job(contractionJob, &wg, pOrder, &containElements, &matchMap, std::ref(mutex));
       threadPool.addJob(std::move(job));
     }
     wg.wait();
@@ -262,7 +262,7 @@ auto main(int const argc, char const *argv[]) -> int {
     });
     wg.wait();
 
-    auto const maxSpanTree = lazybastard::getMaxSpanTree(graph);
+    auto const maxSpanTree = muchsalsa::getMaxSpanTree(graph);
 
     auto decycleJob = [](Job const *const pJob) { decycle(pJob); };
     std::for_each(std::begin(edges), std::end(edges), [&](auto const *const pEdge) {
@@ -288,7 +288,7 @@ auto main(int const argc, char const *argv[]) -> int {
     //// /OUTPUT FILES ////
 
     std::atomic<int> assemblyIdx{-1};
-    auto             connectedComponents = lazybastard::getConnectedComponents(graph);
+    auto             connectedComponents = muchsalsa::getConnectedComponents(graph);
     auto             assemblyJob         = [](Job const *const pJob) { assemblePaths(pJob); };
     for (auto const &connectedComponent : connectedComponents) {
 
@@ -335,8 +335,8 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(3));
-  auto       minusPaths = lazybastard::getMaxPairwisePaths(*pMatchMap, *pEdge, minusIDs, false, wiggleRoom);
-  auto       plusPaths  = lazybastard::getMaxPairwisePaths(*pMatchMap, *pEdge, plusIDs, true, wiggleRoom);
+  auto       minusPaths = muchsalsa::getMaxPairwisePaths(*pMatchMap, *pEdge, minusIDs, false, wiggleRoom);
+  auto       plusPaths  = muchsalsa::getMaxPairwisePaths(*pMatchMap, *pEdge, plusIDs, true, wiggleRoom);
 
   auto hasPrimary =
       std::any_of(plusPaths.begin(), plusPaths.end(), [](auto const &plusPath) { return std::get<2>(plusPath); });
@@ -381,16 +381,16 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   std::for_each(std::begin(minusPaths), std::end(minusPaths), [=](auto &minusPath) {
-    auto const overlap = lazybastard::computeOverlap(*pMatchMap, std::get<0>(minusPath), *pEdge, false,
-                                                     std::get<1>(minusPath), std::get<2>(minusPath));
+    auto const overlap = muchsalsa::computeOverlap(*pMatchMap, std::get<0>(minusPath), *pEdge, false,
+                                                   std::get<1>(minusPath), std::get<2>(minusPath));
     if (overlap.has_value()) {
       pEdge->appendOrder(std::move(overlap.value()));
     }
   });
 
   std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](auto &plusPath) {
-    auto const order = lazybastard::computeOverlap(*pMatchMap, std::get<0>(plusPath), *pEdge, true,
-                                                   std::get<1>(plusPath), std::get<2>(plusPath));
+    auto const order = muchsalsa::computeOverlap(*pMatchMap, std::get<0>(plusPath), *pEdge, true, std::get<1>(plusPath),
+                                                 std::get<2>(plusPath));
     if (order.has_value()) {
       pEdge->appendOrder(std::move(order.value()));
     }
@@ -425,7 +425,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
 
         auto const wiggleRoom = std::any_cast<std::size_t>(pJob->getParam(5));
         isSane &=
-            lazybastard::sanityCheck(*pGraph, *order.startVertex, *order.endVertex, *pTargetVertex, order, wiggleRoom);
+            muchsalsa::sanityCheck(*pGraph, *order.startVertex, *order.endVertex, *pTargetVertex, order, wiggleRoom);
 
         if (!isSane) {
           break;
@@ -559,9 +559,9 @@ void decycle(gsl::not_null<Job const *> const pJob) {
   auto const pMaxSpanTree = make_not_null_and_const(std::any_cast<Graph const *>(pJob->getParam(3)));
   if (pEdge->getConsensusDirection() != Direction::e_NONE &&
       !pMaxSpanTree->hasEdge(std::make_pair(pEdge->getVertices().first, pEdge->getVertices().second))) {
-    auto const          shortestPath = GraphUtil::getShortestPath(pMaxSpanTree, pEdge->getVertices());
-    lazybastard::Toggle direction    = pEdge->getConsensusDirection() == Direction::e_POS;
-    auto const          baseWeight   = static_cast<double>(pEdge->getWeight());
+    auto const        shortestPath = GraphUtil::getShortestPath(pMaxSpanTree, pEdge->getVertices());
+    muchsalsa::Toggle direction    = pEdge->getConsensusDirection() == Direction::e_POS;
+    auto const        baseWeight   = static_cast<double>(pEdge->getWeight());
 
     std::vector<double> weights;
     auto const          pGraph = make_not_null_and_const(std::any_cast<Graph *>(pJob->getParam(1)));
@@ -602,7 +602,7 @@ void decycle(gsl::not_null<Job const *> const pJob) {
 void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
   auto const pConnectedComponent =
-      make_not_null_and_const(std::any_cast<std::vector<lazybastard::graph::Vertex *> const *>(pJob->getParam(5)));
+      make_not_null_and_const(std::any_cast<std::vector<muchsalsa::graph::Vertex *> const *>(pJob->getParam(5)));
 
   auto const subGraph         = pGraph->getSubgraph(*pConnectedComponent);
   auto const subGraphVertices = subGraph.getVertices();
@@ -613,13 +613,13 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const        pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNplVertex != nullptr) {
-    auto       diGraph = lazybastard::getDirectionGraph(pMatchMap, *pGraph, subGraph, *pMaxNplVertex);
-    auto const paths   = lazybastard::linearizeGraph(&diGraph);
+    auto       diGraph = muchsalsa::getDirectionGraph(pMatchMap, *pGraph, subGraph, *pMaxNplVertex);
+    auto const paths   = muchsalsa::linearizeGraph(&diGraph);
 
     Id2OverlapMap id2OverlapMap;
     auto *const   pAssemblyIdx = std::any_cast<std::atomic<int> *>(pJob->getParam(6));
     std::for_each(std::begin(paths), std::end(paths), [&](auto const &path) {
-      lazybastard::assemblePath(
+      muchsalsa::assemblePath(
           &id2OverlapMap, *pMatchMap,
           *std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(3)),
           *std::any_cast<SequenceAccessor *>(pJob->getParam(4)), path, diGraph, ++(*pAssemblyIdx),

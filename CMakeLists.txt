@@ -12,8 +12,8 @@ mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
 set(CMAKE_C_COMPILER "clang-12")
 set(CMAKE_CXX_COMPILER "clang++-12")
 
-set(TARGET "lazybastard")
-set(LIBNAME "lb")
+set(TARGET "muchsalsa")
+set(LIBNAME "ms")
 
 project(${TARGET} CXX)
 include(cmake/StandardProjectSettings.cmake)
