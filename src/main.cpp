@@ -457,9 +457,7 @@ void findContractionTargets(gsl::not_null<Job const *> const pJob) {
 
     auto const *const contractTo = (*pContractionTargets)[pOrder->endVertex];
 
-    if ((*pContractionTargets)[pOrder->startVertex] == pOrder->startVertex ||
-        (*pContractionTargets)[pOrder->startVertex]->getMetaDatum<std::size_t>(0) >
-            contractTo->getMetaDatum<std::size_t>(0)) {
+    if ((*pContractionTargets)[pOrder->startVertex] == pOrder->startVertex) {
       (*pContractionTargets)[pOrder->startVertex] = contractTo;
     }
   }
@@ -508,10 +506,8 @@ void contract(gsl::not_null<Job const *> const pJob) {
       std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get()); // NOLINT
   auto const pContainElements = gsl::make_not_null(
       std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(2)));
-  auto const iterContainElements =
-      pContainElements->insert(std::make_pair(pOrder->endVertex, std::vector<ContainElement>()));
 
-  iterContainElements.first->second.push_back(ContainElement{std::move(matches), pOrder->startVertex->getId(),
+  (*pContainElements)[pOrder->endVertex].push_back(ContainElement{std::move(matches), pOrder->startVertex->getId(),
                                                              pOrder->startVertex->getNanoporeLength(), pOrder->score,
                                                              pOrder->direction, pOrder->isPrimary});
 

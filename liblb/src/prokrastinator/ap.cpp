@@ -1329,14 +1329,13 @@ void lazybastard::assemblePath(
             std::get<1>(tap.at(adg.getVertex(registryAdg[tupleTuple2Id(tapId)]))) + globalLeftMostPosition;
 
         auto const contDir       = containElement.matches.at(std::get<1>(info))->direction * direction;
-        int        offset        = 0;
         auto const illuminaRange = containElement.matches.at(std::get<1>(info))->illuminaRange;
         if (!contDir) {
-          offset = illuminaRange.first - illuminaRef;
-          globalRanges.emplace_back(totalRef - offset - illuminaRange.first - illuminaRange.second, totalRef - offset);
+          auto const offset = illuminaRange.first - illuminaRef;
+          globalRanges.emplace_back(totalRef - offset - (illuminaRange.second - illuminaRange.first), totalRef - offset);
         } else {
-          offset = illuminaRange.second - illuminaRef;
-          globalRanges.emplace_back(totalRef + offset - illuminaRange.first - illuminaRange.second, totalRef + offset);
+          auto const offset = illuminaRange.second - illuminaRef;
+          globalRanges.emplace_back(totalRef + offset - (illuminaRange.second - illuminaRange.first), totalRef + offset);
         }
       }
 
@@ -1347,7 +1346,7 @@ void lazybastard::assemblePath(
         sequences2Write.emplace_back(getIlluminaSequence(*pSequenceAccessor, illuminaId, match->illuminaRange.first,
                                                          match->illuminaRange.second, match->direction * direction),
                                      std::get<0>(globalRanges.at(idxGlobalRange)),
-                                     std::get<1>(globalRanges[idxGlobalRange]), "Illumina_Match");
+                                     std::get<1>(globalRanges.at(idxGlobalRange)), "Illumina_Match");
 
         if (idxGlobalRange == 0) {
           continue;
