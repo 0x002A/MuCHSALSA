@@ -27,7 +27,7 @@
 #include <cstddef>
 #include <gsl/pointers>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
@@ -136,13 +136,6 @@ public:
   getVertexMatches(unsigned int vertexId) const;
 
   /**
-   * Getter returning all VertexMatch instances stored within this MatchMap.
-   *
-   * @return A const reference to the std::unordered_map containing all VertexMatch instances
-   */
-  [[nodiscard]] auto const &getVertexMatches() const;
-
-  /**
    * Deletes all VertexMatch instances for a specific Vertex stored within this MatchMap.
    *
    * @param vertexId an unsigned int representing the id of the Vertex
@@ -179,13 +172,6 @@ public:
    */
   [[nodiscard]] std::unordered_map<unsigned int, std::shared_ptr<EdgeMatch>> const *
   getEdgeMatches(muchsalsa::graph::Edge const *pEdge) const;
-
-  /**
-   * Getter returning all EdgeMatch instances stored within this MatchMap.
-   *
-   * @return A const reference to the std::unordered_map containing all EdgeMatch instances
-   */
-  [[maybe_unused]] [[nodiscard]] auto const &getEdgeMatches() const;
 
   /**
    * Deletes all EdgeMatch instances for a specific Edge stored within this MatchMap.
@@ -228,13 +214,13 @@ private:
   um_t<muchsalsa::graph::Edge const *, um_t<unsigned int, std::shared_ptr<EdgeMatch>>>
       m_edgeMatches; /*!< std::unordered_map containing the EdgeMatch instances */
   um_t<unsigned int, um_t<graph::Vertex *, std::shared_ptr<VertexMatch>>>
-             m_scaffolds;          /*!< std::unordered_map containing the scaffolds */
-  std::mutex m_mutexVertexMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing
-                               the VertexMatches */
-  std::mutex m_mutexEdgeMatches; /*!< std::mutex for securing the parallel use of the std::unordered_map containing the
-                                    EdgeMatches */
-  threading::ThreadPool *const m_pThreadPool; /*!< Pointer pointing to the ThreadPool used for parallelization */
-  graph::Graph *const          m_pGraph;      /*!< Pointer pointing to the Graph receiving the Vertex instances */
+                            m_scaffolds;          /*!< std::unordered_map containing the scaffolds */
+  mutable std::shared_mutex m_mutexVertexMatches; /*!< std::shared_mutex for securing the parallel use of the
+                               std::unordered_map containing the VertexMatches */
+  mutable std::shared_mutex m_mutexEdgeMatches; /*!< std::shared_mutex for securing the parallel use of the std::unordered_map
+                                    containing the EdgeMatches */
+  threading::ThreadPool *const m_pThreadPool;   /*!< Pointer pointing to the ThreadPool used for parallelization */
+  graph::Graph *const          m_pGraph;        /*!< Pointer pointing to the Graph receiving the Vertex instances */
 };
 
 // =====================================================================================================================
@@ -252,17 +238,13 @@ inline MatchMap::MatchMap(gsl::not_null<threading::ThreadPool *> const pThreadPo
   pGraph->attachObserver(this);
 }
 
-[[nodiscard]] inline auto const &MatchMap::getVertexMatches() const { return m_vertexMatches; }
-
 inline void MatchMap::deleteVertexMatches(unsigned int vertexId) {
-  std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
+  std::lock_guard<std::shared_mutex> lck(m_mutexVertexMatches);
   m_vertexMatches.erase(vertexId);
 }
 
-[[maybe_unused]] [[nodiscard]] inline auto const &MatchMap::getEdgeMatches() const { return m_edgeMatches; }
-
 inline void MatchMap::deleteEdgeMatches(muchsalsa::graph::Edge const *pEdge) {
-  std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
+  std::lock_guard<std::shared_mutex> lck(m_mutexEdgeMatches);
   m_edgeMatches.erase(pEdge);
 }
 

@@ -56,7 +56,7 @@ void MatchMap::addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId,
     throw std::runtime_error("Unexpected nullptr.");
   }
 
-  std::scoped_lock<std::mutex> lck(m_mutexVertexMatches);
+  std::lock_guard<std::shared_mutex> lck(m_mutexVertexMatches);
 
   // Actual map containing the matches
   auto &illuminaIds = m_vertexMatches[nanoporeId];
@@ -81,6 +81,8 @@ void MatchMap::addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId,
 }
 
 [[nodiscard]] VertexMatch const *MatchMap::getVertexMatch(unsigned int vertexId, unsigned int illuminaId) const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexVertexMatches);
+
   auto const vertexIter = m_vertexMatches.find(vertexId);
   if (vertexIter != std::end(m_vertexMatches)) {
     auto const illuminaIter = vertexIter->second.find(illuminaId);
@@ -94,6 +96,8 @@ void MatchMap::addVertexMatch(unsigned int nanoporeId, unsigned int illuminaId,
 
 [[nodiscard]] std::unordered_map<unsigned int, std::shared_ptr<VertexMatch>> const *
 MatchMap::getVertexMatches(unsigned int vertexId) const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexVertexMatches);
+
   auto iter = m_vertexMatches.find(vertexId);
   if (iter != std::end(m_vertexMatches)) {
     return &(iter->second);
@@ -108,7 +112,7 @@ void MatchMap::addEdgeMatch(muchsalsa::graph::Edge const *const pEdge, unsigned 
     throw std::runtime_error("Unexpected nullptr.");
   }
 
-  std::scoped_lock<std::mutex> lck(m_mutexEdgeMatches);
+  std::scoped_lock<std::shared_mutex> lck(m_mutexEdgeMatches);
 
   // Actual map containing the matches
   auto &illuminaIds = m_edgeMatches[pEdge];
@@ -131,11 +135,11 @@ void MatchMap::addEdgeMatch(muchsalsa::graph::Edge const *const pEdge, unsigned 
 
 [[nodiscard]] EdgeMatch const *MatchMap::getEdgeMatch(muchsalsa::graph::Edge const *const pEdge,
                                                       unsigned int                        illuminaId) const {
-  auto const edgeIter = m_edgeMatches.find(pEdge);
-  if (edgeIter != std::end(m_edgeMatches)) {
-    auto const illuminaIter = edgeIter->second.find(illuminaId);
-    if (illuminaIter != std::end(edgeIter->second)) {
-      return illuminaIter->second.get();
+  std::shared_lock<std::shared_mutex> lck(m_mutexEdgeMatches);
+
+  if (m_edgeMatches.contains(pEdge)) {
+    if (m_edgeMatches.at(pEdge).contains(illuminaId)) {
+      return m_edgeMatches.at(pEdge).at(illuminaId).get();
     }
   }
 
@@ -144,6 +148,8 @@ void MatchMap::addEdgeMatch(muchsalsa::graph::Edge const *const pEdge, unsigned 
 
 [[nodiscard]] std::unordered_map<unsigned int, std::shared_ptr<EdgeMatch>> const *
 MatchMap::getEdgeMatches(muchsalsa::graph::Edge const *const pEdge) const {
+  std::shared_lock<std::shared_mutex> lck(m_mutexEdgeMatches);
+
   auto const iter = m_edgeMatches.find(pEdge);
   if (iter != std::end(m_edgeMatches)) {
     return &iter->second;

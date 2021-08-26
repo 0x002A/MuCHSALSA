@@ -185,10 +185,11 @@ void getClusterAnchors(
     for (auto const *const pVertex : anchorCliques.at(idx)) {
       (*pClusterModifier)[pVertex->getId()][illuminaIdBase] = idx;
 
+      auto const *const pMatch = matchMap.getEdgeMatch(edges.at(pVertex->getId()), illuminaIdBase);
       if (!commonOverlap) {
-        commonOverlap = matchMap.getEdgeMatch(edges.at(pVertex->getId()), illuminaIdBase)->overlap;
+        commonOverlap = pMatch->overlap;
       } else {
-        auto const otherOverlap = matchMap.getEdgeMatch(edges.at(pVertex->getId()), illuminaIdBase)->overlap;
+        auto const otherOverlap = pMatch->overlap;
 
         commonOverlap = std::make_pair(std::max(commonOverlap->first, otherOverlap.first),
                                        std::min(commonOverlap->second, otherOverlap.second));
