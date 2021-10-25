@@ -87,7 +87,7 @@ void sortReduction(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycl
 
       auto const successors = pDiGraphCycle->getSuccessors(pVertex);
       for (auto const &[idSuccessor, pEdge] : successors) {
-        LB_UNUSED(pEdge);
+        MS_UNUSED(pEdge);
 
         auto const *const pSuccessor = pDiGraphCycle->getVertex(idSuccessor);
 
@@ -175,7 +175,7 @@ void findClusterWeights(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge 
     auto &     idxSuccessors = mappingSuccessors[pVertex]; // NOLINT
     auto const successors    = pDiGraphCycle->getSuccessors(pVertex);
     for (auto const &[targetId, pEdge] : successors) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       idxSuccessors.insert(mappingVertexToIdx.at(pDiGraphCycle->getVertex(targetId)));
     }
@@ -183,7 +183,7 @@ void findClusterWeights(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge 
     auto &     idxPredecessors = mappingPredecessors[pVertex]; // NOLINT
     auto const predecessors    = pDiGraphCycle->getPredecessors(pVertex);
     for (auto const &[targetId, pEdge] : predecessors) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       idxPredecessors.insert(mappingVertexToIdx.at(pDiGraphCycle->getVertex(targetId)));
     }
@@ -245,7 +245,7 @@ void findClusterWeights(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge 
     std::vector<std::vector<std::size_t>> maxVisited;
     std::size_t                           maxLength = 0;
     for (auto const &[open, visited] : candidates) {
-      LB_UNUSED(open);
+      MS_UNUSED(open);
 
       if (visited.size() > maxLength) {
         maxVisited = {visited};
@@ -289,7 +289,7 @@ std::vector<muchsalsa::graph::Vertex const *> findConservationPath(
   for (auto const *const pVertex : sortedVertices) {
     if (outDegrees.at(pVertex) == 0) {
       for (auto const &[val, path] : openPaths) {
-        LB_UNUSED(val);
+        MS_UNUSED(val);
 
         if (path.back() == pVertex) {
           finalizedPaths.emplace_back(std::begin(path), std::end(path));
@@ -392,7 +392,7 @@ extractPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
       auto const predecessors = pDiGraph->getPredecessors(longestPath.front());
 
       for (auto const &[targetId, pEdge] : predecessors) {
-        LB_UNUSED(pEdge);
+        MS_UNUSED(pEdge);
 
         auto const *const pPredecessor = pDiGraph->getVertex(targetId);
         muchsalsa::util::exchange_if(isInVisit, true, visited.contains(pPredecessor));
@@ -401,7 +401,7 @@ extractPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
       auto       isOutVisit = false;
       auto const successors = pDiGraph->getSuccessors(longestPath.back());
       for (auto const &[targetId, pEdge] : successors) {
-        LB_UNUSED(pEdge);
+        MS_UNUSED(pEdge);
 
         auto const *const pSuccessor = pDiGraph->getVertex(targetId);
         muchsalsa::util::exchange_if(isOutVisit, true, visited.contains(pSuccessor));

@@ -59,6 +59,7 @@
 #include <ms/types/Toggle.h>
 
 #include "Application.h"
+#include "TrackingAllocator.h"
 
 // =====================================================================================================================
 //                                                  USING DECLARATIONS
@@ -190,7 +191,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
     auto contractionTargetsJob = [](Job const *const pJob) { findContractionTargets(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       wg.add(1);
       auto job = Job(contractionTargetsJob, &wg, pOrder, &contractionTargets, std::ref(mutex));
@@ -204,7 +205,7 @@ auto main(int const argc, char const *argv[]) -> int {
     std::set<Vertex const *const> contractionRoots;
     auto                          deletableVerticesJob = [](Job const *const pJob) { findDeletableVertices(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       wg.add(1);
       auto job = Job(deletableVerticesJob, &wg, pOrder, &deletableVertices, &contractionRoots, &contractionTargets,
@@ -219,7 +220,7 @@ auto main(int const argc, char const *argv[]) -> int {
     std::unordered_map<Vertex const *, std::vector<ContainElement>> containElements;
     auto contractionJob = [](Job const *const pJob) { contract(pJob); };
     for (auto const &[pEdge, pOrder] : contractionEdges) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       if (!contractionRoots.contains(pOrder->endVertex)) {
         continue;
@@ -304,6 +305,10 @@ auto main(int const argc, char const *argv[]) -> int {
     std::cerr << "Exception occurred: " << '\n' << e.what();
   }
 
+#ifdef TRACK_MEMORY_USAGE
+  std::cout << "Peak of memory usage: " << getMemoryUsagePeak() << " bytes\n";
+#endif
+
   return 0;
 }
 
@@ -325,7 +330,7 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   for (auto const &[illuminaId, edgeMatch] : *pEdgeMatches) {
-    LB_UNUSED(edgeMatch);
+    MS_UNUSED(edgeMatch);
 
     if (edgeMatch->direction) {
       plusIDs.push_back(illuminaId);
@@ -410,7 +415,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
       auto const neighbors = pGraph->getNeighbors(order.startVertex);
       auto const edges     = std::map<unsigned int, Edge *>(std::begin(neighbors), std::end(neighbors));
       for (auto const &[targetId, pSubedge] : edges) {
-        LB_UNUSED(pSubedge);
+        MS_UNUSED(pSubedge);
 
         auto const *const pTargetVertex = pGraph->getVertex(targetId);
 

@@ -957,7 +957,7 @@ auto GraphUtil::getShortestPath(
     }
 
     for (auto const &[neighbor, pEdge] : _getReachableVertices(*pGraph, pVertex)) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
       auto const *const pNeighbor = pGraph->getVertex(neighbor);
 
       auto const distNeighbor = distances[pVertex] + 1;

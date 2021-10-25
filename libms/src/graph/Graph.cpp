@@ -185,7 +185,7 @@ void GraphBase::_deleteVertex(gsl::not_null<Vertex const *> const pVertex, bool 
 
   if (!hasBidirectionalEdges) {
     for (auto &[targetId, connectedVertices] : m_adjacencyList) {
-      LB_UNUSED(targetId);
+      MS_UNUSED(targetId);
 
       auto const iterPredecessor = connectedVertices.find(pVertex->getId());
       if (iterPredecessor != std::end(connectedVertices)) {
@@ -376,7 +376,7 @@ std::vector<muchsalsa::graph::Vertex const *> DiGraph::sortTopologically() const
 
     auto const successors = getSuccessors(pVertex);
     for (auto const &[targetId, pEdge] : successors) {
-      LB_UNUSED(pEdge);
+      MS_UNUSED(pEdge);
 
       auto const *pSuccessor = getVertex(targetId);
 

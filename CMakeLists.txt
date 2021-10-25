@@ -63,6 +63,11 @@ add_subdirectory("lib${LIBNAME}")
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
 add_executable(${TARGET} ${SOURCES})
 
+option(ENABLE_TRACK_MEMORY_USAGE "Enable tracking of memory allocations" OFF)
+if (ENABLE_TRACK_MEMORY_USAGE)
+    target_compile_definitions(${TARGET} PRIVATE TRACK_MEMORY_USAGE)
+endif ()
+
 option(ENABLE_BUILD_FAT_EXE "Enable linking dependencies statically" OFF)
 if (ENABLE_BUILD_FAT_EXE)
     target_link_options(${TARGET} PRIVATE -static)

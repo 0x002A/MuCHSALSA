@@ -23,13 +23,12 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdlib>
 #include <cstring>
 #include <span>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "IO.h"
 #include "Registry.h"
 #include "Util.h"
 #include "threading/Job.h"
@@ -145,28 +144,28 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
   auto const identifierDescline  = m_nanoporeFileIsFastQ ? FASTQ_IDENTIFIER_DESCLINE : FASTA_IDENTIFIER_DESCLINE;
   auto const identifierSplitline = m_nanoporeFileIsFastQ ? FASTQ_IDENTIFIER_SPLITLINE : FASTA_IDENTIFIER_DESCLINE;
 
-  char *      pLine       = nullptr;
-  std::size_t bufferSize  = 0;
-  auto        ret         = getline(&pLine, &bufferSize, m_pNanoporeSequenceFile.get());
+  char       *pLine       = nullptr;
+  std::size_t sizeBuffer  = 0;
+  auto        ret         = readline(&pLine, &sizeBuffer, m_pNanoporeSequenceFile.get());
   auto        offsetStart = std::ftell(m_pNanoporeSequenceFile.get());
   while (ret != -1) {
     if (*pLine == identifierDescline) {
       break;
     }
 
-    ret         = getline(&pLine, &bufferSize, m_pNanoporeSequenceFile.get());
+    ret         = readline(&pLine, &sizeBuffer, m_pNanoporeSequenceFile.get());
     offsetStart = std::ftell(m_pNanoporeSequenceFile.get());
   }
 
   while (*pLine == identifierDescline) {
-    std::span const spanLine(pLine, bufferSize);
+    std::span const spanLine(pLine, sizeBuffer);
     auto            sequenceId = std::string(spanLine.subspan(1).data());
     cleanSequenceId(sequenceId);
 
     auto lengthCurrentSequence = 0L;
 
     while (true) {
-      ret            = getline(&pLine, &bufferSize, m_pNanoporeSequenceFile.get());
+      ret            = readline(&pLine, &sizeBuffer, m_pNanoporeSequenceFile.get());
       auto offsetEnd = std::ftell(m_pNanoporeSequenceFile.get());
 
       if (ret == -1 || *pLine == identifierSplitline) {
@@ -180,41 +179,39 @@ void SequenceAccessor::_buildNanoporeIdx(gsl::not_null<threading::Job const *> p
     }
 
     while (ret != -1 && *pLine != identifierDescline) {
-      ret         = getline(&pLine, &bufferSize, m_pNanoporeSequenceFile.get());
+      ret         = readline(&pLine, &sizeBuffer, m_pNanoporeSequenceFile.get());
       offsetStart = std::ftell(m_pNanoporeSequenceFile.get());
     }
   }
 
-  if (pLine) {
-    std::free(pLine); // NOLINT
-  }
+  operator delete(pLine); // NOLINT
 
   std::any_cast<threading::WaitGroup *>(pJob->getParam(0))->done();
 }
 
 void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> pJob) {
-  char *      pLine       = nullptr;
-  std::size_t bufferSize  = 0;
-  auto        ret         = getline(&pLine, &bufferSize, m_pIlluminaSequenceFile.get());
+  char       *pLine       = nullptr;
+  std::size_t sizeBuffer  = 0;
+  auto        ret         = readline(&pLine, &sizeBuffer, m_pIlluminaSequenceFile.get());
   auto        offsetStart = std::ftell(m_pIlluminaSequenceFile.get());
   while (ret != -1) {
     if (*pLine == FASTA_IDENTIFIER_DESCLINE) {
       break;
     }
 
-    ret         = getline(&pLine, &bufferSize, m_pIlluminaSequenceFile.get());
+    ret         = readline(&pLine, &sizeBuffer, m_pIlluminaSequenceFile.get());
     offsetStart = std::ftell(m_pIlluminaSequenceFile.get());
   }
 
   while (*pLine == FASTA_IDENTIFIER_DESCLINE) {
-    std::span const spanLine(pLine, bufferSize);
+    std::span const spanLine(pLine, sizeBuffer);
     auto            sequenceId = std::string(spanLine.subspan(1).data());
     cleanSequenceId(sequenceId);
 
     auto lengthCurrentSequence = 0L;
 
     while (true) {
-      ret            = getline(&pLine, &bufferSize, m_pIlluminaSequenceFile.get());
+      ret            = readline(&pLine, &sizeBuffer, m_pIlluminaSequenceFile.get());
       auto offsetEnd = std::ftell(m_pIlluminaSequenceFile.get());
 
       if (ret == -1 || *pLine == FASTA_IDENTIFIER_DESCLINE) {
@@ -228,9 +225,7 @@ void SequenceAccessor::_buildIlluminaIdx(gsl::not_null<threading::Job const *> p
     }
   }
 
-  if (pLine) {
-    std::free(pLine); // NOLINT
-  }
+  operator delete(pLine); // NOLINT
 
   std::any_cast<threading::WaitGroup *>(pJob->getParam(0))->done();
 }

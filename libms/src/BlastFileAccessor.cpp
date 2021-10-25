@@ -21,8 +21,9 @@
 
 #include "BlastFileAccessor.h"
 
-#include <cstdlib>
 #include <gsl/pointers>
+
+#include "IO.h"
 
 namespace muchsalsa {
 
@@ -51,12 +52,12 @@ std::string BlastFileAccessor::getLine(int64_t const &offset) {
 
   std::fseek(m_pBlastFile.get(), offset, SEEK_SET);
 
-  char *      pLine      = nullptr;
-  std::size_t bufferSize = 0;
-  auto        ret        = getline(&pLine, &bufferSize, m_pBlastFile.get());
+  char       *pLine      = nullptr;
+  std::size_t sizeBuffer = 0;
+  auto        ret        = readline(&pLine, &sizeBuffer, m_pBlastFile.get());
 
   auto result = [=]() {
-    if (ret != -1 && bufferSize > 0) {
+    if (ret != -1 && sizeBuffer > 0) {
       auto line = std::string(pLine);
       line.pop_back();
 
@@ -66,9 +67,7 @@ std::string BlastFileAccessor::getLine(int64_t const &offset) {
     return std::string();
   }();
 
-  if (pLine) {
-    std::free(pLine); // NOLINT
-  }
+  operator delete(pLine); // NOLINT
 
   return result;
 }
@@ -76,21 +75,19 @@ std::string BlastFileAccessor::getLine(int64_t const &offset) {
 // PRIVATE CLASS METHODS
 
 void BlastFileAccessor::_buildIndex() {
-  char *      pLine      = nullptr;
-  std::size_t bufferSize = 0;
+  char       *pLine      = nullptr;
+  std::size_t sizeBuffer = 0;
   auto        offset     = std::ftell(m_pBlastFile.get());
-  auto        ret        = getline(&pLine, &bufferSize, m_pBlastFile.get());
+  auto        ret        = readline(&pLine, &sizeBuffer, m_pBlastFile.get());
 
   while (ret != -1) {
     m_offsets.push_back(offset);
 
     offset = std::ftell(m_pBlastFile.get());
-    ret    = getline(&pLine, &bufferSize, m_pBlastFile.get());
+    ret    = readline(&pLine, &sizeBuffer, m_pBlastFile.get());
   }
 
-  if (pLine) {
-    std::free(pLine); // NOLINT
-  }
+  operator delete(pLine); // NOLINT
 }
 
 } // namespace muchsalsa

@@ -19,57 +19,24 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#ifndef INCLUDED_MUCHSALSA_UTIL
-#define INCLUDED_MUCHSALSA_UTIL
+#ifndef INCLUDED_MUCHSALSA_TRACKINGALLOCATOR
+#define INCLUDED_MUCHSALSA_TRACKINGALLOCATOR
 
 #pragma once
 
-#include <algorithm>
-#include <gsl/pointers>
-#include <memory>
-#include <type_traits>
-#include <utility>
-
-#define MS_UNUSED(x) (void)(x)
-
-namespace muchsalsa::util {
+#include <cstddef>
 
 // =====================================================================================================================
-//                                                       UTILITIES
+//                                                    FREE FUNCTIONS
 // =====================================================================================================================
 
-template <class TYPE, class... ARGS> std::shared_ptr<TYPE> make_shared_aggregate(ARGS &&...args) {
-  return std::make_shared<TYPE>(TYPE{std::forward<ARGS>(args)...});
-}
+/**
+ * Getter returning the peak memory usage in bytes.
+ *
+ * @return The peak memory usage in bytes
+ */
+std::size_t getMemoryUsagePeak();
 
-template <class TYPE> TYPE const *make_const(TYPE *pT) { return static_cast<TYPE const *>(pT); }
-
-template <class TYPE> TYPE const *make_const(TYPE const *pT) { return pT; }
-
-template <class TYPE> gsl::not_null<TYPE const *> make_not_null_and_const(TYPE *pT) {
-  return gsl::make_not_null(make_const(pT));
-}
-
-template <class TYPE> constexpr void swap_if(TYPE &first, TYPE &second, bool p) {
-  if (p) {
-    std::swap(first, second);
-  }
-}
-
-template <class BI_DIR_ITER> constexpr void reverse_if(BI_DIR_ITER first, BI_DIR_ITER last, bool p) {
-  if (p) {
-    std::reverse(first, last);
-  }
-}
-
-template <class TYPE, class U = TYPE> constexpr void exchange_if(TYPE &obj, U &&new_value, bool p) {
-  if (p) {
-    std::exchange(obj, std::forward<U>(new_value));
-  }
-}
-
-} // namespace muchsalsa::util
-
-#endif // INCLUDED_MUCHSALSA_UTIL
+#endif // INCLUDED_MUCHSALSA_TRACKINGALLOCATOR
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
