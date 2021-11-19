@@ -3,8 +3,7 @@
 **Mu**lti-**C**ore **H**ybrid **S**hort- **A**nd **L**ong-read **S**equence **A**ssembler
 
 Based on:
-Gatter, T., von Löhneysen, S., Fallmann, J. et al. LazyB: fast and cheap genome assembly. Algorithms Mol Biol 16, 8 (
-2021).
+Gatter, T., von Löhneysen, S., Fallmann, J. et al. LazyB: fast and cheap genome assembly. Algorithms Mol Biol 16, 8 (2021).
 
 # Prerequisites
 
@@ -26,7 +25,7 @@ can be downloaded from the releases page on GitHub.
 The pipeline can be run using the following command:
 
 ```bash
-sh pipeline.sh \[k-mer-size-filter\] \[k-mer-size-assembly\] \[name\] \[illumina-inputfile-1\] \[illumina-inputfile-2\]] \[nanopore-inputfile\] \[output-folder\]
+sh pipeline.sh [k-mer-size-filter] [k-mer-size-assembly] [name] [illumina-inputfile-1] [illumina-inputfile-2] [nanopore-inputfile] [output-folder]
 ```
 
 **Note**: The level of parallelization used for parts (default value: 8) of the pipeline is set via a variable
