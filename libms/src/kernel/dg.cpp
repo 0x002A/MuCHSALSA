@@ -32,10 +32,10 @@
 #include "types/Direction.h"
 #include "types/Toggle.h"
 
-muchsalsa::graph::DiGraph muchsalsa::getDirectionGraph(gsl::not_null<muchsalsa::matching::MatchMap *> pMatchMap,
-                                                       muchsalsa::graph::Graph const &                graph,
-                                                       muchsalsa::graph::Graph const & connectedComponent,
-                                                       muchsalsa::graph::Vertex const &startNode) {
+muchsalsa::graph::DiGraph muchsalsa::getDirectedGraph(gsl::not_null<muchsalsa::matching::MatchMap *> pMatchMap,
+                                                      muchsalsa::graph::Graph const                 &graph,
+                                                      muchsalsa::graph::Graph const                 &connectedComponent,
+                                                      muchsalsa::graph::Vertex const                &startNode) {
   std::stack<std::tuple<graph::Vertex const *, Toggle>> stack;
   stack.push(std::make_tuple(&startNode, true));
 

@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "Lb.fwd.h"
+#include "MS.fwd.h"
 
 namespace muchsalsa {
 

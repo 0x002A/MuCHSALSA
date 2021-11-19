@@ -58,76 +58,60 @@ struct KeyEqual : public std::binary_function<key_t, key_t, bool> {
 // class Id2OverlapMap
 // -------------------
 
+/**
+ * Class representing the mapping of pairs of a illumina id and a clique index to overlaps.
+ */
 class Id2OverlapMap {
 public:
   /**
-   * Constructor.
-   */
-  Id2OverlapMap() = default;
-
-  /**
-   * Destructor.
-   */
-  ~Id2OverlapMap() = default;
-
-  /**
-   * Moving is disallowed.
-   */
-  Id2OverlapMap(Id2OverlapMap const &) = delete;
-
-  /**
-   * Copying is disallowed.
-   */
-  Id2OverlapMap(Id2OverlapMap &&) = delete;
-
-  /**
-   * Move assignment is disallowed.
-   */
-  Id2OverlapMap &operator=(Id2OverlapMap &&) = delete;
-
-  /**
-   * Copy assignment is disallowed.
-   */
-  Id2OverlapMap &operator=(Id2OverlapMap const &) = delete;
-
-  /**
    * Assigment operator.
    *
-   * @param key
-   * @return
+   * @param key a const reference to a std::pair of an unsigned int and a std::size_t representing the illumina id and
+   *            the clique index which the overlap is or should become mapped to
+   * @return A reference to the mapped overlap, performing an insertion if no element with a key equivalent to key exist
    */
   std::pair<int, int> &operator[](detail::key_t const &key);
 
   /**
    * Access operator.
    *
-   * @param key
-   * @return
+   * @param key a const reference to a std::pair of an unsigned int and a std::size_t representing the illumina id and
+   *            the clique index which the overlap is mapped to
+   * @return A const reference to the mapped overlap
+   * @throws std::out_of_range
    */
   std::pair<int, int> const &at(detail::key_t const &key) const;
 
   /**
    * Access operator.
    *
-   * @param key
-   * @return
+   * @param key a const reference to a std::pair of an unsigned int and a std::size_t representing the illumina id and
+   *            the clique index which the overlap is mapped to
+   * @return A reference to the mapped overlap
+   * @throws std::out_of_range
    */
   std::pair<int, int> &at(detail::key_t const &key);
-
-  std::size_t getSize() const;
 
 private:
   std::unordered_map<detail::key_t, std::pair<int, int>, detail::KeyHash, detail::KeyEqual>
       m_map; /*!< std::unordered_map storing the mapping */
 };
 
+// =====================================================================================================================
+//                                                  INLINE DEFINITIONS
+// =====================================================================================================================
+
+// -------------------
+// class Id2OverlapMap
+// -------------------
+
+// PUBLIC CLASS METHODS
+
 inline std::pair<int, int> &Id2OverlapMap::operator[](detail::key_t const &key) { return m_map[key]; }
 
 inline std::pair<int, int> &Id2OverlapMap::at(detail::key_t const &key) { return m_map.at(key); }
 
 inline std::pair<int, int> const &Id2OverlapMap::at(detail::key_t const &key) const { return m_map.at(key); }
-
-inline std::size_t Id2OverlapMap::getSize() const { return m_map.size(); }
 
 } // namespace muchsalsa::matching
 

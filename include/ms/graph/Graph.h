@@ -38,7 +38,7 @@
 #include <utility>
 #include <vector>
 
-#include "Lb.fwd.h"
+#include "MS.fwd.h"
 #include "Util.h"
 #include "graph/Vertex.h"
 

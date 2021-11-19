@@ -29,9 +29,9 @@
 
 namespace {
 
-std::pair<double, double> computeOverhangs(muchsalsa::matching::MatchMap const & matches,
-                                           muchsalsa::graph::Vertex const *const pVertex,
-                                           muchsalsa::graph::Edge const &edge, unsigned int illuminaId) {
+std::pair<double, double> getOverhangs(muchsalsa::matching::MatchMap const  &matches,
+                                       muchsalsa::graph::Vertex const *const pVertex,
+                                       muchsalsa::graph::Edge const &edge, unsigned int illuminaId) {
   auto const pVertexMatch = gsl::make_not_null(matches.getVertexMatch(pVertex->getId(), illuminaId));
   auto const pEdgeMatch   = gsl::make_not_null(matches.getEdgeMatch(&edge, illuminaId));
 
@@ -52,19 +52,19 @@ std::pair<double, double> computeOverhangs(muchsalsa::matching::MatchMap const &
 
 } // unnamed namespace
 
-std::optional<muchsalsa::graph::EdgeOrder> muchsalsa::computeOverlap(muchsalsa::matching::MatchMap const &matches,
-                                                                     std::vector<unsigned int> &          ids,
-                                                                     muchsalsa::graph::Edge const &edge, bool direction,
-                                                                     std::size_t score, bool isPrimary) {
+std::optional<muchsalsa::graph::EdgeOrder> muchsalsa::getOverlap(muchsalsa::matching::MatchMap const &matches,
+                                                                 std::vector<unsigned int>           &ids,
+                                                                 muchsalsa::graph::Edge const &edge, bool direction,
+                                                                 std::size_t score, bool isPrimary) {
   auto const &firstId = ids.front();
   auto const &lastId  = ids.back();
 
   auto const vertices = edge.getVertices();
 
-  auto const overhangsFirstIdFirstVertex  = computeOverhangs(matches, vertices.first, edge, firstId);
-  auto const overhangsLastIdFirstVertex   = computeOverhangs(matches, vertices.first, edge, lastId);
-  auto const overhangsFirstIdSecondVertex = computeOverhangs(matches, vertices.second, edge, firstId);
-  auto const overhangsLastIdSecondVertex  = computeOverhangs(matches, vertices.second, edge, lastId);
+  auto const overhangsFirstIdFirstVertex  = getOverhangs(matches, vertices.first, edge, firstId);
+  auto const overhangsLastIdFirstVertex   = getOverhangs(matches, vertices.first, edge, lastId);
+  auto const overhangsFirstIdSecondVertex = getOverhangs(matches, vertices.second, edge, firstId);
+  auto const overhangsLastIdSecondVertex  = getOverhangs(matches, vertices.second, edge, lastId);
 
   auto const leftOverhangFirstVertex  = overhangsFirstIdFirstVertex.first;
   auto const rightOverhangFirstVertex = overhangsLastIdFirstVertex.second;
