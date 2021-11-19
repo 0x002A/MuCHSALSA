@@ -1090,7 +1090,7 @@ void muchsalsa::assemblePath(
 
   auto       globalLeftMostPosition = globalPos1 * -1;
   auto const targetName             = [&]() {
-    std::string targetName = ">Prokrastinator_";
+    std::string targetName = ">muchsalsa_";
     targetName.append(std::to_string(asmIdx));
 
     return targetName;

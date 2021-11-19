@@ -31,7 +31,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "Lb.fwd.h"
+#include "MS.fwd.h"
 #include "graph/Graph.h"
 #include "types/Toggle.h"
 

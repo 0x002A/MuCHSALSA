@@ -26,7 +26,7 @@
 
 #include <gsl/pointers>
 
-#include "Lb.fwd.h"
+#include "MS.fwd.h"
 
 namespace muchsalsa {
 

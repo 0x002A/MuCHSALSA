@@ -284,8 +284,9 @@ auto main(int const argc, char const *argv[]) -> int {
     TRACE("Starting assembly\n");
 
     //// OUTPUT FILES ////
-    OutputWriter outputWriter(app.getOutputFilePath() + "/temp.query.fa", app.getOutputFilePath() + "/temp.align.paf",
-                              app.getOutputFilePath() + "/temp.target.fa");
+    OutputWriter outputWriter(app.getOutputFilePath() + "/temp_1.query.fa",
+                              app.getOutputFilePath() + "/temp_1.align.paf",
+                              app.getOutputFilePath() + "/temp_1.target.fa");
     //// /OUTPUT FILES ////
 
     std::atomic<int> assemblyIdx{-1};
@@ -386,16 +387,16 @@ void chainingAndOverlaps(gsl::not_null<Job const *> const pJob) {
   }
 
   std::for_each(std::begin(minusPaths), std::end(minusPaths), [=](auto &minusPath) {
-    auto const overlap = muchsalsa::computeOverlap(*pMatchMap, std::get<0>(minusPath), *pEdge, false,
-                                                   std::get<1>(minusPath), std::get<2>(minusPath));
+    auto const overlap = muchsalsa::getOverlap(*pMatchMap, std::get<0>(minusPath), *pEdge, false,
+                                               std::get<1>(minusPath), std::get<2>(minusPath));
     if (overlap.has_value()) {
       pEdge->appendOrder(std::move(overlap.value()));
     }
   });
 
   std::for_each(std::begin(plusPaths), std::end(plusPaths), [=](auto &plusPath) {
-    auto const order = muchsalsa::computeOverlap(*pMatchMap, std::get<0>(plusPath), *pEdge, true, std::get<1>(plusPath),
-                                                 std::get<2>(plusPath));
+    auto const order = muchsalsa::getOverlap(*pMatchMap, std::get<0>(plusPath), *pEdge, true, std::get<1>(plusPath),
+                                             std::get<2>(plusPath));
     if (order.has_value()) {
       pEdge->appendOrder(std::move(order.value()));
     }
@@ -618,7 +619,7 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
   auto const        pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
 
   if (pMaxNplVertex != nullptr) {
-    auto       diGraph = muchsalsa::getDirectionGraph(pMatchMap, *pGraph, subGraph, *pMaxNplVertex);
+    auto       diGraph = muchsalsa::getDirectedGraph(pMatchMap, *pGraph, subGraph, *pMaxNplVertex);
     auto const paths   = muchsalsa::linearizeGraph(&diGraph);
 
     Id2OverlapMap id2OverlapMap;

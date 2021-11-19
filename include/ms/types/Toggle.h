@@ -37,7 +37,7 @@ namespace muchsalsa {
 /**
  * Class representing a toggle which can reach two possible states.
  *
- * A toggle has the size of a bool, but supports operations like an unsigned integer.
+ * A toggle has the size of a bool, but supports operations like an integer.
  *
  * Example:
  *

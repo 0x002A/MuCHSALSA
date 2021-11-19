@@ -19,8 +19,8 @@
 //
 //===---------------------------------------------------------------------------------------------------------------==//
 
-#ifndef INCLUDED_MUCHSALSA_PROKRASTINATOR
-#define INCLUDED_MUCHSALSA_PROKRASTINATOR
+#ifndef INCLUDED_MUCHSALSA_KERNEL
+#define INCLUDED_MUCHSALSA_KERNEL
 
 #pragma once
 
@@ -31,7 +31,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Lb.fwd.h"
+#include "MS.fwd.h"
 #include "graph/Edge.h"
 
 namespace muchsalsa {
@@ -40,9 +40,8 @@ namespace muchsalsa {
 //                                                        KERNEL
 // =====================================================================================================================
 
-std::optional<graph::EdgeOrder> computeOverlap(matching::MatchMap const &matches, std::vector<unsigned int> &ids,
-                                               graph::Edge const &edge, bool direction, std::size_t score,
-                                               bool isPrimary);
+std::optional<graph::EdgeOrder> getOverlap(matching::MatchMap const &matches, std::vector<unsigned int> &ids,
+                                           graph::Edge const &edge, bool direction, std::size_t score, bool isPrimary);
 
 std::vector<std::tuple<std::vector<unsigned int>, std::size_t, bool>>
 getMaxPairwisePaths(matching::MatchMap const &matches, graph::Edge const &edge,
@@ -55,8 +54,8 @@ graph::Graph getMaxSpanTree(graph::Graph const &graph);
 
 std::vector<std::vector<muchsalsa::graph::Vertex *>> getConnectedComponents(graph::Graph const &graph);
 
-graph::DiGraph getDirectionGraph(gsl::not_null<matching::MatchMap *> pMatchMap, graph::Graph const &graph,
-                                 graph::Graph const &connectedComponent, graph::Vertex const &startNode);
+graph::DiGraph getDirectedGraph(gsl::not_null<matching::MatchMap *> pMatchMap, graph::Graph const &graph,
+                                graph::Graph const &connectedComponent, graph::Vertex const &startNode);
 
 std::vector<std::vector<muchsalsa::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
 
@@ -68,6 +67,6 @@ void assemblePath(
 
 } // namespace muchsalsa
 
-#endif // INCLUDED_MUCHSALSA_PROKRASTINATOR
+#endif // INCLUDED_MUCHSALSA_KERNEL
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
