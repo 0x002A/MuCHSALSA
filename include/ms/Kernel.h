@@ -52,12 +52,23 @@ bool sanityCheck(graph::Graph const &graph, graph::Vertex const &subnode, graph:
 
 graph::Graph getMaxSpanTree(graph::Graph const &graph);
 
+void sortReductionByWeight(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycle);
+
 std::vector<std::vector<muchsalsa::graph::Vertex *>> getConnectedComponents(graph::Graph const &graph);
 
+std::vector<std::vector<muchsalsa::graph::Vertex *>> splitConnectedComponentsbyChineseWhispers(muchsalsa::graph::Graph const &graph, std::vector<muchsalsa::graph::Edge const *> * const outOfComponentEdges);
+
 graph::DiGraph getDirectedGraph(gsl::not_null<matching::MatchMap *> pMatchMap, graph::Graph const &graph,
-                                graph::Graph const &connectedComponent, graph::Vertex const &startNode);
+                                 graph::Graph const &connectedComponent, graph::Vertex const &startNode);
+
+std::vector<std::vector<muchsalsa::graph::Vertex const *>> getChineseDominantPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph);
 
 std::vector<std::vector<muchsalsa::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
+
+std::vector<std::vector<muchsalsa::graph::Vertex const *>>
+joinChinesePaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph,
+                            std::vector<std::vector<muchsalsa::graph::Vertex const *> > const &pDPaths,
+                            std::vector<muchsalsa::graph::Edge const *> const &outOfComponentEdges);
 
 void assemblePath(
     gsl::not_null<matching::Id2OverlapMap *> pId2OverlapMap, matching::MatchMap const &matchMap,

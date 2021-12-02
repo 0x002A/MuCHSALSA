@@ -63,7 +63,7 @@ std::string_view strSlice(std::string_view original, int intStart, int intEnd) {
     std::size_t intEnd =
         std::max(std::min(original.size(), static_cast<std::size_t>(std::max(0, j))), static_cast<std::size_t>(i));
 
-    return original.substr(intStart, intEnd - intStart);
+    return original.substr(intStart, intEnd - intStart + 1);
   };
 
   int const size = static_cast<int>(original.size());
@@ -319,7 +319,7 @@ visitOrdered(gsl::not_null<std::unordered_map<muchsalsa::graph::Vertex const *, 
               std::make_pair(std::get<0>(pTap->at(pAnchorRight)), std::get<1>(pTap->at(pAnchorRight))));
         } else if (!hasAnchorLeft and hasAnchorRight) {
           auto const posRight  = std::get<0>(pTap->at(pAnchorRight));
-          (*pTap)[pAnchorLeft] = std::make_tuple(posRight - offset - 2 - lengthLeft, posRight - offset - 1);
+          (*pTap)[pAnchorLeft] = std::make_tuple(posRight - offset - lengthLeft, posRight - offset - 1);
 
           if (offset > 0) {
             std::tie(sequence, borderLeft, borderRight) =

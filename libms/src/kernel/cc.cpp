@@ -24,6 +24,7 @@
 #include <deque>
 #include <functional>
 #include <iterator>
+#include <random>
 #include <set>
 #include <utility>
 
@@ -67,6 +68,78 @@ muchsalsa::getConnectedComponents(muchsalsa::graph::Graph const &graph) {
   }
 
   return result;
+}
+
+
+std::vector<std::vector<muchsalsa::graph::Vertex *>>
+muchsalsa::splitConnectedComponentsbyChineseWhispers(muchsalsa::graph::Graph const &graph, std::vector<muchsalsa::graph::Edge const *> * const outOfComponentEdges) {
+
+    auto const vertices = graph.getVertices();
+    std::size_t size = vertices.size();
+    std::random_device rd;
+    std::default_random_engine re(rd());
+    std::uniform_int_distribution<std::size_t> unirand(0, size-1);
+    
+    std::unordered_map<graph::Vertex const *, std::size_t> mappingVertex2Idx;
+    
+    std::size_t groupCounter = 0;
+    for (auto *const itVertex : vertices) {
+        mappingVertex2Idx[itVertex] = groupCounter;
+        groupCounter++;
+    }
+
+    for(std::size_t i = 0; i <= 50*size; i++){
+    
+         std::unordered_map<std::size_t, unsigned int> neighbourcount;
+         auto *const randomVertex = vertices[ unirand(re) ];
+         
+         auto const currentNeighbors = graph.getNeighbors(randomVertex);
+         for (auto iterNeighbor = std::begin(currentNeighbors); iterNeighbor != std::end(currentNeighbors); ++iterNeighbor) {
+             auto *pNeighbor = graph.getVertex(iterNeighbor->first);
+             
+             auto *const edge = graph.getEdge(std::make_pair(randomVertex, pNeighbor));
+             if (!edge->isShadow()) {
+                 neighbourcount[ mappingVertex2Idx[pNeighbor] ]++;
+             }
+         }
+
+         if (neighbourcount.empty()) {
+             continue;
+         }
+
+         std::size_t const newGroup = std::max_element(neighbourcount.begin(), neighbourcount.end(),
+                             [](const std::pair<std::size_t, unsigned int> &p1,
+                                const std::pair<std::size_t, unsigned int> &p2)
+                             {
+                                 return p1.second < p2.second;
+                             })->first;
+
+         mappingVertex2Idx[randomVertex] = newGroup;
+    }
+
+    std::vector<std::vector<muchsalsa::graph::Vertex *>> result;
+    std::unordered_map<std::size_t, std::size_t> groupToResultIdx;
+    
+    for (auto *const itVertex : vertices) {    
+        const std::size_t group = mappingVertex2Idx[itVertex];
+        if (groupToResultIdx.find(group) == groupToResultIdx.end()) {
+            std::vector<muchsalsa::graph::Vertex *> newInner;
+            result.push_back(std::move(newInner));
+            groupToResultIdx[group] = result.size()-1;
+        }
+
+        result[groupToResultIdx[group]].push_back(itVertex);
+    }
+    
+    
+    auto const edges = graph.getEdges();
+    for (auto const *const pEdge : edges) {
+       if ( mappingVertex2Idx[ pEdge->getVertices().first ] != mappingVertex2Idx[ pEdge->getVertices().second ] ) {
+          outOfComponentEdges->push_back(pEdge);
+       }
+    }
+    
+    return result;
 }
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
