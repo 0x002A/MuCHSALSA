@@ -34,3 +34,15 @@ build/
 
 # Debugger Config
 .atom-dbg.cson
+
+# Temporary files/dirs of pipeline
+tmp.*/
+pipeline/*fastq*.paf
+pipeline/ABYSS/
+pipeline/report.txt
+
+# Editor temp files
+.*.swp
+
+# Vagrant data
+.vagrant/
