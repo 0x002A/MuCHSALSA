@@ -68,7 +68,7 @@ Vagrant.configure("2") do |config|
     conda activate base
     # mamba update -y conda mamba           #  this breaks mamba o.O
     mamba install -y python numpy networkx abyss bbmap biopython \
-                     kmer-jellyfish minimap2
+                     kmer-jellyfish minimap2 quast
 
     # I want this d*%&n alias ...
     {
