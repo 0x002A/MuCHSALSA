@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
     apt-get update
     apt-get install -y clang-12 clang-format-12 clang-tidy-12 clang-tools-12 \
                        libc++-12-dev libc++abi-12-dev cmake make ninja-build \
-                       doxygen graphviz jellyfish tree
+                       doxygen graphviz tree
 
     # Global mamba config
     echo 'export MAMBA_NO_BANNER=1' >> /etc/bash.bashrc  # kill annoying art
@@ -67,7 +67,8 @@ Vagrant.configure("2") do |config|
     echo '### Installing dependencies using mamba'
     conda activate base
     # mamba update -y conda mamba           #  this breaks mamba o.O
-    mamba install -y abyss python minimap2 bbmap numpy networkx biopython
+    mamba install -y python numpy networkx abyss bbmap biopython \
+                     kmer-jellyfish minimap2
 
     # I want this d*%&n alias ...
     {
