@@ -40,6 +40,10 @@ namespace muchsalsa {
 //                                                        KERNEL
 // =====================================================================================================================
 
+std::pair<double, double> getOverhangs(muchsalsa::matching::MatchMap const  &matches,
+                                       muchsalsa::graph::Vertex const *const pVertex,
+                                       muchsalsa::graph::Edge const &edge, unsigned int illuminaId);
+
 std::optional<graph::EdgeOrder> getOverlap(matching::MatchMap const &matches, std::vector<unsigned int> &ids,
                                            graph::Edge const &edge, bool direction, std::size_t score, bool isPrimary);
 
@@ -56,19 +60,10 @@ void sortReductionByWeight(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiG
 
 std::vector<std::vector<muchsalsa::graph::Vertex *>> getConnectedComponents(graph::Graph const &graph);
 
-std::vector<std::vector<muchsalsa::graph::Vertex *>> splitConnectedComponentsbyChineseWhispers(muchsalsa::graph::Graph const &graph, std::vector<muchsalsa::graph::Edge const *> * const outOfComponentEdges);
-
 graph::DiGraph getDirectedGraph(gsl::not_null<matching::MatchMap *> pMatchMap, graph::Graph const &graph,
                                  graph::Graph const &connectedComponent, graph::Vertex const &startNode);
 
-std::vector<std::vector<muchsalsa::graph::Vertex const *>> getChineseDominantPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph);
-
 std::vector<std::vector<muchsalsa::graph::Vertex const *>> linearizeGraph(gsl::not_null<graph::DiGraph *> pDiGraph);
-
-std::vector<std::vector<muchsalsa::graph::Vertex const *>>
-joinChinesePaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph,
-                            std::vector<std::vector<muchsalsa::graph::Vertex const *> > const &pDPaths,
-                            std::vector<muchsalsa::graph::Edge const *> const &outOfComponentEdges);
 
 void assemblePath(
     gsl::not_null<matching::Id2OverlapMap *> pId2OverlapMap, matching::MatchMap const &matchMap,
