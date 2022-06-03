@@ -68,90 +68,82 @@ void initializeInDegreeMaps(INPUT_IT_NON_NULL_IN_DEGREES nonNullInDegrees, INPUT
   }
 }
 
-void sortReduction(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycle) {
-  std::map<muchsalsa::graph::Vertex const *, std::size_t> verticesWithNonNullInDegree;
-  std::deque<muchsalsa::graph::Vertex const *>            verticesWithNullInDegree;
 
-  initializeInDegreeMaps(std::inserter(verticesWithNonNullInDegree, std::begin(verticesWithNonNullInDegree)),
-                         std::back_inserter(verticesWithNullInDegree), pDiGraphCycle);
+void findClusterWeightsHeuristic(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge const *, std::size_t> *> const pResult,
+                        gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycle) {
 
-  std::unordered_set<muchsalsa::graph::Vertex const *> neighbors;
-  if (!verticesWithNonNullInDegree.empty()) {
-    neighbors.insert(std::begin(verticesWithNonNullInDegree)->first);
+  pResult->clear();
+  auto const sortedVertices = pDiGraphCycle->sortTopologically();
+
+  std::unordered_map<muchsalsa::graph::Vertex const *, std::size_t> mappingVertexToIdx;
+
+  std::size_t idx = 0;
+  for (auto const *const pVertex : sortedVertices) {
+    mappingVertexToIdx.insert({pVertex, idx});
+    ++idx;
   }
 
-  while (true) {
-    while (!verticesWithNullInDegree.empty()) {
-      auto const *const pVertex = verticesWithNullInDegree.front();
-      verticesWithNullInDegree.pop_front();
+  auto const edges = pDiGraphCycle->getEdges();
+  std::for_each(std::begin(edges), std::end(edges), [&](auto const *const pEdge) { pResult->emplace(pEdge, 0); });
 
-      auto const successors = pDiGraphCycle->getSuccessors(pVertex);
-      for (auto const &[idSuccessor, pEdge] : successors) {
-        MS_UNUSED(pEdge);
+  for (auto const *const pVertex : sortedVertices) {
+      std::set<std::size_t > sortedSuccessors;
 
-        auto const *const pSuccessor = pDiGraphCycle->getVertex(idSuccessor);
-
-        verticesWithNonNullInDegree.at(pSuccessor) -= 1;
-
-        if (verticesWithNonNullInDegree.at(pSuccessor) == 0) {
-          verticesWithNullInDegree.push_back(pSuccessor);
-          verticesWithNonNullInDegree.erase(pSuccessor);
-
-          neighbors.erase(pSuccessor);
-        } else {
-          neighbors.insert(pSuccessor);
-        }
+      auto const successors    = pDiGraphCycle->getSuccessors(pVertex);
+      for (auto const &[targetId, pEdge] : successors) {
+         MS_UNUSED(pEdge);
+         sortedSuccessors.insert( mappingVertexToIdx.at(pDiGraphCycle->getVertex(targetId)) );
       }
-    }
+                           
+      std::unordered_map< muchsalsa::graph::Vertex const *, std::vector<std::size_t > > candidates;
+      candidates.insert( {pVertex,  { mappingVertexToIdx.at(pVertex) } } );
+      for (const auto successorID: sortedSuccessors) {
 
-    if (verticesWithNonNullInDegree.empty()) {
-      break;
-    }
+            std::vector<std::size_t > bestPath;
+            auto const *const v   = sortedVertices.at(successorID);
+          
+			auto const predecessors    = pDiGraphCycle->getPredecessors(v);
+			for (auto const &[targetId, pEdge] : predecessors) {
+				MS_UNUSED(pEdge);
 
-    auto hasNoNeighbors = neighbors.empty();
-    if (hasNoNeighbors) {
-      std::for_each(std::begin(verticesWithNonNullInDegree), std::end(verticesWithNonNullInDegree),
-                    [&](auto const &p) { neighbors.insert(p.first); });
-    }
+                 auto const *const preV = pDiGraphCycle->getVertex(targetId);
+                 auto const  preVCandidate = candidates.find(preV);
+                 if ( preVCandidate != std::end(candidates) ) {
+                      if (preVCandidate->second.size() > bestPath.size()) {
+                           bestPath = preVCandidate->second;
+                      }
+                 }
+			}
 
-    muchsalsa::graph::Vertex const *pMinVertex = nullptr;
-    auto                            minScore   = 0L;
-    for (auto const *const pNeighbor : neighbors) {
-      auto       score        = 0L;
-      auto const predecessors = pDiGraphCycle->getPredecessors(pNeighbor);
-
-      score = std::count_if(std::begin(predecessors), std::end(predecessors), [&](auto const &p) {
-        auto const *const pPredecessor = pDiGraphCycle->getVertex(p.first);
-        return verticesWithNonNullInDegree.contains(pPredecessor);
-      });
-
-      if (!pMinVertex || score < minScore) {
-        pMinVertex = pNeighbor;
-        minScore   = score;
+            bestPath.push_back(mappingVertexToIdx.at(v));
+            candidates.insert( {v, bestPath} );
       }
-    }
 
-    auto const predecessors = pDiGraphCycle->getPredecessors(pMinVertex);
-    std::for_each(std::begin(predecessors), std::end(predecessors), [&](auto const &p) {
-      auto const *const pPredecessor = pDiGraphCycle->getVertex(p.first);
-      if (verticesWithNonNullInDegree.contains(pPredecessor)) {
-        p.second->setShadow(true);
-        pDiGraphCycle->deleteEdge(p.second);
+      auto const bestPathofIDs = std::max_element(candidates.begin(), candidates.end(),
+                             [](const std::pair<muchsalsa::graph::Vertex const *, std::vector<std::size_t > > &p1,
+                                const std::pair<muchsalsa::graph::Vertex const *, std::vector<std::size_t > > &p2)
+                             {
+                                 return p1.second.size() < p2.second.size();
+                             })->second;
+
+      auto c = bestPathofIDs.size() - 1;
+      auto const limit = std::max(bestPathofIDs.size(), 1UL) - 1;
+
+      for (std::size_t i = 0; i < limit; ++i) {
+        auto const *const pV1   = sortedVertices.at(bestPathofIDs.at(i));
+        auto const *const pV2   = sortedVertices.at(bestPathofIDs.at(i + 1));
+        auto const *const pEdge = pDiGraphCycle->getEdge(std::make_pair(pV1, pV2));
+
+        (*pResult)[pEdge] += c;
+        c -= 1;
       }
-    });
-
-    verticesWithNonNullInDegree.erase(pMinVertex);
-    verticesWithNullInDegree.push_back(pMinVertex);
-    neighbors.erase(pMinVertex);
-
-    if (hasNoNeighbors) {
-      neighbors.clear();
-    }
   }
 }
 
+
 void findClusterWeights(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge const *, std::size_t> *> const pResult,
                         gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycle) {
+                        
   pResult->clear();
 
   auto const sortedVertices = pDiGraphCycle->sortTopologically();
@@ -271,9 +263,11 @@ void findClusterWeights(gsl::not_null<std::unordered_map<muchsalsa::graph::Edge 
   }
 }
 
-std::vector<muchsalsa::graph::Vertex const *> findConservationPath(
+
+std::vector<muchsalsa::graph::Vertex const *> findConservationPathAlt(
     gsl::not_null<muchsalsa::graph::DiGraph *> const                                             pDiGraphCycle,
     gsl::not_null<std::unordered_map<muchsalsa::graph::Edge const *, std::size_t> const *> const pClusterWeights) {
+       
   auto const sortedVertices = pDiGraphCycle->sortTopologically();
 
   std::unordered_map<muchsalsa::graph::Vertex const *, std::size_t> mappingVertexToIdx;
@@ -282,23 +276,24 @@ std::vector<muchsalsa::graph::Vertex const *> findConservationPath(
     mappingVertexToIdx.insert({sortedVertices[idx], idx});
   }
 
-  std::vector<std::vector<muchsalsa::graph::Vertex const *>>                          finalizedPaths;
-  std::vector<std::tuple<std::size_t, std::vector<muchsalsa::graph::Vertex const *>>> openPaths;
+  std::vector<muchsalsa::graph::Vertex const *> finalizedPath;
+  
+  std::unordered_map<muchsalsa::graph::Vertex const *, std::tuple<std::size_t, std::vector<muchsalsa::graph::Vertex const *> > > openPaths;
 
   auto const &outDegrees = pDiGraphCycle->getOutDegrees();
   for (auto const *const pVertex : sortedVertices) {
     if (outDegrees.at(pVertex) == 0) {
-      for (auto const &[val, path] : openPaths) {
-        MS_UNUSED(val);
-
-        if (path.back() == pVertex) {
-          finalizedPaths.emplace_back(std::begin(path), std::end(path));
-          auto const iterMaxPath =
-              std::max_element(std::begin(finalizedPaths), std::end(finalizedPaths),
-                               [](auto const &pLhs, auto const &pRhs) { return pLhs.size() < pRhs.size(); });
-          finalizedPaths = {std::move(*iterMaxPath)};
-        }
-      }
+          if (openPaths.find(pVertex) == openPaths.end()) {
+              if (finalizedPath.empty()) {
+                  finalizedPath = { pVertex };
+              }
+          } else {   
+              if (std::get<1>(openPaths[pVertex]).size() > finalizedPath.size() ) {
+                  finalizedPath = std::move(std::get<1>(openPaths[pVertex]));
+              } else {
+                  std::get<1>(openPaths[pVertex]).clear();
+              }       
+          }     
       continue;
     }
 
@@ -324,48 +319,40 @@ std::vector<muchsalsa::graph::Vertex const *> findConservationPath(
       }
     }
 
-    std::vector<std::size_t> maxIns;
-    std::size_t              maxIn = 0;
-    for (std::size_t idx = 0; idx < openPaths.size(); ++idx) {
-
-      if (std::get<1>(openPaths.at(idx)).back() == pVertex) {
-
-        auto const currentVal = std::get<0>(openPaths.at(idx));
-        if (currentVal > maxIn) {
-          maxIn  = currentVal;
-          maxIns = decltype(maxIns)({idx});
-        } else if (currentVal == maxIn) {
-          maxIns.push_back(idx);
-        }
-      }
-    }
-
     for (auto const &edge : maxOuts) {
-      if (!maxIns.empty()) {
-        auto const iterMaxElem =
-            std::max_element(std::begin(maxIns), std::end(maxIns), [&](auto const idxLhs, auto const idxRhs) {
-              return std::get<1>(openPaths[idxLhs]).size() < std::get<1>(openPaths[idxRhs]).size();
-            });
-
-        auto tmp = std::get<1>(openPaths[*iterMaxElem]);
-        tmp.push_back(edge.second);
-
-        openPaths.emplace_back(std::make_tuple(maxOut, std::move(tmp)));
+      const auto *const pNext = edge.second;
+      if (openPaths.find(pNext) != openPaths.end()) {
+      
+        if (std::get<0>(openPaths[pNext]) < maxOut  ||  ( std::get<0>(openPaths[pNext]) == maxOut  &&  std::get<1>(openPaths[pNext]).size() <  std::get<1>(openPaths[pVertex]).size() + 1 ) ) {
+            auto tmp = std::get<1>(openPaths[pVertex]);
+            tmp.push_back(edge.second);
+            openPaths[pNext] = std::make_tuple(maxOut, std::move(tmp));
+        }
+               
       } else {
-        openPaths.emplace_back(maxOut,
+      
+         if (openPaths.find(pVertex) != openPaths.end()) {
+            auto tmp = std::get<1>(openPaths[pVertex]);
+            tmp.push_back(edge.second);
+            openPaths[pNext] = std::make_tuple(maxOut, std::move(tmp));
+         } else {
+            openPaths[pNext] = std::make_tuple(maxOut,
                                std::initializer_list<muchsalsa::graph::Vertex const *>({edge.first, edge.second}));
+         }
+         
       }
     }
-    std::erase_if(openPaths, [&](auto const &t) {
-      return mappingVertexToIdx[std::get<1>(t).back()] <= mappingVertexToIdx[pVertex];
-    });
+    std::get<1>(openPaths[pVertex]).clear();
+    
   }
 
-  return finalizedPaths.front();
+  return finalizedPath;
 }
+
 
 std::vector<std::vector<muchsalsa::graph::Vertex const *>>
 extractPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
+
   auto diGraphCycle = *pDiGraph;
 
   auto const edges = diGraphCycle.getEdges();
@@ -375,17 +362,22 @@ extractPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
     }
   }
 
-  sortReduction(&diGraphCycle);
+  muchsalsa::sortReductionByWeight(&diGraphCycle);
 
   std::unordered_map<muchsalsa::graph::Edge const *, std::size_t> clusterWeights;
-  findClusterWeights(&clusterWeights, &diGraphCycle);
-
+  if (diGraphCycle.getOrder() < 150000) {
+     findClusterWeights(&clusterWeights, &diGraphCycle);
+  } else {
+     findClusterWeightsHeuristic(&clusterWeights, &diGraphCycle);
+  }
+  
   std::vector<std::vector<muchsalsa::graph::Vertex const *>> paths;
   std::unordered_set<muchsalsa::graph::Vertex const *>       visited;
 
   while (diGraphCycle.getSize() > 0) {
-    auto const longestPath = findConservationPath(&diGraphCycle, &clusterWeights);
-
+ 
+    auto const longestPath = findConservationPathAlt(&diGraphCycle, &clusterWeights);
+    
     if (longestPath.size() < 10) {
       auto isInVisit = false;
 
@@ -429,8 +421,113 @@ extractPaths(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
 
 } // unnamed namespace
 
+void muchsalsa::sortReductionByWeight(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraphCycle) {
+  std::map<muchsalsa::graph::Vertex const *, std::size_t> verticesWithNonNullInDegree;
+  std::deque<muchsalsa::graph::Vertex const *>            verticesWithNullInDegree;
+  std::unordered_set<muchsalsa::graph::Vertex const *>            resolvedVertices;
+
+  initializeInDegreeMaps(std::inserter(verticesWithNonNullInDegree, std::begin(verticesWithNonNullInDegree)),
+                         std::back_inserter(verticesWithNullInDegree), pDiGraphCycle);
+
+  std::unordered_set<muchsalsa::graph::Vertex const *> neighbors;
+  if (!verticesWithNonNullInDegree.empty()) {
+    neighbors.insert(std::begin(verticesWithNonNullInDegree)->first);
+  }
+
+  while (true) {
+
+    while (!verticesWithNullInDegree.empty()) {
+ 
+      auto const *const pVertex = verticesWithNullInDegree.front();
+      verticesWithNullInDegree.pop_front();
+
+      resolvedVertices.insert(pVertex);
+
+      auto const successors = pDiGraphCycle->getSuccessors(pVertex);
+      for (auto const &[idSuccessor, pEdge] : successors) {
+        MS_UNUSED(pEdge);
+
+        auto const *const pSuccessor = pDiGraphCycle->getVertex(idSuccessor);
+        verticesWithNonNullInDegree.at(pSuccessor) -= 1;
+
+        if (verticesWithNonNullInDegree.at(pSuccessor) == 0) {
+          verticesWithNullInDegree.push_back(pSuccessor);
+          verticesWithNonNullInDegree.erase(pSuccessor);
+
+          neighbors.erase(pSuccessor);
+        } else {
+          neighbors.insert(pSuccessor);
+        }
+      }
+    }
+    
+    if (verticesWithNonNullInDegree.empty()) {
+      break;
+    }
+
+    muchsalsa::graph::Edge *pMinEdge = nullptr;
+    muchsalsa::graph::Vertex const *pMinVertex = nullptr;
+    std::size_t minScore   = 0;    
+    if (neighbors.empty()) { 
+    
+        for ( const auto& [key, value] : verticesWithNonNullInDegree) {
+
+          const auto *const openVertex = key;
+          auto const predecessors = pDiGraphCycle->getPredecessors(openVertex);
+
+          std::for_each(std::begin(predecessors), std::end(predecessors), [&](auto const &p) {
+ 
+             auto * const prev = pDiGraphCycle->getVertex(p.first);
+             if (resolvedVertices.find(prev) == resolvedVertices.end() ) {
+
+		         auto  score = p.second->getWeight();
+		         if (!pMinEdge || score < minScore) {
+		            pMinEdge = p.second;
+		            pMinVertex = openVertex;
+		            minScore   = score;
+		         }
+             }
+          });
+        }    
+    } else {
+        for (auto const *const pNeighbor : neighbors) {
+          auto const predecessors = pDiGraphCycle->getPredecessors(pNeighbor);
+          std::for_each(std::begin(predecessors), std::end(predecessors), [&](auto const &p) {
+
+             auto * const prev = pDiGraphCycle->getVertex(p.first);
+             if (resolvedVertices.find(prev) == resolvedVertices.end() ) {
+
+		         auto  score = p.second->getWeight();
+		         if (!pMinEdge || score < minScore) {
+		            pMinEdge = p.second;
+		            pMinVertex = pNeighbor;
+		            minScore   = score;
+		         }
+              }
+          });
+        }
+    }
+    
+    pMinEdge->setShadow(true);
+
+    pDiGraphCycle->deleteEdge(pMinEdge);
+
+    verticesWithNonNullInDegree.at(pMinVertex) -= 1;
+
+    if ( verticesWithNonNullInDegree.at(pMinVertex) == 0 ) {
+
+		verticesWithNonNullInDegree.erase(pMinVertex);
+		verticesWithNullInDegree.push_back(pMinVertex);
+		neighbors.erase(pMinVertex);
+    }
+
+  }
+  
+}
+
 std::vector<std::vector<muchsalsa::graph::Vertex const *>>
 muchsalsa::linearizeGraph(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph) {
+
   auto paths = extractPaths(pDiGraph);
 
   std::unordered_map<std::size_t, std::size_t>           colorCorrection;
@@ -536,5 +633,81 @@ muchsalsa::linearizeGraph(gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGr
 
   return paths;
 }
+
+
+std::vector<muchsalsa::graph::Vertex const *> findLongestPath(
+    gsl::not_null<muchsalsa::graph::DiGraph *> const pDiGraph ) {
+    
+  auto const sortedVertices = pDiGraph->sortTopologically();
+  std::unordered_map<muchsalsa::graph::Vertex const *, std::size_t> mappingVertexToIdx;
+  for (std::size_t idx = 0; idx < sortedVertices.size(); ++idx) {
+    mappingVertexToIdx.insert({sortedVertices[idx], idx});
+  }
+
+  std::vector<std::size_t> dist(sortedVertices.size());
+    
+  for (auto const *const pVertex : sortedVertices) {
+
+      std::size_t longestDist = 0;  
+
+      auto const predecessors = pDiGraph->getPredecessors(pVertex);
+      for (auto const &[targetId, pEdge] : predecessors) {
+        MS_UNUSED(pEdge);
+
+        auto const *const pPredecessor = pDiGraph->getVertex(targetId);
+        auto const cdist = dist.at( mappingVertexToIdx[pPredecessor] );
+        if (cdist + 1 > longestDist) {
+            longestDist = cdist + 1;
+        }
+      }
+
+      dist[mappingVertexToIdx[pVertex]] = longestDist;
+  }
+  
+  
+  std::size_t maxDist = 0;
+  std::size_t maxIndex = 0;
+  for(std::size_t idx = 0; idx < dist.size(); ++idx){
+      if ( dist[idx] > maxDist ) {
+          maxDist = dist[idx];
+          maxIndex = idx;
+      } 
+  }
+
+  std::deque<muchsalsa::graph::Vertex const *> path;
+  const auto *pVertex = sortedVertices[maxIndex];
+
+  while(true) {
+            
+      path.push_front(pVertex);
+
+      auto const predecessors = pDiGraph->getPredecessors(pVertex);
+
+      if (predecessors.empty()) {
+          break;
+      }
+
+      std::size_t prevDist = 0;
+      muchsalsa::graph::Vertex const * prevVertex = nullptr;
+      for (auto const &[targetId, pEdge] : predecessors) {
+         MS_UNUSED(pEdge);
+
+         auto const *const pPredecessor = pDiGraph->getVertex(targetId);
+         auto const cdist = dist.at( mappingVertexToIdx[pPredecessor] );
+         if (cdist > prevDist || prevVertex == nullptr) {
+            prevVertex = pPredecessor;
+            prevDist = cdist;
+         }
+      }
+
+      pVertex = prevVertex;
+  }
+  
+  std::vector<muchsalsa::graph::Vertex const *> res(std::make_move_iterator(path.begin()), std::make_move_iterator(path.end()) );
+  return res;    
+ 
+}
+
+
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

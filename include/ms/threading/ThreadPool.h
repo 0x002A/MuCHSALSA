@@ -91,12 +91,38 @@ public:
    */
   void addJob(Job &&job);
 
+  /**
+   * Adds a Job to the inner queue of the ThreadPool.
+   *
+   * @param job an rvalue reference to the Job to be added.
+   */
+  void addSubJob(Job &&job);
+
+  /**
+   * Increase count of parents waiting for children.
+   */
+  void incPassive();
+
+  /**
+   * Decrease count of parents waiting for children.
+   */
+  void decPassive();
+
 private:
   std::vector<std::thread> m_threads;       /*!< std::vector containing the available threads */
   std::queue<Job>          m_jobs;          /*!< std::queue of Jobs to be executed */
-  std::mutex               m_mutex;         /*!< std::mutex for securing the parallel use of the std::queue */
-  std::atomic<bool> m_terminatePool{false}; /*!< bool indicating whether the ThreadPool is going to be terminated */
   std::condition_variable m_condition;      /*!< std::conditional_variable used to notify threads about new Jobs */
+  
+  std::vector<std::thread> s_threads;       /*!< std::vector containing the available sub-threads */
+  std::queue<Job>          s_jobs;          /*!< std::queue of Jobs to be executed as sub-threads */
+  std::condition_variable s_condition;      /*!< std::conditional_variable used to notify sub-threads about new Jobs */
+  std::atomic<int> s_passiveJobs{0};        /*!< int indicating how many parent-threads have started sub-threads  */
+
+  std::mutex               ms_mutex;         /*!< std::mutex for securing the parallel use of the std::queue and counters*/
+  std::atomic<int> ms_runningJobs{0};        /*!< int indicating how many jobs are actually running  */
+
+  std::atomic<bool> ms_terminatePool{false}; /*!< bool indicating whether the ThreadPool is going to be terminated */
+
 };
 
 } // namespace muchsalsa::threading

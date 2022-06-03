@@ -36,6 +36,7 @@
 #include "OutputWriter.h"
 #include "Registry.h"
 #include "SequenceAccessor.h"
+#include "SequenceUtils.h"
 #include "Util.h"
 #include "graph/Graph.h"
 #include "graph/Vertex.h"
@@ -56,19 +57,6 @@ constexpr auto TH_SEQUENCE_LENGTH   = 200;
 // =====================================================================================================================
 
 namespace {
-
-std::string_view strSlice(std::string_view original, int intStart, int intEnd) {
-  auto const doSlicing = [=](int i, int j) {
-    std::size_t intStart = static_cast<std::size_t>(std::max(0, i));
-    std::size_t intEnd =
-        std::max(std::min(original.size(), static_cast<std::size_t>(std::max(0, j))), static_cast<std::size_t>(i));
-
-    return original.substr(intStart, intEnd - intStart);
-  };
-
-  int const size = static_cast<int>(original.size());
-  return doSlicing(intStart >= 0 ? intStart : size + intStart, intEnd >= 0 ? intEnd : size + intEnd);
-}
 
 std::string limitLength(std::string_view original) {
   std::string formatted = std::string(original);
@@ -225,13 +213,13 @@ std::tuple<std::string, int, int> updateConsensusBase(std::optional<std::string_
   if (newBorders.first < oldBorders.first) {
     auto const borderRight = oldBorders.first - newBorders.first;
 
-    updatedSequence.append([=]() { return strSlice(newSequence, 0, borderRight); }());
+    updatedSequence.append([=]() { return muchsalsa::strSlice(newSequence, 0, borderRight); }());
     updatedSequence.append(oldSequence.value());
   } else if (newBorders.second > oldBorders.second) {
     updatedSequence.append(oldSequence.value());
 
     auto const borderLeft = -(newBorders.second - oldBorders.second);
-    updatedSequence.append(strSlice(newSequence, borderLeft, static_cast<int>(newSequence.size())));
+    updatedSequence.append(muchsalsa::strSlice(newSequence, borderLeft, static_cast<int>(newSequence.size())));
   } else {
     updatedSequence = oldSequence.value();
   }
@@ -319,7 +307,7 @@ visitOrdered(gsl::not_null<std::unordered_map<muchsalsa::graph::Vertex const *, 
               std::make_pair(std::get<0>(pTap->at(pAnchorRight)), std::get<1>(pTap->at(pAnchorRight))));
         } else if (!hasAnchorLeft and hasAnchorRight) {
           auto const posRight  = std::get<0>(pTap->at(pAnchorRight));
-          (*pTap)[pAnchorLeft] = std::make_tuple(posRight - offset - 2 - lengthLeft, posRight - offset - 1);
+          (*pTap)[pAnchorLeft] = std::make_tuple(posRight - offset - lengthLeft, posRight - offset - 1);
 
           if (offset > 0) {
             std::tie(sequence, borderLeft, borderRight) =
@@ -360,51 +348,6 @@ visitOrdered(gsl::not_null<std::unordered_map<muchsalsa::graph::Vertex const *, 
   return std::make_tuple(sequence, borderLeft, borderRight);
 }
 
-std::string getReverseComplement(std::string const &sequence) {
-  std::string reverseComplement;
-  reverseComplement.reserve(sequence.size());
-
-  std::transform(std::rbegin(sequence), std::rend(sequence), std::back_inserter(reverseComplement), [](auto const &c) {
-    switch (c) {
-    case 'A':
-      return 'T';
-    case 'T':
-      return 'A';
-    case 'G':
-      return 'C';
-    case 'C':
-      return 'G';
-    default:
-      return c;
-    }
-  });
-
-  return reverseComplement;
-}
-
-std::string getIlluminaSequence(muchsalsa::SequenceAccessor &sequenceAccessor, unsigned int illuminaId,
-                                int illuminaOverlapLeft, int illuminaOverlapRight, muchsalsa::Toggle const direction) {
-  auto illuminaSequence = std::string(
-      strSlice(sequenceAccessor.getIlluminaSequence(illuminaId), illuminaOverlapLeft, illuminaOverlapRight + 1));
-
-  if (!direction) {
-    return getReverseComplement(illuminaSequence);
-  }
-
-  return illuminaSequence;
-}
-
-std::string getNanoporeSequence(muchsalsa::SequenceAccessor &sequenceAccessor, unsigned int nanoporeId,
-                                int nanoporeRegionLeft, int nanoporeRegionRight, muchsalsa::Toggle const direction) {
-  auto nanoporeSequence = std::string(
-      strSlice(sequenceAccessor.getNanoporeSequence(nanoporeId), nanoporeRegionLeft, nanoporeRegionRight + 1));
-
-  if (!direction) {
-    return getReverseComplement(nanoporeSequence);
-  }
-
-  return nanoporeSequence;
-}
 
 std::string getSequenceLeftOfAnchor(muchsalsa::matching::MatchMap const &matchMap,
                                     muchsalsa::SequenceAccessor &sequenceAccessor, unsigned int nanoporeId,
@@ -417,26 +360,26 @@ std::string getSequenceLeftOfAnchor(muchsalsa::matching::MatchMap const &matchMa
 
     if (!pMatch->direction) {
       illuminaSequence =
-          getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, false);
+          muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, false);
     } else {
       illuminaSequence =
-          getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, true);
+          muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, true);
     }
 
-    illuminaSequence.append(getNanoporeSequence(sequenceAccessor, nanoporeId, pMatch->nanoporeRange.second,
+    illuminaSequence.append(muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, pMatch->nanoporeRange.second,
                                                 static_cast<int>(nanoporeLength) - 1, true));
 
-    return getReverseComplement(illuminaSequence);
+    return muchsalsa::getReverseComplement(illuminaSequence);
   }
 
-  auto nanoporeSequence = getNanoporeSequence(sequenceAccessor, nanoporeId, 0, pMatch->nanoporeRange.first, true);
+  auto nanoporeSequence = muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, 0, pMatch->nanoporeRange.first, true);
 
   if (!pMatch->direction) {
     nanoporeSequence.append(
-        getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, false));
+        muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, false));
   } else {
     nanoporeSequence.append(
-        getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, true));
+        muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, true));
   }
 
   return nanoporeSequence;
@@ -449,30 +392,30 @@ std::string getSequenceRightOfAnchor(muchsalsa::matching::MatchMap const &matchM
   auto const *const pMatch = matchMap.getVertexMatch(nanoporeId, illuminaId);
 
   if (!direction) {
-    auto nanoporeSequence = getNanoporeSequence(sequenceAccessor, nanoporeId, 0, pMatch->nanoporeRange.first, true);
+    auto nanoporeSequence = muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, 0, pMatch->nanoporeRange.first, true);
 
     if (!pMatch->direction) {
-      nanoporeSequence.append(getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second,
+      nanoporeSequence.append(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second,
                                                   pMatch->illuminaRange.second, false));
     } else {
       nanoporeSequence.append(
-          getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, true));
+          muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, true));
     }
 
-    return getReverseComplement(nanoporeSequence);
+    return muchsalsa::getReverseComplement(nanoporeSequence);
   }
 
   std::string illuminaSequence;
 
   if (!pMatch->direction) {
     illuminaSequence =
-        getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, false);
+        muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, pMatch->illuminaRange.first, illuminaOverlap.first, false);
   } else {
     illuminaSequence =
-        getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, true);
+        muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.second, pMatch->illuminaRange.second, true);
   }
 
-  illuminaSequence.append(getNanoporeSequence(sequenceAccessor, nanoporeId, pMatch->nanoporeRange.second,
+  illuminaSequence.append(muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, pMatch->nanoporeRange.second,
                                               static_cast<int>(nanoporeLength) - 1, true));
 
   return illuminaSequence;
@@ -483,7 +426,7 @@ std::string getAnchorSequence(muchsalsa::matching::MatchMap const &matchMap,
                               unsigned int illuminaId, std::pair<int, int> illuminaOverlap,
                               muchsalsa::Toggle const direction) {
   auto const combinedDirection = matchMap.getVertexMatch(nanoporeId, illuminaId)->direction * direction;
-  auto       illuminaSequence  = getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.first,
+  auto       illuminaSequence  = muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, illuminaOverlap.first,
                                               illuminaOverlap.second, combinedDirection);
 
   return illuminaSequence;
@@ -552,25 +495,25 @@ getSequenceBetweenAnchors(muchsalsa::matching::MatchMap const &matchMap, muchsal
 
     std::string sequence;
     if (!matchRight->direction) {
-      sequence = getIlluminaSequence(sequenceAccessor, illuminaIdRight, illuminaRangeRight.first + correctionRight,
+      sequence = muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdRight, illuminaRangeRight.first + correctionRight,
                                      overlapRight.first, false);
     } else {
-      sequence = getIlluminaSequence(sequenceAccessor, illuminaIdRight, overlapRight.second,
+      sequence = muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdRight, overlapRight.second,
                                      illuminaRangeRight.second - correctionRight, true);
     }
 
     sequence.append(
-        getNanoporeSequence(sequenceAccessor, nanoporeId, nanoporeRangeRight.second, nanoporeRangeLeft.first, true));
+        muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, nanoporeRangeRight.second, nanoporeRangeLeft.first, true));
 
     if (!matchLeft->direction) {
-      sequence.append(getIlluminaSequence(sequenceAccessor, illuminaIdLeft, overlapLeft.second,
+      sequence.append(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdLeft, overlapLeft.second,
                                           illuminaRangeLeft.second - correctionLeft, false));
     } else {
-      sequence.append(getIlluminaSequence(sequenceAccessor, illuminaIdLeft, illuminaRangeLeft.first + correctionLeft,
+      sequence.append(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdLeft, illuminaRangeLeft.first + correctionLeft,
                                           overlapLeft.first, true));
     }
 
-    return std::make_tuple(sequence.size(), getReverseComplement(sequence));
+    return std::make_tuple(sequence.size(), muchsalsa::getReverseComplement(sequence));
   }
 
   double errorOffset = nanoporeRangeLeft.second - nanoporeRangeRight.first;
@@ -614,21 +557,21 @@ getSequenceBetweenAnchors(muchsalsa::matching::MatchMap const &matchMap, muchsal
 
   std::string sequence;
   if (!matchLeft->direction) {
-    sequence = getIlluminaSequence(sequenceAccessor, illuminaIdLeft, illuminaRangeLeft.first + correctionLeft,
+    sequence = muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdLeft, illuminaRangeLeft.first + correctionLeft,
                                    overlapLeft.first, false);
   } else {
-    sequence = getIlluminaSequence(sequenceAccessor, illuminaIdLeft, overlapLeft.second,
+    sequence = muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdLeft, overlapLeft.second,
                                    illuminaRangeLeft.second - correctionLeft, true);
   }
 
   sequence.append(
-      getNanoporeSequence(sequenceAccessor, nanoporeId, nanoporeRangeLeft.second, nanoporeRangeRight.first, true));
+      muchsalsa::getNanoporeSequence(sequenceAccessor, nanoporeId, nanoporeRangeLeft.second, nanoporeRangeRight.first, true));
 
   if (!matchRight->direction) {
-    sequence.append(getIlluminaSequence(sequenceAccessor, illuminaIdRight, overlapRight.second,
+    sequence.append(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdRight, overlapRight.second,
                                         illuminaRangeRight.second - correctionRight, false));
   } else {
-    sequence.append(getIlluminaSequence(sequenceAccessor, illuminaIdRight, illuminaRangeRight.first + correctionRight,
+    sequence.append(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaIdRight, illuminaRangeRight.first + correctionRight,
                                         overlapRight.first, true));
   }
 
@@ -1342,7 +1285,7 @@ void muchsalsa::assemblePath(
       for (std::size_t idxGlobalRange = 0; idxGlobalRange < globalRanges.size(); ++idxGlobalRange) {
         auto const &illuminaId = std::get<1>(containInfo[idxGlobalRange]);
         auto const &match      = containElement.matches.at(illuminaId);
-        sequences2Write.emplace_back(getIlluminaSequence(sequenceAccessor, illuminaId, match->illuminaRange.first,
+        sequences2Write.emplace_back(muchsalsa::getIlluminaSequence(sequenceAccessor, illuminaId, match->illuminaRange.first,
                                                          match->illuminaRange.second, match->direction * direction),
                                      std::get<0>(globalRanges.at(idxGlobalRange)),
                                      std::get<1>(globalRanges.at(idxGlobalRange)), "Illumina_Match");
@@ -1352,7 +1295,7 @@ void muchsalsa::assemblePath(
         }
 
         auto const preNanopore = containElement.matches.at(std::get<1>(containInfo[idxGlobalRange - 1]))->nanoporeRange;
-        sequences2Write.emplace_back(getNanoporeSequence(sequenceAccessor, containElement.nano, preNanopore.second + 1,
+        sequences2Write.emplace_back(muchsalsa::getNanoporeSequence(sequenceAccessor, containElement.nano, preNanopore.second + 1,
                                                          match->nanoporeRange.first - 1, direction),
                                      std::get<1>(globalRanges.at(idxGlobalRange - 1)) + 1,
                                      std::get<0>(globalRanges.at(idxGlobalRange)) - 1, "Nano_Middle");

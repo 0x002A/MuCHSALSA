@@ -27,9 +27,8 @@
 #include "graph/Vertex.h"
 #include "matching/MatchMap.h"
 
-namespace {
 
-std::pair<double, double> getOverhangs(muchsalsa::matching::MatchMap const  &matches,
+std::pair<double, double> muchsalsa::getOverhangs(muchsalsa::matching::MatchMap const  &matches,
                                        muchsalsa::graph::Vertex const *const pVertex,
                                        muchsalsa::graph::Edge const &edge, unsigned int illuminaId) {
   auto const pVertexMatch = gsl::make_not_null(matches.getVertexMatch(pVertex->getId(), illuminaId));
@@ -50,7 +49,6 @@ std::pair<double, double> getOverhangs(muchsalsa::matching::MatchMap const  &mat
   return std::make_pair(overhangLeft, overhangRight);
 }
 
-} // unnamed namespace
 
 std::optional<muchsalsa::graph::EdgeOrder> muchsalsa::getOverlap(muchsalsa::matching::MatchMap const &matches,
                                                                  std::vector<unsigned int>           &ids,
@@ -61,10 +59,10 @@ std::optional<muchsalsa::graph::EdgeOrder> muchsalsa::getOverlap(muchsalsa::matc
 
   auto const vertices = edge.getVertices();
 
-  auto const overhangsFirstIdFirstVertex  = getOverhangs(matches, vertices.first, edge, firstId);
-  auto const overhangsLastIdFirstVertex   = getOverhangs(matches, vertices.first, edge, lastId);
-  auto const overhangsFirstIdSecondVertex = getOverhangs(matches, vertices.second, edge, firstId);
-  auto const overhangsLastIdSecondVertex  = getOverhangs(matches, vertices.second, edge, lastId);
+  auto const overhangsFirstIdFirstVertex  = muchsalsa::getOverhangs(matches, vertices.first, edge, firstId);
+  auto const overhangsLastIdFirstVertex   = muchsalsa::getOverhangs(matches, vertices.first, edge, lastId);
+  auto const overhangsFirstIdSecondVertex = muchsalsa::getOverhangs(matches, vertices.second, edge, firstId);
+  auto const overhangsLastIdSecondVertex  = muchsalsa::getOverhangs(matches, vertices.second, edge, lastId);
 
   auto const leftOverhangFirstVertex  = overhangsFirstIdFirstVertex.first;
   auto const rightOverhangFirstVertex = overhangsLastIdFirstVertex.second;

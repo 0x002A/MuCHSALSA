@@ -110,6 +110,8 @@ void findDeletableVertices(gsl::not_null<Job const *> pJob);
 
 void contract(gsl::not_null<Job const *> pJob);
 
+void findKmerDeletableEdges(gsl::not_null<Job const *> pJob);
+
 void findDeletableEdges(gsl::not_null<Job const *> pJob);
 
 void computeBitweight(gsl::not_null<Job const *> pJob);
@@ -117,6 +119,9 @@ void computeBitweight(gsl::not_null<Job const *> pJob);
 void decycle(gsl::not_null<Job const *> pJob);
 
 void assemblePaths(gsl::not_null<Job const *> pJob);
+
+void assemblePathsSub(gsl::not_null<Job const *> pJob);
+
 
 // =====================================================================================================================
 //                                                         Main
@@ -132,6 +137,7 @@ auto main(int const argc, char const *argv[]) -> int {
 
       return -1;
     }
+
 
     // Initialize threading
     auto const threadCount = app.getThreadCount();
@@ -172,6 +178,7 @@ auto main(int const argc, char const *argv[]) -> int {
     wg.wait();
 
     std::mutex                                          mutex;
+
     std::unordered_map<Edge const *, EdgeOrder const *> contractionEdges;
     auto contractionEdgesJob = [](Job const *const pJob) { findContractionEdges(pJob); };
     std::for_each(std::begin(edges), std::end(edges), [&](auto const *const pEdge) {
@@ -289,17 +296,18 @@ auto main(int const argc, char const *argv[]) -> int {
                               app.getOutputFilePath() + "/temp_1.target.fa");
     //// /OUTPUT FILES ////
 
+
     std::atomic<int> assemblyIdx{-1};
     auto             connectedComponents = muchsalsa::getConnectedComponents(graph);
     auto             assemblyJob         = [](Job const *const pJob) { assemblePaths(pJob); };
     for (auto const &connectedComponent : connectedComponents) {
 
       wg.add(1);
-      auto job = Job(assemblyJob, &wg, &graph, &matchMap, &containElements, &sequenceAccessor, &connectedComponent,
+      auto job = Job(assemblyJob, &wg, &threadPool, &graph, &matchMap, &containElements, &sequenceAccessor, &connectedComponent,
                      &assemblyIdx, std::ref(outputWriter));
       threadPool.addJob(std::move(job));
     }
-    wg.wait();
+    wg.wait(); 
 
     std::cout << "Finished assembly\n";
   } catch (std::exception const &e) {
@@ -415,6 +423,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
       auto       isSane    = true;
       auto const neighbors = pGraph->getNeighbors(order.startVertex);
       auto const edges     = std::map<unsigned int, Edge *>(std::begin(neighbors), std::end(neighbors));
+
       for (auto const &[targetId, pSubedge] : edges) {
         MS_UNUSED(pSubedge);
 
@@ -439,6 +448,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
       }
 
       if (isSane) {
+
         std::lock_guard<std::mutex> guard(std::any_cast<std::reference_wrapper<std::mutex>>(pJob->getParam(4)).get());
         auto const                  pContractionEdges =
             gsl::make_not_null(std::any_cast<std::unordered_map<Edge const *, EdgeOrder const *> *>(pJob->getParam(3)));
@@ -448,6 +458,7 @@ void findContractionEdges(gsl::not_null<Job const *> const pJob) {
       }
     }
   }
+
   std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
@@ -518,6 +529,7 @@ void contract(gsl::not_null<Job const *> const pJob) {
 
   std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
+
 
 void findDeletableEdges(gsl::not_null<Job const *> const pJob) {
   auto const             pEdge = gsl::make_not_null(std::any_cast<Edge *>(pJob->getParam(1)));
@@ -606,9 +618,9 @@ void decycle(gsl::not_null<Job const *> const pJob) {
 }
 
 void assemblePaths(gsl::not_null<Job const *> const pJob) {
-  auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(1)));
+  auto const pGraph = gsl::make_not_null(std::any_cast<Graph *>(pJob->getParam(2)));
   auto const pConnectedComponent =
-      make_not_null_and_const(std::any_cast<std::vector<muchsalsa::graph::Vertex *> const *>(pJob->getParam(5)));
+      make_not_null_and_const(std::any_cast<std::vector<muchsalsa::graph::Vertex *> const *>(pJob->getParam(6)));
 
   auto const subGraph         = pGraph->getSubgraph(*pConnectedComponent);
   auto const subGraphVertices = subGraph.getVertices();
@@ -616,24 +628,52 @@ void assemblePaths(gsl::not_null<Job const *> const pJob) {
       std::begin(subGraphVertices), std::end(subGraphVertices),
       [](Vertex const *v1, Vertex const *v2) { return v1->getNanoporeLength() < v2->getNanoporeLength(); });
   auto const *const pMaxNplVertex = maxNplVertexIter == std::end(subGraph.getVertices()) ? nullptr : *maxNplVertexIter;
-  auto const        pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(2)));
+  auto const        pMatchMap     = gsl::make_not_null(std::any_cast<MatchMap *>(pJob->getParam(3)));
 
   if (pMaxNplVertex != nullptr) {
+    
     auto       diGraph = muchsalsa::getDirectedGraph(pMatchMap, *pGraph, subGraph, *pMaxNplVertex);
+
     auto const paths   = muchsalsa::linearizeGraph(&diGraph);
 
-    Id2OverlapMap id2OverlapMap;
-    auto *const   pAssemblyIdx = std::any_cast<std::atomic<int> *>(pJob->getParam(6));
+    WaitGroup pathWG;
+    auto * pThreadPool = std::any_cast<ThreadPool *>(pJob->getParam(1));
+    auto             subAssemblyJob         = [](Job const *const pJob) { assemblePathsSub(pJob); };
+    
+    auto *const   pAssemblyIdx = std::any_cast<std::atomic<int> *>(pJob->getParam(7));
+    
     std::for_each(std::begin(paths), std::end(paths), [&](auto const &path) {
-      muchsalsa::assemblePath(
-          &id2OverlapMap, *pMatchMap,
-          *std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(3)),
-          *std::any_cast<SequenceAccessor *>(pJob->getParam(4)), path, diGraph, ++(*pAssemblyIdx),
-          std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(7)).get());
+         pathWG.add(1);      
+
+         auto job = Job(subAssemblyJob, &pathWG, std::any_cast<MatchMap *>(pJob->getParam(3)), path, &diGraph, pAssemblyIdx,     
+           std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>(pJob->getParam(4)),
+           std::any_cast<SequenceAccessor *>(pJob->getParam(5)),
+           std::any_cast<std::reference_wrapper<OutputWriter>>(pJob->getParam(8)));
+         pThreadPool->addSubJob(std::move(job));
     });
+
+    pThreadPool->incPassive();
+    pathWG.wait();
+    pThreadPool->decPassive();
   }
 
   std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
+}
+
+void assemblePathsSub(gsl::not_null<Job const *> const pJob) {
+
+    Id2OverlapMap id2OverlapMap;
+    muchsalsa::assemblePath(
+          &id2OverlapMap,
+          *std::any_cast<MatchMap *>( pJob->getParam(1) ),
+          *std::any_cast<std::unordered_map<Vertex const *, std::vector<ContainElement>> *>( pJob->getParam(5) ),
+          *std::any_cast<SequenceAccessor *>( pJob->getParam(6) ), 
+          std::any_cast<std::vector<muchsalsa::graph::Vertex const *> const>( pJob->getParam(2)  ), 
+          *std::any_cast<muchsalsa::graph::DiGraph *>( pJob->getParam(3) ),
+          ++(*std::any_cast<std::atomic<int> *>( pJob->getParam(4) )),
+           std::any_cast<std::reference_wrapper<OutputWriter>>( pJob->getParam(7) ).get());
+
+    std::any_cast<WaitGroup *>(pJob->getParam(0))->done();
 }
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------

@@ -24,6 +24,7 @@
 #include <deque>
 #include <functional>
 #include <iterator>
+#include <random>
 #include <set>
 #include <utility>
 
@@ -68,5 +69,6 @@ muchsalsa::getConnectedComponents(muchsalsa::graph::Graph const &graph) {
 
   return result;
 }
+
 
 // ---------------------------------------------------- END-OF-FILE ----------------------------------------------------
