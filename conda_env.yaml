@@ -1,6 +1,5 @@
 name: muchsalsa
 channels:
-  - file:////scr/bintang/felix/conda/conda-bld
   - conda-forge
   - bioconda
   - defaults
@@ -19,4 +18,3 @@ dependencies:
   - networkx
   - biopython
   - quast
-prefix: /scr/bintang/felix/conda/envs/muchsalsa
