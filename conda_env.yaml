@@ -1,0 +1,22 @@
+name: muchsalsa
+channels:
+  - file:////scr/bintang/felix/conda/conda-bld
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - make
+  - clang-format
+  - cmake
+  - ninja
+  - clang-12
+  - clang-tools
+  - libcxx=12
+  - ca-certificates
+  - openssl
+  - kmer-jellyfish
+  - numpy
+  - networkx
+  - biopython
+  - quast
+prefix: /scr/bintang/felix/conda/envs/muchsalsa
