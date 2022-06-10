@@ -2,8 +2,33 @@
 # This is an adapted version of the LazyB pipeline from
 # https://github.com/TGatter/LazyB
 
+##############################################################################
+##                                 Settings                                 ##
+##############################################################################
+
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
+
+CORES=8                     #number of cores can be set manually here
+MINLENGTH=500
+ABYSS_MODE=unitigs
+
+
+##############################################################################
+##                                Arguments                                 ##
+##############################################################################
+
+# Check number of positional arguments.
+if [ $# -ne 7 ]; then
+    cat <<END_OF_USAGE 1>&2
+MuCHSALSA -- Hybrid genome assembly pipeline
+Wrong number of arguments. Usage:
+    sh pipeline.sh [1:k-mer-size-filter] [2:k-mer-size-assembly] [3:name] \\
+         [4:illumina-inputfile-1] [5:illumina-inputfile-2] \\
+         [6:nanopore-inputfile] [7:output-folder]
+END_OF_USAGE
+    exit 1
+fi
 
 K_MER_JELLY=$1
 K_MER_ABYSS=$2
@@ -13,14 +38,26 @@ ILLUMINA_RAW_2=$5
 NANO=$6
 OUT_=$7
 
-CORES=8                     #number of cores can be set manually here
-MINLENGTH=500
-ABYSS_MODE=unitigs
+# Check existence of input files.
+check_files() {
+    for file in "$@"; do
+        [ -s "$file" ] || {
+            echo "ERROR: File '$file' is empty or does not exist" 1>&2
+            exit 1
+        }
+    done
+}
+check_files "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" "$NANO"
 
+# Make output path absolute.
 case $OUT_ in
   /*) OUT=$OUT_;;
   *) OUT=$PWD/$OUT_;;
 esac
+
+##############################################################################
+##                                   Main                                   ##
+##############################################################################
 
 mkdir -p $OUT               #create output folder if it doesn't already exist
 TMP=$(mktemp -d -p $OUT)    #create a temporary folder - deleted in the end
