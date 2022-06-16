@@ -28,8 +28,8 @@ jobs:
  
       - name: Install Doxygen and dot
         run: |
-          apt-get update
-          apt-get install doxygen graphviz
+          sudo apt-get update
+          sudo apt-get install doxygen graphviz
 
       - name: Build with cmake
         run: |
