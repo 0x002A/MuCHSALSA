@@ -21,6 +21,13 @@ jobs:
           version: latest
           platform: x64
 
+      - name: Install libc++-12
+        run: |
+          download_with_retries https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          ./llvm.sh 12
+          apt-get install -y clang-format-12 libc++-12-dev libc++abi-12-dev
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.12
         with:
@@ -29,7 +36,7 @@ jobs:
       - name: Install Doxygen and dot
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen graphviz
+          sudo apt-get install -y doxygen graphviz
 
       - name: Build with cmake
         run: |
