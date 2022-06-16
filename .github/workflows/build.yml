@@ -25,6 +25,11 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v1.12
         with:
           cmake-version: '3.24.x'
+ 
+      - name: Install Doxygen and dot
+        run: |
+          apt-get update
+          apt-get install doxygen graphviz
 
       - name: Build with cmake
         run: |
