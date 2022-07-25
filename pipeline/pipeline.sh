@@ -3,10 +3,30 @@
 # https://github.com/TGatter/LazyB
 
 ##############################################################################
+##                              Error handling                              ##
+##############################################################################
+
+set -Eeuo pipefail          # fail on any error
+
+# Abort on errors, displaying error message + code, kill all running jobs.
+clean_and_die() {
+    error_code="$1"; error_message="$2"
+    echo -e "\nERROR: $error_message ($error_code) in script" \
+        "'$(basename $0)'" 1>&2
+    jobs=$(jobs -pr); [ -z "$jobs" ] || kill $(jobs -pr)
+    exit $error_code
+}
+
+trap 'clean_and_die $? "terminated unexpectedly at line $LINENO"' ERR
+trap 'clean_and_die  1 "interrupted"'           INT
+trap 'clean_and_die  1 "caught TERM signal"'    TERM
+
+
+##############################################################################
 ##                                 Settings                                 ##
 ##############################################################################
 
-CORES=4                     #number of cores can be set manually here
+CORES=4                     # number of cores can be set manually here
 MINLENGTH=500
 ABYSS_MODE=unitigs
 
