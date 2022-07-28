@@ -85,21 +85,21 @@ TMP=$(mktemp -d -p "$OUT")  #create a temporary folder - deleted in the end
 BASE=$(basename "$NANO" .fastq)
 
 echo ">>>> K-mer Filtering of Illumina Reads"
-jellyfish count -m $K_MER_JELLY -s 100M -t $CORES -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
+jellyfish count -m "$K_MER_JELLY" -s 100M -t "$CORES" -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
 jellyfish histo "$TMP/jelly_count_k${K_MER_JELLY}.jf" > "$TMP/jelly_histo_k${K_MER_JELLY}.histo"
 TOTAL_NON_UNIQUE_KMERS=$(awk '{if($1 != "1") s += $2} END{print s}' "$TMP/jelly_histo_k${K_MER_JELLY}.histo")
 ABUNDANCE_THRESHOLD=$("$SCRIPTPATH/setAbundanceThresholdFromHisto.py" "$TMP/jelly_histo_k${K_MER_JELLY}.histo" $TOTAL_NON_UNIQUE_KMERS)
-echo "abundance threshold for k-mer filtering: " $ABUNDANCE_THRESHOLD > "$OUT/report.txt"
-jellyfish dump -L $ABUNDANCE_THRESHOLD "$TMP/jelly_count_k${K_MER_JELLY}.jf" >  "$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa"
-bbduk.sh in1="$ILLUMINA_RAW_1" in2="$ILLUMINA_RAW_2" out1="$TMP/illu_filtered.1.fastq" out2="$TMP/illu_filtered.2.fastq" ref="$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa" k=$K_MER_JELLY hdist=0
+echo "abundance threshold for k-mer filtering: " "$ABUNDANCE_THRESHOLD" > "$OUT/report.txt"
+jellyfish dump -L "$ABUNDANCE_THRESHOLD" "$TMP/jelly_count_k${K_MER_JELLY}.jf" >  "$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa"
+bbduk.sh in1="$ILLUMINA_RAW_1" in2="$ILLUMINA_RAW_2" out1="$TMP/illu_filtered.1.fastq" out2="$TMP/illu_filtered.2.fastq" ref="$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa" k="$K_MER_JELLY" hdist=0
 
 echo ">>>> Illumina Assembly"
 mkdir -p "$OUT/ABYSS"   #create folder "ABYSS" for ABYSS results
-abyss-pe -C "$OUT/ABYSS" np=$CORES name="$NAME" k=$K_MER_ABYSS in="$TMP/illu_filtered.1.fastq $TMP/illu_filtered.2.fastq" ${ABYSS_MODE} 2>&1 | tee "$OUT/ABYSS/abyss.log"
+abyss-pe -C "$OUT/ABYSS" np="$CORES" name="$NAME" k="$K_MER_ABYSS" in="$TMP/illu_filtered.1.fastq $TMP/illu_filtered.2.fastq" ${ABYSS_MODE} 2>&1 | tee "$OUT/ABYSS/abyss.log"
 awk -v min="$MINLENGTH" 'BEGIN {RS = ">" ; ORS = ""} $2 >= min {print ">"$0}' "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.fa"  > "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa"
 
 echo ">>>> Unitig Filter"
-minimap2 -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo $NANO "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa" > "$OUT/01_unitigs.to_$BASE.paf"
+minimap2 -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo "$NANO" "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa" > "$OUT/01_unitigs.to_$BASE.paf"
 "$SCRIPTPATH/unitig_filter.py" "$OUT/01_unitigs.to_$BASE.paf" "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa" "$OUT/report.txt" "$TMP/unitigs_corrected.fa"
 
 echo ">>>> Scrubbing"
