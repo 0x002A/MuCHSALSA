@@ -76,9 +76,29 @@ esac
 ##                                   Main                                   ##
 ##############################################################################
 
+# For a list of executables, check whether each one is available in path.
+check_exec() {
+    for name in "$@"; do
+        local type="$(type -t "$name")"
+        if [ -z "$type" ]; then
+            echo "Could not find '$name', make sure it is available!" 1>&2
+            exit 1
+        fi
+    done
+}
+
+##############################################################################
+##                                   Main                                   ##
+##############################################################################
+
 # Get path to this script.
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
+
+# Check that all required programs are available.
+check_exec jellyfish bbduk.sh abyss-pe awk minimap2 \
+    "$SCRIPTPATH/unitig_filter.py" "$SCRIPTPATH/scrubber_bfs.py" \
+    "$SCRIPTPATH/muchsalsa"
 
 mkdir -p "$OUT"             #create output folder if it doesn't already exist
 TMP=$(mktemp -d -p "$OUT")  #create a temporary folder - deleted in the end
