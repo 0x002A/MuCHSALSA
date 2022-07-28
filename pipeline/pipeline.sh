@@ -26,7 +26,7 @@ trap 'clean_and_die  1 "caught TERM signal"'    TERM
 ##                                 Settings                                 ##
 ##############################################################################
 
-CORES=4                     # number of cores can be set manually here
+CORES=40                       # number of cores can be set manually here
 MINLENGTH=500
 ABYSS_MODE=unitigs
 
