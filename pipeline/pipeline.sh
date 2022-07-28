@@ -35,7 +35,7 @@ ABYSS_MODE=unitigs
 ##############################################################################
 
 # Check number of positional arguments.
-if [ $# -ne 7 ]; then
+if [ $# -ne 7 ] && [ $# -ne 8 ] ; then
     cat <<END_OF_USAGE 1>&2
 MuCHSALSA -- Hybrid genome assembly pipeline
 Wrong number of arguments. Usage:
