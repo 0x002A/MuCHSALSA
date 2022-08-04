@@ -103,9 +103,9 @@ check_exec jellyfish bbduk.sh abyss-pe awk minimap2 \
     "$SCRIPTPATH/unitig_filter.py" "$SCRIPTPATH/scrubber_bfs.py" \
     "$SCRIPTPATH/muchsalsa"
 
-mkdir -p "$OUT"             #create output folder if it doesn't already exist
-TMP=$(mktemp -d -p "$OUT")  #create a temporary folder - deleted in the end
-BASE=$(basename "$NANO" .fastq)
+mkdir -p "$OUT"               #create output folder if it doesn't already exist
+TMP="$(mktemp -d -p "$OUT")"  #create a temporary folder - deleted in the end
+BASE="$(basename "$NANO" .fastq)"
 
 echo ">>>> K-mer Filtering of Illumina Reads"
 jellyfish count -m "$K_MER_JELLY" -s 100M -t "$CORES" -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
