@@ -2,7 +2,7 @@ option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
 option(ENABLE_INCLUDE_WHAT_YOU_USE "Enable static analysis with include-what-you-use" OFF)
 
 if (ENABLE_CLANG_TIDY)
-    find_program(CLANGTIDY clang-tidy-12)
+    find_program(CLANGTIDY clang-tidy-15)
     if (CLANGTIDY)
         set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY} -extra-arg=-Wno-unknown-warning-option -extra-arg=-std=c++2a)
     else ()
