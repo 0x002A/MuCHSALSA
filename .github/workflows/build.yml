@@ -15,16 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install libc++-12
+      - name: Install LLVM
         run: |
+          bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          sudo ./llvm.sh 12 all
+          sudo ./llvm.sh all
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.12
         with:
-          cmake-version: '3.24.x'
+          cmake-version: '3.26.x'
  
       - name: Install Doxygen and dot
         run: |
@@ -35,7 +36,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_BUILD_FAT_EXE=1 ..
+          cmake ..
           make
 
       - name: Run tests
