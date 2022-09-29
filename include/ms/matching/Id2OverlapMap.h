@@ -39,13 +39,13 @@ namespace muchsalsa::matching {
 namespace detail {
 using key_t = std::tuple<unsigned int, std::size_t>;
 
-struct KeyHash : public std::unary_function<key_t, std::size_t> {
+struct KeyHash {
   std::size_t operator()(const key_t &key) const {
     return std::hash<unsigned int>{}(std::get<0>(key)) ^ std::get<1>(key);
   }
 };
 
-struct KeyEqual : public std::binary_function<key_t, key_t, bool> {
+struct KeyEqual {
   bool operator()(const key_t &lhs, const key_t &rhs) const { return lhs == rhs; }
 };
 } // namespace detail
