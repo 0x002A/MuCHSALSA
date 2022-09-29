@@ -43,3 +43,11 @@ jobs:
         run: |
           cd build
           make test
+
+      - name: Update Nightly Build
+        uses: eine/tip@master
+        with:
+          tag: nightly
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: build/bin/muchsalsa
