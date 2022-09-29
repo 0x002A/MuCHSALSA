@@ -6,7 +6,7 @@ if (ENABLE_CLANG_TIDY)
     if (CLANGTIDY)
         set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY} -extra-arg=-Wno-unknown-warning-option -extra-arg=-std=c++2a)
     else ()
-        message(SEND_ERROR "clang-tidy-12 requested but executable not found")
+        message(SEND_ERROR "clang-tidy-15 requested but executable not found")
     endif ()
 endif ()
 
