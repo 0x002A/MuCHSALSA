@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'develop'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install LLVM
+        run: |
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh all
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.12
+        with:
+          cmake-version: '3.24.x'
+ 
+      - name: Install Doxygen and dot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Build with cmake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+
+      - name: Run tests
+        run: |
+          cd build
+          make test
+
+      - name: Update Nightly Build
+        uses: eine/tip@master
+        with:
+          tag: nightly
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: build/bin/muchsalsa

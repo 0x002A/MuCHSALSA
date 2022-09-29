@@ -301,14 +301,8 @@ std::vector<muchsalsa::graph::Vertex const *> findConservationPathAlt(
     std::size_t                                                                                maxOut = 0;
     auto const successors = pDiGraphCycle->getSuccessors(pVertex);
     for (auto const &[targetId, pEdge] : successors) {
-      auto edge = [&](auto const *const pEdge, auto const &targetId) {
-        auto vertices = pEdge->getVertices();
-        if (vertices.second->getId() == targetId) {
-          return vertices;
-        }
-
-        return std::make_pair(vertices.second, vertices.first);
-      }(pEdge, targetId);
+      auto edge = pEdge->getVertices();
+      muchsalsa::util::swap_if(edge.first, edge.second, edge.second->getId() != targetId);
 
       auto const currentClusterWeight = pClusterWeights->at(pEdge);
       if (currentClusterWeight > maxOut) {
