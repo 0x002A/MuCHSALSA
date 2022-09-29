@@ -39,7 +39,7 @@ recommended.
 
 # Building
 
-Building the project requires **cmake**, **clang-12** and **libc++-12** and can be done by running the following
+Building the project requires **git**, **cmake**, **clang-15**, **libc++-15**, **Doxygen**, and **Graphviz** and can be done by running the following
 commands:
 
 ```bash
@@ -75,10 +75,10 @@ make doc
 All the code within this project is uniformly formatted using clang-format:
 
 ```bash
-find . -regex '.*\.\(cpp\|h\)' -exec clang-format-12 -style=file -i {} \;
+find . -regex '.*\.\(cpp\|h\)' -exec clang-format-15 -style=file -i {} \;
 ```
 
 # Standard Library
 
-This project uses `libc++-12` as standard library. For information on building `libc++`
-see [here](https://libcxx.llvm.org/docs/BuildingLibcxx.html).
+This project uses `libc++-15` as standard library. For information on installing the `LLVM` ecosystem
+see [here]([https://libcxx.llvm.org/docs/BuildingLibcxx.html](https://llvm.org)).
