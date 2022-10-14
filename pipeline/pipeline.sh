@@ -26,7 +26,7 @@ trap 'clean_and_die  1 "caught TERM signal"'    TERM
 ##                                 Settings                                 ##
 ##############################################################################
 
-MINLENGTH=500
+MINLENGTH=500               # minimal unitig length (?)
 ABYSS_MODE=unitigs
 
 
@@ -56,7 +56,15 @@ OUT_="$7"
 CORES="${8:-4}"                # number of cores used by Jellyfish/Abyss/MS
 BLOOM_MEM="${9:-8G}"                # 50G for H.sapiens, 2G for C.elegans
 
-# Check existence of input files.
+# Make output path absolute.
+OUT="$(realpath "$OUT_")"
+
+
+##############################################################################
+##                                 Functions                                ##
+##############################################################################
+
+# Check existence and size (>0) of input the given files.
 check_files() {
     for file in "$@"; do
         [ -s "$file" ] || {
@@ -65,18 +73,6 @@ check_files() {
         }
     done
 }
-check_files "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" "$NANO"
-
-# Make output path absolute.
-case "$OUT_" in
-  /*) OUT="$OUT_";;
-  *) OUT="$PWD/$OUT_";;
-esac
-
-
-##############################################################################
-##                                 Functions                                ##
-##############################################################################
 
 # For a list of executables, check whether each one is available in path.
 check_exec() {
@@ -89,10 +85,32 @@ check_exec() {
     done
 }
 
+# Make a symlink to a given file in a specific directory. Optionally, append a
+# given prefix to the link name (which is otherwise identical to the original
+# file name.
+make_link() {
+    local file="$1" dir="$2" prefix="${3:-}" rel_path= link_path=
+
+    rel_path="$(realpath --relative-to "$dir" "$file")"
+    link_path="$dir/$prefix$(basename "$file")"
+
+    ln --symbolic --force "$rel_path" "$link_path"
+    echo "$link_path"
+}
+
 
 ##############################################################################
 ##                                   Main                                   ##
 ##############################################################################
+
+# Print some info.
+cat <<END_OF_INFO
+              * * * MuCHSALSA genome assembly pipeline * * *
+
+Start time: $( date '+%a, %F %T' )
+Using $CORES cores and $BLOOM_MEM of memory for bloom filter.
+Writing output to '$OUT'.
+END_OF_INFO
 
 # Get path to this script.
 SCRIPT=$(readlink -f "$0")
@@ -103,36 +121,66 @@ check_exec jellyfish bbduk.sh abyss-pe awk minimap2 \
     "$SCRIPTPATH/unitig_filter.py" "$SCRIPTPATH/scrubber_bfs.py" \
     "$SCRIPTPATH/muchsalsa"
 
+# Check that all input files exist and are not empty.
+check_files "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" "$NANO"
+
+# Create output and temp dirs.
 mkdir -p "$OUT"               #create output folder if it doesn't already exist
 TMP="$(mktemp -d -p "$OUT")"  #create a temporary folder - deleted in the end
 BASE="$(basename "$NANO" .fastq)"
 
-echo ">>>> K-mer Filtering of Illumina Reads"
-jellyfish count -m "$K_MER_JELLY" -s 100M -t "$CORES" -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
-jellyfish histo -t "$CORES" "$TMP/jelly_count_k${K_MER_JELLY}.jf" > "$TMP/jelly_histo_k${K_MER_JELLY}.histo"
-TOTAL_NON_UNIQUE_KMERS="$(awk '{if($1 != "1") s += $2} END{print s}' "$TMP/jelly_histo_k${K_MER_JELLY}.histo")"
-ABUNDANCE_THRESHOLD="$("$SCRIPTPATH/setAbundanceThresholdFromHisto.py" "$TMP/jelly_histo_k${K_MER_JELLY}.histo" $TOTAL_NON_UNIQUE_KMERS)"
-echo "abundance threshold for k-mer filtering: " "$ABUNDANCE_THRESHOLD" > "$OUT/report.txt"
-jellyfish dump -L "$ABUNDANCE_THRESHOLD" "$TMP/jelly_count_k${K_MER_JELLY}.jf" > "$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa"
+# Instead of using the original nano read file, use a symlink in the outdir.
+# This prevents race conditions with multiple runs in the same dir.
+NANO="$(make_link "$NANO" "$OUT" '00_')"
+
+echo -e '\n>>>> K-mer Filtering of Illumina Reads'
+time {
+    echo "> Counting k-mers using jellyfish ..."
+    # # Count ALL kmers (classic approach)
+    # jellyfish count -m "$K_MER_JELLY" -s 100M -t "$CORES" -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
+    # Alternative: only count high-freq k-mers using bloom filter:
+    jelly_mem="$(( ${BLOOM_MEM%G} * 1000 / CORES ))M"   # divide mem by number of cores, use MB
+    jellyfish count -m "$K_MER_JELLY" --bf-size "$jelly_mem" -s 100M -t "$CORES" -C "$ILLUMINA_RAW_1" "$ILLUMINA_RAW_2" -o "$TMP/jelly_count_k${K_MER_JELLY}.jf"
+    jellyfish histo -t "$CORES" "$TMP/jelly_count_k${K_MER_JELLY}.jf" > "$TMP/jelly_histo_k${K_MER_JELLY}.histo"
+    TOTAL_NON_UNIQUE_KMERS="$(awk '{if($1 != "1") s += $2} END{print s}' "$TMP/jelly_histo_k${K_MER_JELLY}.histo")"
+    ABUNDANCE_THRESHOLD="$("$SCRIPTPATH/setAbundanceThresholdFromHisto.py" "$TMP/jelly_histo_k${K_MER_JELLY}.histo" $TOTAL_NON_UNIQUE_KMERS)"
+    echo "abundance threshold for k-mer filtering: " "$ABUNDANCE_THRESHOLD" > "$OUT/report.txt"
+    jellyfish dump -L "$ABUNDANCE_THRESHOLD" "$TMP/jelly_count_k${K_MER_JELLY}.jf" > "$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa"
+}
+echo '> Filtering k-mers using bbduk ...'
 bbduk.sh in1="$ILLUMINA_RAW_1" in2="$ILLUMINA_RAW_2" out1="$TMP/illu_filtered.1.fastq" out2="$TMP/illu_filtered.2.fastq" ref="$TMP/filtered_kmers_${K_MER_JELLY}_${ABUNDANCE_THRESHOLD}.fa" k="$K_MER_JELLY" hdist=0
 
-echo ">>>> Illumina Assembly"
+echo -e '\n>>>> Illumina Assembly'
+echo '> Assembling short reads using Abyss ...'
 mkdir -p "$OUT/ABYSS"   #create folder "ABYSS" for ABYSS results
 # abyss-pe -C "$OUT/ABYSS" np="$CORES" name="$NAME" k="$K_MER_ABYSS" in="$TMP/illu_filtered.1.fastq $TMP/illu_filtered.2.fastq" "${ABYSS_MODE}" 2>&1 | tee "$OUT/ABYSS/abyss.log"
 abyss-pe -C "$OUT/ABYSS" j="$CORES" B="$BLOOM_MEM" name="$NAME" k="$K_MER_ABYSS" in="$TMP/illu_filtered.1.fastq $TMP/illu_filtered.2.fastq" "${ABYSS_MODE}" 2>&1 | tee "$OUT/ABYSS/abyss.log"
+echo '> Filtering for minimal length ...'
 awk -v min="$MINLENGTH" 'BEGIN {RS = ">" ; ORS = ""} $2 >= min {print ">"$0}' "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.fa"  > "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa"
 
-echo ">>>> Unitig Filter"
+echo -e '\n>>>> Unitig Filter'
+echo '> Running minimap ...'
 minimap2 -t "$CORES" -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo "$NANO" "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa" > "$OUT/01_unitigs.to_$BASE.paf"
+echo '> Running filter script ...'
 "$SCRIPTPATH/unitig_filter.py" "$OUT/01_unitigs.to_$BASE.paf" "$OUT/ABYSS/${NAME}-${ABYSS_MODE}.l${MINLENGTH}.fa" "$OUT/report.txt" "$TMP/unitigs_corrected.fa"
 
-echo ">>>> Scrubbing"
+echo -e '\n>>>> Scrubbing'
+echo '> Running minimap ...'
 minimap2 -t "$CORES" -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo "$NANO" "$TMP/unitigs_corrected.fa" > "$OUT/01_contigs_corrected.to_$BASE.paf"
+echo '> Running scrubber script ...'
 "$SCRIPTPATH/scrubber_bfs.py" "$OUT/01_contigs_corrected.to_$BASE.paf" "$NANO" "$OUT/02_$BASE.scrubbed.fa" "$TMP"
 
-echo ">>>> Anchor Mapping"
-minimap2 -t "$CORES" -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo "$OUT/02_$BASE.scrubbed.fa" "$TMP/unitigs_corrected.fa" > "$OUT/02_contigs_corrected.to_$BASE.scrubbed.paf"
+echo -e '\n>>>> Anchor Mapping'
+echo '> Running minimap ...'
+minimap2 -t "$CORES" -k15 -DP --dual=yes --no-long-join -w5 -m100 -g10000 -r2000 --max-chain-skip 25 --split-prefix foo -c --eqx "$OUT/02_$BASE.scrubbed.fa" "$TMP/unitigs_corrected.fa" > "$OUT/02_contigs_corrected.to_$BASE.scrubbed.paf"
 
-echo ">>>> MuCHSALSA"
+echo -e '\n>>>> MuCHSALSA'
+echo '> Assembling long reads using MuCHSALSA ...'
 "$SCRIPTPATH/muchsalsa" "$OUT/02_contigs_corrected.to_$BASE.scrubbed.paf" "$TMP/unitigs_corrected.fa" "$OUT/02_$BASE.scrubbed.fa" "$TMP" "$CORES"
+echo '> Copying output ...'
 cp "$TMP/temp_1.target.fa" "$OUT/03.assembly.unpolished.fa"
+
+echo -e '\nAll done.'
+echo "End time: $( date '+%a, %F %T' )"
+
+# EOF
