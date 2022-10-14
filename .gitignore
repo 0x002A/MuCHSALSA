@@ -47,3 +47,14 @@ pipeline/report.txt
 
 # Vagrant data
 .vagrant/
+
+# Qt Creator IDE files
+/MuCHSALSA.cflags
+/MuCHSALSA.config
+/MuCHSALSA.creator
+/MuCHSALSA.creator.user
+/MuCHSALSA.cxxflags
+/MuCHSALSA.files
+/MuCHSALSA.includes
+/.qtc_clangd/
+
