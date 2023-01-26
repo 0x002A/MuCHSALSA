@@ -1,0 +1,20 @@
+name: muchsalsa
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - make
+  - clang-format
+  - cmake
+  - ninja
+  - clang-12
+  - clang-tools
+  - libcxx=12
+  - ca-certificates
+  - openssl
+  - kmer-jellyfish
+  - numpy
+  - networkx
+  - biopython
+  - quast

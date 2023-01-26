@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This is an unmodified copy of scrubber_bfs.py taken from
 # https://github.com/TGatter/LazyB
 
@@ -17,6 +17,10 @@ tmp_dir = sys.argv[4]
 output = open(output_file, "w")
 
 subset_size = 60000
+
+# Fix SQL full disk errors (?!)
+os.environ["SQLITE_TMPDIR"] = tmp_dir
+os.environ["TMPDIR"] = tmp_dir
 
 if seq_file_base.endswith("fa") or seq_file_base.endswith("fasta"):
     seq_dict = SeqIO.index_db(seq_file_base + ".idx", seq_file_base, "fasta")

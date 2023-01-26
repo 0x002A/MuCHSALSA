@@ -28,9 +28,33 @@
 
 # Executables
 build/
+build-*/
 *.exe
 *.out
 *.app
 
 # Debugger Config
 .atom-dbg.cson
+
+# Temporary files/dirs of pipeline
+tmp.*/
+pipeline/*fastq*.paf
+pipeline/ABYSS/
+pipeline/report.txt
+
+# Editor temp files
+.*.swp
+
+# Vagrant data
+.vagrant/
+
+# Qt Creator IDE files
+/MuCHSALSA.cflags
+/MuCHSALSA.config
+/MuCHSALSA.creator
+/MuCHSALSA.creator.user
+/MuCHSALSA.cxxflags
+/MuCHSALSA.files
+/MuCHSALSA.includes
+/.qtc_clangd/
+

@@ -13,7 +13,10 @@ Gatter, T., von Löhneysen, S., Fallmann, J. et al. LazyB: fast and cheap genome
 - bbduk
 - Abyss 2 (using 'abyss-pe')
 - minimap2
-- Python 3.6.9 (at least)
+- Python 3.6.9 (at least), including:
+    - numpy
+    - networkx
+    - biopython
 
 # Download
 

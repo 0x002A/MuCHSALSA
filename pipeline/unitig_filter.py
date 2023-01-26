@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This is an unmodified copy of unitig_filter.py taken from
 # https://github.com/TGatter/LazyB
 
